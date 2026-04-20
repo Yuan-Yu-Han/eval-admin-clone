@@ -108,14 +108,15 @@ test('runs page seeds a small set of realistic result-type examples', async () =
   const runsJson = await fetch(`${BASE}/runs`).then((res) => res.json());
   const seededRuns = runsJson.data.filter((run) => run.runId.startsWith('run_demo_'));
 
-  assert.deepEqual(
-    runsJson.data.slice(0, 3).map((run) => run.runId),
-    ['run_demo_operation_report', 'run_demo_action_prompt', 'run_demo_query_direct'],
-    'demo runs should be the first rows visible on the Runs page'
-  );
-  assert.deepEqual(seededRuns.map((run) => run.runId), [
-    'run_demo_operation_report',
+  const ordered = runsJson.data || [];
+  for (let i = 0; i < ordered.length - 1; i++) {
+    const a = new Date(ordered[i].startedAt || 0).getTime();
+    const b = new Date(ordered[i + 1].startedAt || 0).getTime();
+    assert.equal(a >= b, true, 'runs should be sorted by latest startedAt first');
+  }
+  assert.deepEqual([...new Set(seededRuns.map((run) => run.runId))].sort(), [
     'run_demo_action_prompt',
+    'run_demo_operation_report',
     'run_demo_query_direct'
   ]);
   assert.ok(seededRuns.every((run) => run.results.length <= 3), 'seeded runs should stay compact');
@@ -362,7 +363,6 @@ test('local page includes run version setup, filtering, and funnel explanation c
 
   for (const text of [
     'Agent 版本筛选',
-    '测试集版本',
     'Agent 版本',
     '目标分组',
     '生成用例 Prompt',
@@ -560,9 +560,10 @@ test('runs page exposes a complete create-run entry point', async () => {
 
   for (const text of [
     '新建运行',
-    '测试集',
     '运行配置',
-    '选择测试集后自动使用该测试集下的用例'
+    '运行名称',
+    'Mock 数据集',
+    'Agent 版本'
   ]) {
     assert.equal(html.includes(text), true, `page should include closed-loop run creation text: ${text}`);
   }
@@ -659,7 +660,7 @@ test('buttons receive hover explanations through a shared tooltip map', async ()
     'BUTTON_TOOLTIP_MAP',
     "'预览':'根据当前 Prompt、分组和期望函数字段生成预览，不会入库'",
     "'生成并加入用例库':'把预览逻辑生成的用例写入 Cases 列表，默认启用'",
-    "'新建运行':'从测试集、Agent 版本和 Mock 数据集开始配置一次评测'",
+    "'新建运行':'配置运行名称、Agent 版本与 Mock 数据集后启动评测'",
     "'+ 新建':'新增一个分组或轮次，具体取决于所在区域'",
     'applyButtonTooltips()'
   ]) {

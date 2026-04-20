@@ -1008,11 +1008,6 @@
             <div style="font-size:48px;font-weight:800;color:var(--c-accent);line-height:1" id="rc-count">0</div>
             <div style="font-size:14px;color:var(--c-text2);margin-top:8px">个已启用用例将被执行</div>
             <div style="font-size:12px;color:var(--c-text3);margin-top:12px" id="rc-hint"></div>
-            <div id="rc-testset-wrap" style="margin-top:18px;display:flex;align-items:center;justify-content:center;gap:12px">
-                <span style="font-size:13px;color:var(--c-text2);white-space:nowrap">测试集</span>
-                <select class="fi" id="rc-testset" style="width:auto;min-width:260px;padding:6px 10px;font-size:13px" onchange="onRunTestsetChange()"></select>
-            </div>
-            <div style="font-size:12px;color:var(--c-text3);margin-top:8px" id="rc-testset-desc">选择测试集后自动使用该测试集下的用例</div>
             <div style="margin-top:18px;display:flex;align-items:center;justify-content:center;gap:12px">
                 <span style="font-size:13px;color:var(--c-text2);white-space:nowrap">运行名称</span>
                 <input class="fi" id="rc-name" style="width:auto;min-width:220px;padding:6px 10px;font-size:13px" placeholder="输入运行名称" />
@@ -1030,10 +1025,6 @@
             <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:12px">
                 <span style="font-size:13px;color:var(--c-text2)">Mock 数据集</span>
                 <select class="fi" id="rc-mock-config" style="width:auto;min-width:180px;padding:6px 10px;font-size:13px"></select>
-            </div>
-            <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:12px">
-                <span style="font-size:13px;color:var(--c-text2)">测试集版本</span>
-                <select class="fi" id="rc-dataset-version" style="width:auto;min-width:220px;padding:6px 10px;font-size:13px"></select>
             </div>
             <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:12px">
                 <span style="font-size:13px;color:var(--c-text2)">Agent 版本</span>
@@ -1195,13 +1186,13 @@
 var BASE = '/admin/eval';
 var allCases = [], allRuns = [], polls = {};
 var _debugData = [];
-var _agentVersions = [], _datasetVersions = [], _testsets = [], _pendingRunCaseIds = [];
+var _agentVersions = [];
 var LLM_ALL_TOOLS=['RAG','freeChat','open_door','return_app_native_router','vehicle_control','vehicle_operation_data_query','vehicle_selective_query'];
 var BUTTON_TOOLTIP_MAP={
     '预览':'根据当前 Prompt、分组和期望函数字段生成预览，不会入库',
     '加入用例库':'把预览逻辑生成的用例写入 Cases 列表，默认启用',
     '生成并加入用例库':'把预览逻辑生成的用例写入 Cases 列表，默认启用',
-    '新建运行':'从测试集、Agent 版本和 Mock 数据集开始配置一次评测',
+    '新建运行':'配置运行名称、Agent 版本与 Mock 数据集后启动评测',
     '+ 新建':'新增一个分组或轮次，具体取决于所在区域',
     '取消':'关闭当前弹窗，不保存本次修改',
     '保存':'保存当前用例字段到 Cases 列表',
@@ -1273,14 +1264,8 @@ function loadEnv(){
     }).catch(function(){});
 }
 function loadVersionOptions(cb){
-    Promise.all([
-        fetch(BASE+'/api/agent-versions').then(function(r){return r.json();}).catch(function(){return {data:[]};}),
-        fetch(BASE+'/api/dataset-versions').then(function(r){return r.json();}).catch(function(){return {data:[]};}),
-        fetch(BASE+'/api/testsets').then(function(r){return r.json();}).catch(function(){return {data:[]};})
-    ]).then(function(results){
-        _agentVersions=(results[0]&&results[0].code==='10000')?(results[0].data||[]):[];
-        _datasetVersions=(results[1]&&results[1].code==='10000')?(results[1].data||[]):[];
-        _testsets=(results[2]&&results[2].code==='10000')?(results[2].data||[]):[];
+    fetch(BASE+'/api/agent-versions').then(function(r){return r.json();}).catch(function(){return {data:[]};}).then(function(result){
+        _agentVersions=(result&&result.code==='10000')?(result.data||[]):[];
         renderVersionOptions();
         if(cb) cb();
     });
@@ -1296,22 +1281,6 @@ function renderVersionOptions(){
     var rcAgent=document.getElementById('rc-agent-version');
     if(rcAgent){
         rcAgent.innerHTML=_agentVersions.map(function(v){return '<option value="'+esc(v.version)+'">'+esc(v.label||v.version)+'</option>';}).join('');
-    }
-    var rcDataset=document.getElementById('rc-dataset-version');
-    if(rcDataset){
-        var datasetOpts=_datasetVersions.slice();
-        _testsets.forEach(function(t){
-            if(t.version&&!datasetOpts.find(function(v){return v.version===t.version;})){
-                datasetOpts.push({version:t.version,label:t.name+' 版本'});
-            }
-        });
-        rcDataset.innerHTML=datasetOpts.map(function(v){return '<option value="'+esc(v.version)+'">'+esc(v.label||v.version)+'</option>';}).join('');
-    }
-    var rcTestset=document.getElementById('rc-testset');
-    if(rcTestset){
-        var opts='<option value="">当前勾选/筛选快照</option>';
-        opts+=_testsets.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+' ('+(t.caseCount||0)+' 条)</option>';}).join('');
-        rcTestset.innerHTML=opts;
     }
 }
 
@@ -2019,7 +1988,7 @@ function importCsv(input){
 function _yyMM(){ var d=new Date(); return String(d.getFullYear()).slice(2)+'-'+String(d.getMonth()+1).padStart(2,'0'); }
 function runSelected(){
     var ids=selIds(); if(!ids.length){toast('请先勾选用例','err');return;}
-    showRunConfirm(ids,'已勾选 '+ids.length+' 个用例','选中用例评测-'+_yyMM(),'',{allowTestset:false});
+    showRunConfirm(ids,'已勾选 '+ids.length+' 个用例','选中用例评测-'+_yyMM());
 }
 function runAllEnabled(){
     var base=filteredCases.length?filteredCases:allCases;
@@ -2036,37 +2005,21 @@ function runAllEnabled(){
     if(q) parts.push('关键词='+q);
     var hint=parts.length?'筛选条件：'+parts.join(' / '):'包含全部已启用用例';
     var name=gf?(gf+'-'+_yyMM()):('全量评测-'+_yyMM());
-    showRunConfirm(ids,hint,name,'',{allowTestset:false});
+    showRunConfirm(ids,hint,name);
 }
 function openNewRunFromRuns(){
     loadVersionOptions(function(){
-        var ts=_testsets[0];
-        var ids=ts?(ts.caseIds||[]):allCases.filter(function(c){return c.enabled;}).slice(0,12).map(function(c){return c.id;});
-        showRunConfirm(ids,'选择测试集后自动使用该测试集下的用例','评测运行-'+_yyMM(),ts?ts.id:'',{allowTestset:true});
+        var ids=allCases.filter(function(c){return c.enabled;}).slice(0,12).map(function(c){return c.id;});
+        showRunConfirm(ids,'默认使用当前已启用用例','评测运行-'+_yyMM());
     });
 }
-function showRunConfirm(ids,hint,name,testsetId,options){
-    options=options||{};
-    var allowTestset=options.allowTestset!==false;
-    _pendingRunCaseIds=ids||[];
+function showRunConfirm(ids,hint,name){
     document.getElementById('rc-count').textContent=ids.length;
     document.getElementById('rc-hint').textContent=hint;
     document.getElementById('rc-name').value=name||'';
-    var testsetWrap=document.getElementById('rc-testset-wrap');
-    var testsetDesc=document.getElementById('rc-testset-desc');
-    if(testsetWrap) testsetWrap.style.display=allowTestset?'flex':'none';
-    if(testsetDesc) testsetDesc.style.display=allowTestset?'block':'none';
     // 加载数据集列表到运行弹窗下拉
     loadMockConfigs();
-    loadVersionOptions(function(){
-        if(allowTestset){
-            var rcTestset=document.getElementById('rc-testset');
-            if(rcTestset){
-                rcTestset.value=testsetId||'';
-                onRunTestsetChange();
-            }
-        }
-    });
+    loadVersionOptions();
     // prompt 覆盖提示
     var draftCount=Object.keys(_promptDrafts).length;
     var promptHint=document.getElementById('rc-prompt-hint');
@@ -2085,44 +2038,30 @@ function showRunConfirm(ids,hint,name,testsetId,options){
         var runName=document.getElementById('rc-name').value.trim()||name;
         var concurrency=parseInt(document.getElementById('rc-concurrency').value)||1;
         var mockCfgId=document.getElementById('rc-mock-config').value;
-        var selectedTestsetId=allowTestset?document.getElementById('rc-testset').value:'';
-        var datasetVersion=document.getElementById('rc-dataset-version').value;
         var agentVersion=document.getElementById('rc-agent-version').value;
         closeRunConfirm();
         var overrides=draftCount>0?Object.assign({},_promptDrafts):undefined;
-        startRun(selectedTestsetId?_pendingRunCaseIds:ids,runName,concurrency,mockCfgId,overrides,{datasetVersion:datasetVersion,agentVersion:agentVersion,testsetId:selectedTestsetId});
+        startRun(ids,runName,concurrency,mockCfgId,overrides,{agentVersion:agentVersion});
     };
     document.getElementById('ol-run-confirm').classList.add('open');
-}
-function onRunTestsetChange(){
-    var sel=document.getElementById('rc-testset');
-    if(!sel)return;
-    var testsetId=sel.value;
-    var ts=_testsets.find(function(item){return item.id===testsetId;});
-    var desc=document.getElementById('rc-testset-desc');
-    var count=document.getElementById('rc-count');
-    var hint=document.getElementById('rc-hint');
-    var ds=document.getElementById('rc-dataset-version');
-    if(ts){
-        _pendingRunCaseIds=ts.caseIds||[];
-        count.textContent=ts.caseCount||_pendingRunCaseIds.length;
-        desc.textContent=ts.description||'选择测试集后自动使用该测试集下的用例';
-        hint.textContent='测试集：'+ts.name+' / 分组：'+((ts.groups||[]).join('、')||'-');
-        if(ds) ds.value=ts.version||ds.value;
-        var nameEl=document.getElementById('rc-name');
-        if(nameEl&&!nameEl.value) nameEl.value=ts.name+'-'+_yyMM();
-    }else{
-        count.textContent=(_pendingRunCaseIds||[]).length;
-        desc.textContent='选择测试集后自动使用该测试集下的用例';
-    }
 }
 function reRun(runId){
     fetch(BASE+'/api/runs/'+runId).then(function(r){return r.json();}).then(function(d){
         if(d.code!=='10000'){toast('加载失败','err');return;}
         var r=d.data;
         if(!r||!r.caseIds||!r.caseIds.length){toast('该运行无用例信息','err');return;}
-        showRunConfirm(r.caseIds,'重跑「'+esc(r.name||'')+'」('+r.caseIds.length+' 条)','重跑 '+esc(r.name||''),'',{allowTestset:false});
+        showRunConfirm(r.caseIds,'重跑「'+esc(r.name||'')+'」('+r.caseIds.length+' 条)','重跑 '+esc(r.name||''));
     }).catch(function(){toast('请求异常','err');});
+}
+function deleteRun(runId){
+    if(!confirm('确定删除这条运行记录吗？\n\n删除后无法恢复。')) return;
+    fetch(BASE+'/api/runs/'+runId,{method:'DELETE'}).then(function(r){return r.json();}).then(function(d){
+        if(d.code==='10000'){
+            toast('运行记录已删除','ok');
+            if(_currentRun&&_currentRun.id===runId) backToRuns();
+            else loadRuns();
+        }else toast('删除失败: '+(d.message||''),'err');
+    }).catch(function(){toast('删除请求失败','err');});
 }
 function closeRunConfirm(){document.getElementById('ol-run-confirm').classList.remove('open');}
 var _runSelectedCaseIds={};
@@ -2209,7 +2148,7 @@ function renderRuns(list){
             '<td class="mono" style="font-size:12px">'+dur+'</td>'+
             '<td style="white-space:nowrap;color:var(--c-text3)">'+ft(r.startedAt)+'</td>'+
             '<td style="white-space:nowrap">'+(r.status==='RUNNING'?'<button class="btn btn-r btn-sm" onclick="stopRun(\''+r.id+'\')">停止</button> ':
-            '<button class="btn btn-flat btn-sm" onclick="reRun(\''+r.id+'\')">重跑</button> ')+
+            '<button class="btn btn-flat btn-sm" onclick="reRun(\''+r.id+'\')">重跑</button> <button class="btn btn-flat btn-sm" style="color:var(--c-red)" onclick="deleteRun(\''+r.id+'\')">删除</button> ')+
             '<button class="btn btn-flat btn-sm" onclick="viewRun(\''+r.id+'\')">详情</button></td></tr>';
     }).join('');
 }

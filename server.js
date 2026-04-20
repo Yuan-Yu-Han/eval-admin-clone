@@ -1525,19 +1525,10 @@ function enrichRun(run) {
 }
 
 function runsForDisplay() {
-  const demoOrder = new Map([
-    ['run_demo_operation_report', 0],
-    ['run_demo_action_prompt', 1],
-    ['run_demo_query_direct', 2]
-  ]);
   return [...runs].sort((a, b) => {
-    const aDemo = demoOrder.has(a.runId);
-    const bDemo = demoOrder.has(b.runId);
-    if (aDemo || bDemo) {
-      if (aDemo && bDemo) return demoOrder.get(a.runId) - demoOrder.get(b.runId);
-      return aDemo ? -1 : 1;
-    }
-    return new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime();
+    const byTime = new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime();
+    if (byTime !== 0) return byTime;
+    return String(b.runId || '').localeCompare(String(a.runId || ''));
   });
 }
 
@@ -2273,6 +2264,12 @@ async function routeApi(req, res, url) {
     const run = runs.find((item) => item.id === parts[1]);
     if (!run) return notFound(res);
     if (method === 'GET' && parts.length === 2) return json(res, ok(enrichRun(run)));
+    if (method === 'DELETE' && parts.length === 2) {
+      const index = runs.findIndex((item) => item.id === parts[1]);
+      if (index < 0) return notFound(res);
+      runs.splice(index, 1);
+      return json(res, ok(true));
+    }
     if (method === 'GET' && parts[2] === 'status') {
       return json(res, ok({
         status: run.status,
