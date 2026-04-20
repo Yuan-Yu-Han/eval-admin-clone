@@ -672,3 +672,20 @@ test('buttons receive hover explanations through a shared tooltip map', async ()
     assert.equal(html.includes(text), true, `button tooltip support should include: ${text}`);
   }
 });
+
+test('run case details prioritize failure diagnosis before raw execution evidence', async () => {
+  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+
+  for (const text of [
+    '失败诊断',
+    '优先处理环节',
+    '证据分层',
+    '链路判断',
+    '逐轮明细',
+    '技术 JSON'
+  ]) {
+    assert.equal(html.includes(text), true, `run case detail should include clearer diagnosis copy: ${text}`);
+  }
+
+  assert.match(html, /function buildCaseDiagnosis/);
+});

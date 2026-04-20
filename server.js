@@ -384,7 +384,7 @@ function buildSeedRuns() {
               { label: '平均速度', value: '15.9', unit: 'km/h' }
             ]
           }),
-          reply: '上海同一日期的运营概览：运营车辆数 96 辆，有效任务数 812 单，AD里程占比 89.7%，平均速度 15.9km/h。',
+          reply: '上海昨日运营概览：运营车辆数 96 辆，有效任务数 812 单，AD里程占比 89.7%，平均速度 15.9km/h。',
           expectedTrace: {
             inputFields: [
               { path: 'data.filter.city', equals: '上海' },
@@ -845,6 +845,34 @@ function valueAtPath(obj, pathValue) {
   }, obj);
 }
 
+function valueAtPathFlexible(obj, pathValue) {
+  if (!obj || !pathValue) return undefined;
+  const tokens = String(pathValue).split('.').filter(Boolean);
+  let nodes = [obj];
+  for (const token of tokens) {
+    const options = token.split('/').filter(Boolean);
+    const keys = options.length ? options : [token];
+    const next = [];
+    nodes.forEach((node) => {
+      keys.forEach((rawKey) => {
+        const isArray = /\[\]$/.test(rawKey);
+        const key = isArray ? rawKey.slice(0, -2) : rawKey;
+        const value = key ? (node && typeof node === 'object' ? node[key] : undefined) : node;
+        if (value === undefined || value === null) return;
+        if (isArray) {
+          if (Array.isArray(value)) value.forEach((item) => next.push(item));
+        } else {
+          next.push(value);
+        }
+      });
+    });
+    nodes = next;
+    if (!nodes.length) break;
+  }
+  if (!nodes.length) return undefined;
+  return nodes.length === 1 ? nodes[0] : nodes;
+}
+
 function normalizeExpectedTrace(turn, result) {
   const caseTrace = result.caseMeta?.expectedTrace || result.expectedTrace || {};
   const turnTrace = turn.expectedTrace || {};
@@ -889,6 +917,9 @@ function defaultSkillContract(turn, parsed) {
       { path: 'data.sections', op: 'exists' }
     );
     notes.push('运营数据默认看 data.filter / data.mode / data.sections；不判断数据库数字是否真实正确');
+  } else if (tool === 'update_user_agent_name' || resultType === 'multi_turn_prompt') {
+    fields.push({ path: 'data.scene', op: 'exists' }, { path: 'data.llmMessage', op: 'exists' });
+    notes.push('多轮追问默认看 data.scene / data.llmMessage');
   } else if (['vehicle_control', 'open_door'].includes(tool) || resultType === 'action_result') {
     if (parsed.success === false) {
       fields.push({ path: 'data.errorCode', op: 'exists' }, { path: 'data.errorLabel', op: 'exists' });
@@ -902,9 +933,6 @@ function defaultSkillContract(turn, parsed) {
   } else if (tool === 'vehicle_selective_query' || resultType === 'query_result') {
     fields.push({ path: 'data', op: 'exists' });
     notes.push('车辆查询默认看 query_result 的 data 载荷，具体车辆 ID 需要 case.expectedTrace 配置');
-  } else if (tool === 'update_user_agent_name' || resultType === 'multi_turn_prompt') {
-    fields.push({ path: 'data.scene', op: 'exists' }, { path: 'data.llmMessage', op: 'exists' });
-    notes.push('多轮追问默认看 data.scene / data.llmMessage');
   } else if (tool === 'start_collect_merchant_location') {
     fields.push({ path: 'data.errorCode', op: 'exists' });
     notes.push('点位采集默认看权限/错误码或后续采集状态');
@@ -1107,11 +1135,17 @@ function buildRenderContract(result) {
     const renderFields = Array.isArray(trace.renderFields) ? trace.renderFields : [];
     if (renderFields.length) {
       renderFields.forEach((field) => {
-        const fieldName = field.path || field.field;
-        const source = String(valueAtPath(parsed, fieldName) ?? field.contains ?? '');
-        checked++;
-        if (source && reply.includes(source)) matched++;
+        const fieldName = field.path || field.field || '';
+        const sourcePath = fieldName.includes('->') ? fieldName.split('->')[0].trim() : fieldName;
+        const sourceRaw = field.contains ?? valueAtPathFlexible(parsed, sourcePath);
+        const source = asJsonText(sourceRaw);
         checkedFields.push(`case.expectedTrace.renderFields.${fieldName || field.contains || 'reply'}`);
+        if (!source || !String(source).trim()) {
+          evidence.push(`renderFields 配置未取到源值: ${fieldName || '(empty)'}`);
+          return;
+        }
+        checked++;
+        if (reply.includes(String(source))) matched++;
       });
       evidence.push('按 case.expectedTrace.renderFields 检查最终回复');
       return;

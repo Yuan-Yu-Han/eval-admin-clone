@@ -876,6 +876,84 @@
             </div>
             <div class="fg"><label class="fcheck" title="enable：是否启用该用例，关闭后不会进入运行范围"><input type="checkbox" id="ce-on" checked> 启用</label></div>
             <div class="turns-box">
+<!-- ═══ LLM Generate Modal ═══ -->
+<div class="overlay" id="ol-llm-gen">
+    <div class="dialog" style="max-width:760px">
+        <div class="dlg-head"><h2>LLM 自动生成并解析上传</h2><button class="dlg-close" onclick="closeLlmGenModal()">&times;</button></div>
+        <div class="dlg-body">
+            <div class="fr">
+                <div class="fg"><label class="fl">模式</label>
+                    <select class="fi" id="lg-mode" onchange="onLlmModeChange()">
+                        <option value="generate">自动生成</option>
+                        <option value="expand">定向扩写</option>
+                    </select>
+                </div>
+                <div class="fg"><label class="fl">生成数量</label><input class="fi" id="lg-count" type="number" min="1" max="50" value="8"></div>
+                <div class="fg"><label class="fl">轮次数</label><input class="fi" id="lg-turns" type="number" min="1" max="3" value="1"></div>
+                <div class="fg"><label class="fl">Case ID 前缀</label><input class="fi" id="lg-prefix" value="llm-demo"></div>
+            </div>
+            <div class="fl" style="margin-bottom:6px">目标分组</div>
+            <div class="fr">
+                <div class="fg"><label class="fl">选择已有分组</label><select class="fi" id="lg-group-select" onchange="syncLlmGroupFromSelect()"></select></div>
+                <div class="fg"><label class="fl">自定义分组</label><input class="fi" id='lg-custom-group' value=""></div>
+            </div>
+            <div class="fg">
+                <label class="fl">期望函数字段</label>
+                <select class="fi" id="lg-expected-tool">
+                    <option value="RAG">RAG</option>
+                    <option value="freeChat">freeChat</option>
+                    <option value="open_door">open_door</option>
+                    <option value="return_app_native_router">return_app_native_router</option>
+                    <option value="vehicle_control">vehicle_control</option>
+                    <option value="vehicle_operation_data_query">vehicle_operation_data_query</option>
+                    <option value="vehicle_selective_query">vehicle_selective_query</option>
+                </select>
+                <div style="font-size:12px;color:var(--c-text3);margin-top:6px">本次生成只使用一个 expectedTool。</div>
+            </div>
+            <div class="fg"><label class="fl">生成用例 Prompt</label><textarea class="fi" id="lg-generation-prompt" rows="8" placeholder="请写清楚要覆盖的业务目标、边界条件、期望工具和判断点"></textarea></div>
+            <div class="fg" id="lg-expand-group" style="display:none">
+                <label class="fl">扩写基础用例（优先使用当前勾选）</label>
+                <input class="fi" id="lg-base" placeholder="可留空；留空则使用当前勾选用例ID">
+                <div style="font-size:12px;color:var(--c-text3);margin-top:6px">格式：用例id逗号分隔（例如 case_1001,case_1002）</div>
+            </div>
+            <div id="lg-result" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid var(--c-border);border-radius:8px;background:#fafbfc;font-size:12px;color:var(--c-text2)"></div>
+        </div>
+        <div class="dlg-foot">
+            <button class="btn btn-ghost" onclick="closeLlmGenModal()">取消</button>
+            <button class="btn btn-flat" onclick="previewLlmCases()">预览</button>
+            <button class="btn btn-p" onclick="submitLlmCases()">生成并加入用例库</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Case Modal ═══ -->
+<div class="overlay" id="ol-case">
+    <div class="dialog">
+        <div class="dlg-head"><h2 id="case-dlg-title">新建用例</h2><button class="dlg-close" onclick="closeCM()">&times;</button></div>
+        <div class="dlg-body">
+            <input type="hidden" id="ce-id">
+            <div class="fr">
+                <div class="fg"><label class="fl" title="case_id：用例唯一标识，对应导入表的 case_id">Case ID</label><input class="fi" id="ce-caseId" placeholder="t1_door_001"></div>
+                <div class="fg"><label class="fl" title="name：用例名称，对应导入表的 name">名称</label><input class="fi" id="ce-name" placeholder="用例描述"></div>
+            </div>
+            <div class="fr">
+                <div class="fg">
+                    <label class="fl" title="辅助生成 user_id：选择权限档位后自动生成对应范围的 user_id">权限类型</label>
+                    <select class="fi" id="ce-tier" onchange="autoGenUid()">
+                        <option value="FULL">FULL（全权限）</option>
+                        <option value="OPEN_DOOR_ONLY">OPEN_DOOR_ONLY（仅开门）</option>
+                        <option value="OPERATIONAL_ONLY">OPERATIONAL_ONLY（仅运营）</option>
+                        <option value="DENIED">DENIED（无权限）</option>
+                    </select>
+                </div>
+                <div class="fg"><label class="fl" title="user_id：执行用例时使用的用户 ID，对应导入表的 user_id">User ID（自动生成）</label><input class="fi" id="ce-uid" readonly style="background:#f5f6fa;color:var(--c-text2)"></div>
+            </div>
+            <div class="fr">
+                <div class="fg"><label class="fl" title="group_name：用例所属分组，对应导入表的 group_name">分组</label><div style="display:flex;gap:6px"><select class="fi" id="ce-group" style="flex:1"></select><button class="btn btn-flat btn-sm" type="button" onclick="createNewGroup()">+ 新建</button></div></div>
+                <div class="fg"><label class="fl" title="标签：可选备注，不属于导入表核心字段，用于人工筛选和说明">标签（可选）</label><input class="fi" id="ce-tags" placeholder="开门,车控"></div>
+            </div>
+            <div class="fg"><label class="fcheck" title="enable：是否启用该用例，关闭后不会进入运行范围"><input type="checkbox" id="ce-on" checked> 启用</label></div>
+            <div class="turns-box">
                 <h4 title="input1 / expected_tool_1：第 1 轮用户输入和期望函数字段">多轮对话 <button class="btn btn-p btn-sm" onclick="addTurn()">+ 轮次</button></h4>
                 <div id="turns-ct"></div>
             </div>
@@ -2315,6 +2393,53 @@ function onBaselineChanged(runId){
         }
     });
 }
+function buildCaseDiagnosis(r){
+    var checks=r.contractChecks||[];
+    function byKey(key){return checks.find(function(x){return x.key===key;})||{};}
+    function stageBadge(cc){
+        if(cc.applies===false) return {label:'跳过', color:'var(--c-text3)', bg:'#f3f4f6'};
+        if(cc.pass) return {label:'通过', color:'var(--c-green)', bg:'var(--c-green-bg)'};
+        return {label:'未通过', color:'var(--c-red)', bg:'var(--c-red-bg)'};
+    }
+    var stages=[
+        {key:'route', label:'意图路由', short:'选错业务能力', cc:byKey('route')},
+        {key:'input', label:'输入条件', short:'条件没有保留', cc:byKey('input')},
+        {key:'skillResult', label:'SkillResult', short:'结构化结果异常', cc:byKey('skillResult')},
+        {key:'render', label:'回复渲染', short:'最终回复不忠实', cc:byKey('render')}
+    ];
+    var judgeScore=(r.llmJudge&&isFinite(Number(r.llmJudge.score)))?Math.max(0,Math.min(100,Math.round(Number(r.llmJudge.score)))):null;
+    var qualityScore=judgeScore;
+    if(qualityScore===null&&Array.isArray(r.stageChecks)){
+        var q=(r.stageChecks||[]).find(function(item){return item.key==='responseQuality';});
+        if(q&&isFinite(Number(q.score))) qualityScore=Math.max(0,Math.min(100,Math.round(Number(q.score))));
+    }
+    if(qualityScore===null) qualityScore=0;
+    var scoreColor='var(--c-green)',scoreBg='var(--c-green-bg)';
+    if(qualityScore<70){scoreColor='var(--c-red)';scoreBg='var(--c-red-bg)';}
+    else if(qualityScore<85){scoreColor='var(--c-amber)';scoreBg='var(--c-amber-bg)';}
+    var llmEval=(r.llmJudge&&String(r.llmJudge.reason||r.llmJudge.comment||'').trim())||'';
+    if(!llmEval) llmEval='暂无 LLM 评价';
+    var h='<div style="border:1px solid '+(r.pass?'#bbf7d0':'#fecaca')+';border-radius:8px;padding:12px 14px;margin-bottom:10px;background:'+(r.pass?'#f0fdf4':'#fff7f7')+'">'+
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'+
+        '<div style="min-width:260px;flex:1">'+
+        '<div style="font-size:13px;font-weight:800;color:var(--c-text)">回复质量评分</div>'+
+        '<div style="font-size:30px;font-weight:800;line-height:1.1;margin-top:6px;color:'+scoreColor+'">'+qualityScore+'<span style="font-size:14px;margin-left:4px;color:var(--c-text3)">/100</span></div>'+
+        '</div>'+
+        '<span class="tag" style="background:'+scoreBg+';color:'+scoreColor+';font-size:12px">LLM Judge · '+qualityScore+'</span>'+
+        '</div>'+
+        '<div style="margin-top:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;padding:10px 12px">'+
+        '<div style="font-size:11px;color:var(--c-text3);margin-bottom:6px">LLM 评价</div>'+
+        '<div style="font-size:13px;line-height:1.6;color:var(--c-text);white-space:pre-wrap;word-break:break-word">'+esc(llmEval)+'</div>'+
+        '</div>'+
+        '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">';
+    stages.forEach(function(item){
+        var s=stageBadge(item.cc);
+        h+='<span class="tag" title="'+esc(item.cc.summary||item.short)+'" style="background:'+s.bg+';color:'+s.color+'">'+esc(item.label)+' · '+s.label+'</span>';
+    });
+    h+='</div>'+
+        '</div>';
+    return h;
+}
 function renderRD(run){
     _debugData=[];
     document.getElementById('rd-title').textContent=run.name;
@@ -2447,6 +2572,7 @@ function renderRD(run){
 
         // expanded body
         h+='<div class="rc-body"><div class="turn-detail">';
+        h+=buildCaseDiagnosis(r);
         if(r.contractChecks&&r.contractChecks.length){
             var ccRoute=(r.contractChecks||[]).find(function(x){return x.key==='route';})||{};
             var ccInput=(r.contractChecks||[]).find(function(x){return x.key==='input';})||{};
@@ -2454,77 +2580,152 @@ function renderRD(run){
             var ccRender=(r.contractChecks||[]).find(function(x){return x.key==='render';})||{};
             var caseHasSkill=(r.turns||[]).some(function(t){return !!t.skillResultJson;});
             var profile=r.traceProfile||{};
-            var profileFields=(profile.fields||[]).filter(Boolean);
-            function chipHtml(items){
-                items=(items||[]).filter(Boolean);
-                if(!items.length)return '<span style="font-size:11px;color:var(--c-text3)">-</span>';
-                return items.map(function(f){return '<span class="mono" style="display:inline-block;margin:2px 4px 2px 0;padding:1px 6px;border-radius:4px;background:#fff;border:1px solid #e5e7eb;color:var(--c-text2)">'+esc(f)+'</span>';}).join('');
+            var turns=r.turns||[];
+            var finalTurn=turns.length?turns[turns.length-1]:{};
+            var skillObj=parseJsonObj(finalTurn.skillResultJson)||{};
+            var hintsObj=parseJsonObj(finalTurn.hintsJson)||{};
+            function uniqueList(items){
+                var seen={};
+                return (items||[]).filter(Boolean).filter(function(it){
+                    if(seen[it]) return false;
+                    seen[it]=true;
+                    return true;
+                });
             }
-            function flowCard(stepNo,title,status,summary,color,fields,techLine){
-                var fieldList=(fields||[]).filter(Boolean);
-                return '<div style="display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:start;border:1px solid #eef0f4;border-radius:8px;background:#fbfcff;padding:10px 12px">'+
-                    '<span class="funnel-step">'+stepNo+'</span>'+
-                    '<div>'+
-                    '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
-                    '<span style="font-size:13px;font-weight:700;color:var(--c-text)">'+title+'</span>'+
-                    (techLine?'<span class="mono" style="font-size:10px;color:var(--c-text3)">'+esc(techLine)+'</span>':'')+
-                    '</div>'+
-                    '<div style="font-size:12px;color:var(--c-text2);line-height:1.6;margin-top:5px">'+esc(summary||'-')+'</div>'+
-                    '<details style="margin-top:7px">'+
-                    '<summary style="cursor:pointer;font-size:11px;color:var(--c-accent);font-weight:600">查看检查字段</summary>'+
-                    '<div style="margin-top:6px">'+chipHtml(fieldList)+'</div>'+
-                    '</details>'+
-                    '</div>'+
-                    '<span class="tag" style="background:#fff;color:'+color+';border:1px solid #e5e7eb">'+status+'</span>'+
+            function pickPath(root,path){
+                if(root===null||root===undefined) return undefined;
+                var tokens=String(path||'').split('.').filter(Boolean);
+                var nodes=[root];
+                for(var i=0;i<tokens.length;i++){
+                    var token=tokens[i];
+                    var options=token.split('/').filter(Boolean);
+                    if(!options.length) options=[token];
+                    var next=[];
+                    nodes.forEach(function(node){
+                        options.forEach(function(rawKey){
+                            var isArr=/\[\]$/.test(rawKey);
+                            var key=isArr?rawKey.slice(0,-2):rawKey;
+                            var val=(key?(node&&node[key]):node);
+                            if(val===undefined||val===null) return;
+                            if(isArr&&Array.isArray(val)) val.forEach(function(item){next.push(item);});
+                            else if(!isArr) next.push(val);
+                        });
+                    });
+                    nodes=next;
+                    if(!nodes.length) break;
+                }
+                if(!nodes.length) return undefined;
+                return nodes.length===1?nodes[0]:nodes;
+            }
+            function fieldLabel(path){
+                var p=String(path||'').trim();
+                if(p.indexOf('->')>0){
+                    var ps=p.split('->');
+                    return (ps[0]||'').trim()+' -> '+(ps[1]||'').trim();
+                }
+                var labels={
+                    'case.turns[].expectedTool':'期望工具',
+                    'run.results[].turns[].actualTool':'实际工具',
+                    'data.filter.city':'城市',
+                    'data.filter.queryDate':'日期',
+                    'data.mode':'返回模式',
+                    'resultType':'结果类型',
+                    'success':'业务执行状态',
+                    'llmReplyText':'最终回复',
+                    'data.dataSource':'数据源'
+                };
+                return labels[p]||p;
+            }
+            function trimText(s,max){
+                var txt=String(s||'');
+                return txt.length>max?txt.slice(0,max)+'...':txt;
+            }
+            function inlineValue(v){
+                if(v===undefined||v===null||v==='') return '(空)';
+                if(Array.isArray(v)) return trimText(v.map(function(x){return typeof x==='object'?JSON.stringify(x):String(x);}).join(' | '),120)||'(空)';
+                if(typeof v==='object') return trimText(JSON.stringify(v),120);
+                return trimText(String(v),120);
+            }
+            function fieldValue(path){
+                var p=String(path||'').trim();
+                if(!p) return undefined;
+                if(p.indexOf('->')>0){
+                    var ps=p.split('->');
+                    var left=(ps[0]||'').trim();
+                    var right=(ps[1]||'').trim();
+                    var leftVal=fieldValue(left);
+                    var rightVal=fieldValue(right);
+                    return '源: '+inlineValue(leftVal)+' | 目标: '+inlineValue(rightVal);
+                }
+                if(p==='llmReplyText') return finalTurn.llmReplyText||'';
+                if(p.indexOf('case.')===0) return pickPath({turns:turns,expectedTrace:r.expectedTrace||{},traceProfile:profile},p.slice(5));
+                if(p.indexOf('run.')===0) return pickPath({results:[r]},p.slice(4));
+                if(p.indexOf('hints.')===0) return pickPath(hintsObj,p.slice(6));
+                if(p.indexOf('data.')===0) return pickPath(skillObj,p);
+                if(p==='success'||p==='resultType'||p==='skill') return pickPath(skillObj,p);
+                return pickPath(skillObj,p);
+            }
+            function formatValue(v){
+                if(v===undefined||v===null||v==='') return '(空)';
+                if(Array.isArray(v)) return trimText(v.map(function(x){return typeof x==='object'?JSON.stringify(x):String(x);}).join(' | '),180)||'(空)';
+                if(typeof v==='object') return trimText(JSON.stringify(v),180);
+                return trimText(String(v),180);
+            }
+            function renderFields(fields){
+                var list=uniqueList(fields);
+                if(!list.length) return '<div style="font-size:12px;color:var(--c-text3);margin-top:6px">本环节无字段校验。</div>';
+                return '<div style="margin-top:7px;border:1px solid #eef0f4;border-radius:6px;background:#fff;padding:0 10px">'+
+                    list.map(function(path){
+                        var val=fieldValue(path);
+                        var miss=(val===undefined||val===null||val==='');
+                        return '<div style="display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:8px;align-items:start;padding:7px 0;border-top:1px dashed #eef0f4">'+
+                            '<div style="font-size:11px;color:var(--c-text3);word-break:break-word">'+esc(fieldLabel(path))+'</div>'+
+                            '<div class="mono" style="font-size:11px;color:'+(miss?'var(--c-red)':'var(--c-text2)')+';white-space:pre-wrap;word-break:break-word">'+esc(formatValue(val))+'</div>'+
+                            '</div>';
+                    }).join('')+
                     '</div>';
             }
             function statusFor(cc){
-                if(cc.applies===false)return {text:'SKIP',color:'var(--c-text3)'};
-                return cc.pass?{text:'PASS',color:'var(--c-green)'}:{text:'FAIL',color:'var(--c-red)'};
+                if(cc.applies===false) return 'SKIP';
+                return cc.pass?'PASS':'FAIL';
+            }
+            function flowCard(stepNo,title,status,summary,fields){
+                var statusTag=status==='FAIL'
+                    ?'<span class="tag" style="background:var(--c-red-bg);color:var(--c-red);border:1px solid #fecaca">FAIL</span>'
+                    :(status==='PASS'
+                        ?'<span class="tag" style="background:var(--c-green-bg);color:var(--c-green);border:1px solid #bbf7d0">PASS</span>'
+                        :'<span class="tag" style="background:#f3f4f6;color:var(--c-text2);border:1px solid #e5e7eb">SKIP</span>');
+                var body=status==='SKIP'
+                    ?'<div style="font-size:12px;color:var(--c-text3);line-height:1.6;margin-top:5px">本 case 该环节未执行。</div>'
+                    :renderFields(fields);
+                return '<div style="display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:start;border:1px solid #eef0f4;border-radius:8px;background:#fbfcff;padding:10px 12px">'+
+                    '<span class="funnel-step">'+stepNo+'</span>'+
+                    '<div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:13px;font-weight:700;color:var(--c-text)">'+title+'</span></div>'+
+                    (summary?'<div style="font-size:12px;color:var(--c-text2);line-height:1.6;margin-top:5px">'+esc(summary)+'</div>':'')+body+'</div>'+
+                    statusTag+
+                    '</div>';
             }
             var sRoute=statusFor(ccRoute), sInput=statusFor(ccInput), sSkill=statusFor(ccSkill), sRender=statusFor(ccRender);
-            var caseType=profile.type||profile.resultType||'直接回复';
             var routeSummary=ccRoute.summary||'检查 Agent 是否选中了期望的业务能力。';
-            var inputSummary=ccInput.summary||'无显式参数，本环节不强制检查城市、日期或车辆等条件。';
-            var skillSummary=caseHasSkill?(ccSkill.summary||'检查业务能力返回的结构化结果是否完整。'):'无 SkillResult 链路：这个 case 不需要调用后端业务能力。';
+            var inputSummary=ccInput.summary||'检查城市、日期等查询条件是否被正确提取。';
+            var skillSummary=caseHasSkill?(ccSkill.summary||'检查业务能力返回结构化结果是否完整。'):'无 SkillResult 链路：这个 case 不需要调用后端业务能力。';
             var renderSummary=ccRender.summary||'检查最终回复是否覆盖结构化结果里的关键信息。';
-            h+='<div style="border:1px solid var(--c-border);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#fff">'+
-                '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">'+
-                '<div>'+
+            var failedStep=[
+                {stepNo:1,title:'理解用户问题',status:sRoute},
+                {stepNo:2,title:'提取查询条件',status:sInput},
+                {stepNo:3,title:'调用业务能力',status:(caseHasSkill?sSkill:'SKIP')},
+                {stepNo:4,title:'生成最终回复',status:sRender}
+            ].find(function(x){return x.status==='FAIL';})||null;
+            h+='<details style="border:1px solid var(--c-border);border-radius:8px;margin-bottom:10px;background:#fff;overflow:hidden">'+
+                '<summary style="cursor:pointer;padding:10px 12px;font-size:13px;font-weight:800;color:var(--c-text)">链路判断</summary>'+
+                '<div style="padding:0 12px 12px">'+
                 '<div style="font-size:13px;font-weight:800;color:var(--c-text)">Case 执行链路</div>'+
-                '<div style="font-size:12px;color:var(--c-text2);line-height:1.6;margin-top:3px">本 case 是 '+esc(caseType)+'，平台按 4 个环节判断是否通过。</div>'+
-                '</div>'+
-                '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">技术信息已收起</span>'+
-                '</div>'+
-                '<div style="display:grid;gap:8px">';
-            h+=flowCard(1,'理解用户问题',sRoute.text,routeSummary,sRoute.color,ccRoute.checkedFields,profile.skill?'skill '+profile.skill:'');
-            h+=flowCard(2,'提取查询条件',sInput.text,inputSummary,sInput.color,ccInput.checkedFields,'');
-            h+=flowCard(3,'调用业务能力',caseHasSkill?sSkill.text:'SKIP',skillSummary,caseHasSkill?sSkill.color:'var(--c-text3)',caseHasSkill?ccSkill.checkedFields:[],profile.resultType?'resultType '+profile.resultType:'无 SkillResult 链路');
-            h+=flowCard(4,'生成最终回复',sRender.text,renderSummary,sRender.color,ccRender.checkedFields,'llmReplyText');
-            h+='</div>'+
-                '<details style="margin-top:10px">'+
-                '<summary style="cursor:pointer;font-size:11px;color:var(--c-text2);font-weight:600">查看该类型技术字段</summary>'+
-                '<div style="margin-top:7px">'+chipHtml(profileFields)+'</div>'+
-                '</details>'+
-                '</div>';
-        }
-        var steps=r.executionSteps||[];
-        if(steps.length){
-            h+='<div style="border:1px solid var(--c-border);border-radius:8px;padding:10px 12px;margin-bottom:10px">'+
-                '<div style="font-size:12px;font-weight:700;color:var(--c-text2);margin-bottom:4px">执行步骤时间线 <span class="tag" style="background:#f3f4f6;color:var(--c-text2);margin-left:6px">本 case 实际步骤数 '+steps.length+'</span></div>'+
-                '<div style="display:grid;gap:6px">';
-            steps.forEach(function(step){
-                var ok=step.status!=='FAIL';
-                h+='<div style="display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:start;padding:7px 8px;border:1px solid #f0f1f3;border-radius:6px;background:#fafbfc">'+
-                    '<span class="funnel-step">'+esc(step.step)+'</span>'+
-                    '<div>'+
-                    '<div style="font-size:12px;font-weight:600;color:var(--c-text)">'+esc(step.summary||'')+'</div>'+
-                    '<div style="font-size:11px;color:var(--c-text3);margin-top:3px;word-break:break-word">'+esc(step.userInput||'')+'</div>'+
-                    '</div>'+
-                    '<span class="tag '+(ok?'tag-done':'tag-fail')+'">'+(ok?'PASS':'FAIL')+'</span>'+
-                    '</div>';
-            });
-            h+='</div></div>';
+                '<div style="display:grid;gap:8px;margin-top:10px">'+
+                flowCard(1,'理解用户问题',sRoute,'',ccRoute.checkedFields)+
+                flowCard(2,'提取查询条件',sInput,inputSummary,ccInput.checkedFields)+
+                flowCard(3,'调用业务能力',caseHasSkill?sSkill:'SKIP',skillSummary,caseHasSkill?ccSkill.checkedFields:[])+
+                flowCard(4,'生成最终回复',sRender,renderSummary,ccRender.checkedFields)+
+                '</div></div></details>';
         }
         if(r.metrics){
             h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+
@@ -2536,14 +2737,13 @@ function renderRD(run){
                 '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">$'+Number(r.metrics.costUsd||0).toFixed(4)+'</span>'+
                 '</div>';
         }
-        if(r.llmJudge){
-            h+=buildLlmJudgeCard(r.llmJudge);
-        }
         if(r.failReason) h+='<div style="color:var(--c-red);font-size:12px;margin-bottom:12px;padding:8px 12px;background:var(--c-red-bg);border-radius:6px">'+esc(r.failReason)+'</div>';
 
         var turns=r.turns||[];
         if(turns.length){
-            h+='<div class="td-wrap"><table><thead><tr>'+
+            h+='<details open style="border:1px solid var(--c-border);border-radius:8px;margin-bottom:10px;background:#fff;overflow:hidden">'+
+                '<summary style="cursor:pointer;padding:10px 12px;font-size:13px;font-weight:800;color:var(--c-text)">逐轮明细 <span class="tag" style="background:#f3f4f6;color:var(--c-text2);margin-left:6px">'+turns.length+'</span></summary>'+
+                '<div class="td-wrap"><table><thead><tr>'+
                 '<th>Turn</th>'+
                 '<th>用户输入</th>'+
                 '<th>LLM 回复</th>'+
@@ -2568,7 +2768,7 @@ function renderRD(run){
                     '<td>'+(t.hintsJson?'<div class="td-json" style="cursor:pointer" title="点击弹窗查看" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">'+esc(fmtJson(t.hintsJson))+'</div>':'')+'</td>'+
                     '</tr>';
             });
-            h+='</tbody></table></div>';
+            h+='</tbody></table></div></details>';
         } else {
             h+='<div class="empty">无轮次数据</div>';
         }
