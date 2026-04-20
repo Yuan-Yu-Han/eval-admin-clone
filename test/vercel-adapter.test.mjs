@@ -10,6 +10,7 @@ test('project exposes a Vercel serverless adapter without breaking local server 
   ]);
 
   assert.match(serverSource, /export async function handleRequest/);
+  assert.match(serverSource, /export default handleRequest/);
   assert.match(serverSource, /http\.createServer\(handleRequest\)/);
   assert.match(serverSource, /process\.argv\[1\]/);
   assert.match(adapterSource, /export default function handler/);

@@ -2390,6 +2390,8 @@ export async function handleRequest(req, res) {
   }
 }
 
+export default handleRequest;
+
 const server = http.createServer(handleRequest);
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
