@@ -367,9 +367,10 @@ test('local page includes run version setup, filtering, and funnel explanation c
     '目标分组',
     '生成用例 Prompt',
     'Run 总览',
-    'Case 执行链路',
     '无 SkillResult 链路',
-    '执行步骤时间线'
+    '回复质量评分',
+    '链路判断',
+    '逐轮明细'
   ]) {
     assert.equal(html.includes(text), true, `page should include new workflow text: ${text}`);
   }
@@ -488,25 +489,18 @@ test('local run detail copy distinguishes funnel stages from per-case variable s
 
   for (const text of [
     'Run 总览',
-    '本 case 实际步骤数',
     '整体通过',
     '路由选对',
     '中间链路异常',
-    'Case 执行链路',
-    '平台按 4 个环节判断是否通过',
-    '理解用户问题',
-    '提取查询条件',
-    '调用业务能力',
-    '生成最终回复',
-    '查看检查字段',
-    '无 SkillResult 链路'
+    '回复质量评分',
+    '链路判断',
+    '逐轮明细',
+    '无 SkillResult 链路',
+    'LLM 评价'
   ]) {
     assert.equal(html.includes(text), true, `run detail should clarify funnel/step relationship: ${text}`);
   }
 
-  assert.equal(html.includes('本 case 实际链路'), false);
-  assert.equal(html.includes('该类型默认字段'), false);
-  assert.equal(html.includes('本 case 检查字段'), false);
   assert.equal(html.includes('Agent 链路漏斗'), false);
   assert.equal(html.includes('Run 级评测归因'), false);
   assert.equal(html.includes('阶段评测'), false);
@@ -677,15 +671,15 @@ test('run case details prioritize failure diagnosis before raw execution evidenc
   const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
 
   for (const text of [
-    '失败诊断',
-    '优先处理环节',
-    '证据分层',
+    '回复质量评分',
+    'LLM 评价',
     '链路判断',
-    '逐轮明细',
-    '技术 JSON'
+    '逐轮明细'
   ]) {
     assert.equal(html.includes(text), true, `run case detail should include clearer diagnosis copy: ${text}`);
   }
+
+  assert.equal(html.includes('技术 JSON'), false);
 
   assert.match(html, /function buildCaseDiagnosis/);
 });
