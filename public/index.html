@@ -2542,6 +2542,18 @@ function renderRD(run){
         var tn=(r.turns||[]).length;
         var toolInfo=r.toolMatchSummary&&r.toolMatchSummary!=='n/a'?' | tool '+r.toolMatchSummary:'';
         var seqScore=(r.toolCalls&&r.toolCalls.sequence)?r.toolCalls.sequence.score:0;
+        var llmScore=(r.llmJudge&&isFinite(Number(r.llmJudge.score)))?Math.max(0,Math.min(100,Math.round(Number(r.llmJudge.score)))):null;
+        if(llmScore===null&&Array.isArray(r.stageChecks)){
+            var q=(r.stageChecks||[]).find(function(item){return item.key==='responseQuality';});
+            if(q&&isFinite(Number(q.score))) llmScore=Math.max(0,Math.min(100,Math.round(Number(q.score))));
+        }
+        var llmTag='';
+        if(llmScore!==null){
+            var llmColor='var(--c-green)', llmBg='var(--c-green-bg)';
+            if(llmScore<70){llmColor='var(--c-red)';llmBg='var(--c-red-bg)';}
+            else if(llmScore<85){llmColor='var(--c-amber)';llmBg='var(--c-amber-bg)';}
+            llmTag='<span class="tag" style="background:'+llmBg+';color:'+llmColor+';font-size:11px">LLM '+llmScore+'</span>';
+        }
         var risk=r.riskLevel||'medium';
         var riskTag=risk==='high'?'<span class="tag" style="background:var(--c-red-bg);color:var(--c-red)">高风险</span>':(risk==='low'?'<span class="tag" style="background:var(--c-green-bg);color:var(--c-green)">低风险</span>':'<span class="tag" style="background:var(--c-amber-bg);color:var(--c-amber)">中风险</span>');
         var caseKey=ea(r.caseId);
@@ -2556,6 +2568,7 @@ function renderRD(run){
         h+='<div class="rc-row'+(r.reviewFlagged?' rc-row-flagged':'')+'"><div class="rc-head" onclick="toggleRC(this)">'+
             '<span class="arr">&#9654;</span>'+
             '<span class="tag '+cls+'">'+label+'</span>'+
+            llmTag+
             '<label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--c-text2)" onclick="event.stopPropagation()"><input type="checkbox" '+(selected?'checked':'')+' onchange="toggleRunCaseSelect(\''+caseKey+'\',this.checked)">勾选</label>'+
             (r.reviewFlagged?'<span class="tag" style="background:var(--c-amber-bg);color:var(--c-amber);font-size:11px">待查</span>':'')+
             '<span class="rc-id" onclick="event.stopPropagation()">'+esc(r.caseId)+'</span>'+
@@ -3517,6 +3530,14 @@ function uidTier(uid){
 
 /* ══════ Utils ══════ */
 function ft(v){ if(!v)return '-'; var d; if(typeof v==='number'){d=new Date(v<1e12?v*1000:v);}else{d=new Date(v);} return isNaN(d)?String(v):d.toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function ftShort(v){
+    if(!v) return '';
+    var d;
+    if(typeof v==='number') d=new Date(v<1e12?v*1000:v);
+    else d=new Date(v);
+    if(isNaN(d)) return '';
+    return d.toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
 function fd(ms){ if(!ms||ms<=0)return '-'; if(ms<1000)return ms+'ms'; var s=Math.round(ms/1000); if(s<60)return s+'s'; return Math.floor(s/60)+'m'+(s%60)+'s'; }
 function esc(s){ if(!s)return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtJson(s){ if(!s)return ''; try{return JSON.stringify(JSON.parse(s),null,2);}catch(e){return s;} }
