@@ -1,0 +1,3562 @@
+[
+  {
+    "id": "69d474f76e03232168e88f48",
+    "caseId": "0326_t1_vod_022",
+    "name": "",
+    "userId": "900100620",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "全国各地的运营情况如何",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "运营数据",
+    "createdAt": 1775531255.162,
+    "updatedAt": 1775650509.018,
+    "createdBy": "admin"
+  },
+  {
+    "id": "69c4e6d5a6e1b6221161bd86",
+    "caseId": "0326_t1_vod_017",
+    "name": "",
+    "userId": "900100490",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "青岛昨天的数据情况",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "运营数据",
+    "createdAt": 1774511829.909,
+    "updatedAt": 1775642140.731,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c4e6d5a6e1b6221161bd78",
+    "caseId": "0326_t1_vod_003",
+    "name": "",
+    "userId": "900100476",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "临沂今天的ETA达成率是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "运营数据",
+    "createdAt": 1774511829.387,
+    "updatedAt": 1775562690.634,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69d4bfc36e03232168e88f4a",
+    "caseId": "0326_t1_vod_023",
+    "name": "",
+    "userId": "900100621",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "滴滴的整体运营情况",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "运营数据",
+    "createdAt": 1775550403.051,
+    "updatedAt": 1775559073.034,
+    "createdBy": "admin"
+  },
+  {
+    "id": "69c4e6d5a6e1b6221161bd81",
+    "caseId": "0326_t1_vod_012",
+    "name": "",
+    "userId": "900100485",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "最近一周平均行驶速度是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "运营数据",
+    "createdAt": 1774511829.738,
+    "updatedAt": 1775559048.778,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c4e6d5a6e1b6221161bd82",
+    "caseId": "0326_t1_vod_013",
+    "name": "",
+    "userId": "900100486",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "今天在线车辆数和接单车辆数分别是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "运营数据",
+    "createdAt": 1774511829.769,
+    "updatedAt": 1775559029.011,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c4e6d5a6e1b6221161bd7f",
+    "caseId": "0326_t1_vod_010",
+    "name": "",
+    "userId": "900100483",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "给我看下上周准时率的变化趋势",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "运营数据",
+    "createdAt": 1774511829.669,
+    "updatedAt": 1775559021.079,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c4e6d5a6e1b6221161bd87",
+    "caseId": "0326_t1_vod_018",
+    "name": "",
+    "userId": "900100491",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "这几天跑得怎么样",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "运营数据",
+    "createdAt": 1774511829.934,
+    "updatedAt": 1775558991.447,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad8e",
+    "caseId": "t1_door_025",
+    "name": "场景驱动说法，动作是开门但需推理",
+    "userId": "900100024",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "准备装货，开一下",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "打开第2个",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 3,
+        "userInput": "确定",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "车控场景",
+    "createdAt": 1774345539.975,
+    "updatedAt": 1775118473.748,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1ac51ec65547a4590677",
+    "caseId": "0402-11",
+    "name": "",
+    "userId": "900100387",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "让X6S5001赶紧紧急刹车！",
+        "expectedTool": "freeChat"
+      }
+    ],
+    "tags": "",
+    "groupName": "车控场景",
+    "createdAt": 1775114949.929,
+    "updatedAt": 1775114949.929,
+    "createdBy": "admin"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad8d",
+    "caseId": "t1_door_024",
+    "name": "搞开口语替代打开，夹杂状态描述",
+    "userId": "900100023",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "准备发车，把门搞开",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "打开第3个",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 3,
+        "userInput": "确定",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "车控场景",
+    "createdAt": 1774345539.935,
+    "updatedAt": 1775118466.232,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad8c",
+    "caseId": "t1_door_023",
+    "name": "先开着语气随意，不指定车辆",
+    "userId": "900100022",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "找出我附近的低电量车辆开门",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "全部打开舱门",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 3,
+        "userInput": "确定",
+        "expectedTool": ""
+      }
+    ],
+    "tags": "",
+    "groupName": "车控场景",
+    "createdAt": 1774345539.902,
+    "updatedAt": 1775118456.187,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad8b",
+    "caseId": "t1_door_022",
+    "name": "不指定车辆，陈述式表达开门",
+    "userId": "900100021",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "车门打开",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "全部打开舱门",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 3,
+        "userInput": "确认",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "车控场景",
+    "createdAt": 1774345539.865,
+    "updatedAt": 1775108893.149,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c4bf001a4c1a06d8c4f893",
+    "caseId": "t3_ctrl_001",
+    "name": "鸣笛提醒",
+    "userId": "900105001",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "附近的车鸣笛一下",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "第1辆",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "车控场景",
+    "createdAt": 1774501632.596,
+    "updatedAt": 1775108566.332,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a45906a0",
+    "caseId": "T5_Unsup_40",
+    "name": "拦截_运营_调取视频",
+    "userId": "900100419",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "调取一下X6S5022车内现在的监控视频画面。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.867,
+    "updatedAt": 1775115045.882,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a459069f",
+    "caseId": "T5_Unsup_39",
+    "name": "拦截_运营_切换模式",
+    "userId": "900100418",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "将X6S5015从待命状态强制切成售卖模式。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.813,
+    "updatedAt": 1775115045.821,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a459069e",
+    "caseId": "T5_Unsup_38",
+    "name": "拦截_运营_取消早班",
+    "userId": "900100417",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "把X6S5012明天的早班任务全撤掉。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.754,
+    "updatedAt": 1775115045.768,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a459069d",
+    "caseId": "T5_Unsup_37",
+    "name": "拦截_运营_重分配路线",
+    "userId": "900100416",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "给X6S5010重新分配一条去天泰路段的路线。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.698,
+    "updatedAt": 1775115045.71,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a459069c",
+    "caseId": "T5_Unsup_36",
+    "name": "拦截_运营_暂停任务",
+    "userId": "900115008",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "暂停一下X6S5009当前的排班任务。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.65,
+    "updatedAt": 1775115045.66,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a459069b",
+    "caseId": "T5_Unsup_35",
+    "name": "拦截_运营_修改价格",
+    "userId": "900100415",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "把X6S5008里面卖的矿泉水售价改成10元。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.6,
+    "updatedAt": 1775115045.61,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a459069a",
+    "caseId": "T5_Unsup_34",
+    "name": "拦截_运营_投放广告",
+    "userId": "900100414",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "在X6S5001的侧面大屏上放一个可乐的广告。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.546,
+    "updatedAt": 1775115045.559,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a4590699",
+    "caseId": "T5_Unsup_33",
+    "name": "拦截_运营_跳过站点",
+    "userId": "900115007",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "让X6S5045跳过下一个配送站点，直接去终点。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.492,
+    "updatedAt": 1775115045.497,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a4590698",
+    "caseId": "T5_Unsup_32",
+    "name": "拦截_运营_取消订单",
+    "userId": "900100413",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "把X6S5026正在跑的这单接驳直接取消了。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.461,
+    "updatedAt": 1775115045.47,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce1b251ec65547a4590697",
+    "caseId": "T5_Unsup_31",
+    "name": "拦截_运营_结束任务",
+    "userId": "900100412",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "强制结束X6S5017现在的准时达调度任务。",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "unsupported_test",
+    "createdAt": 1775115045.41,
+    "updatedAt": 1775115045.421,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a306096",
+    "caseId": "b_rag_070",
+    "name": "公司使命缺失信息拒答",
+    "userId": "900100386",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "你们公司的使命是什么",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.781,
+    "updatedAt": 1774924641.786,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a306095",
+    "caseId": "b_rag_069",
+    "name": "单次充电成本",
+    "userId": "900100385",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "无人车充满一次电大概要多少钱",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.753,
+    "updatedAt": 1774924641.759,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a306094",
+    "caseId": "b_rag_068",
+    "name": "快充支持情况",
+    "userId": "900100384",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "你们的车支持快充吗",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.726,
+    "updatedAt": 1774924641.731,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a306093",
+    "caseId": "b_rag_067",
+    "name": "充电时长查询",
+    "userId": "900100383",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "充满一次电一般要多久",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.698,
+    "updatedAt": 1774924641.704,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a306092",
+    "caseId": "b_rag_066",
+    "name": "断网后的处理",
+    "userId": "900100382",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "如果突然断网了车会怎么处理",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.669,
+    "updatedAt": 1774924641.675,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a306091",
+    "caseId": "b_rag_065",
+    "name": "坡道运行能力",
+    "userId": "900100381",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "坡多的园区无人车能不能跑",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.641,
+    "updatedAt": 1774924641.646,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a306090",
+    "caseId": "b_rag_064",
+    "name": "夜间运行能力",
+    "userId": "900100380",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "夜里也能正常跑吗",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.601,
+    "updatedAt": 1774924641.61,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a30608f",
+    "caseId": "b_rag_063",
+    "name": "弱网运行能力",
+    "userId": "900100379",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "网络不稳定的时候无人车还能不能继续跑",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.573,
+    "updatedAt": 1774924641.578,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a30608e",
+    "caseId": "b_rag_062",
+    "name": "路线长度影响收益",
+    "userId": "900100378",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "线路长短会不会明显影响回本周期",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.545,
+    "updatedAt": 1774924641.551,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a30608d",
+    "caseId": "b_rag_061",
+    "name": "订单承载能力",
+    "userId": "900100377",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "一台车一天大概能跑多少单",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.518,
+    "updatedAt": 1774924641.523,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a30608c",
+    "caseId": "b_rag_060",
+    "name": "班次替代能力",
+    "userId": "900100376",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "一台车能顶几个班次",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.488,
+    "updatedAt": 1774924641.494,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a30608b",
+    "caseId": "b_rag_059",
+    "name": "单车替代人数",
+    "userId": "900100375",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "一台无人车通常能替代几个人",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.46,
+    "updatedAt": 1774924641.465,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a30608a",
+    "caseId": "b_rag_058",
+    "name": "隐形收费风险",
+    "userId": "900100374",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "后面会不会有隐形收费",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.424,
+    "updatedAt": 1774924641.434,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69cb3361a37150399a306089",
+    "caseId": "b_rag_057",
+    "name": "付款节点查询",
+    "userId": "900100373",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "项目合作一般怎么付款",
+        "expectedTool": "RAG"
+      }
+    ],
+    "groupName": "RAG防幻觉",
+    "createdAt": 1774924641.393,
+    "updatedAt": 1774924641.399,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562774",
+    "caseId": "c1_query_240",
+    "name": "车辆控制q240",
+    "userId": "900100619",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "x6S5010双闪",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.914,
+    "updatedAt": 1775133944.919,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562773",
+    "caseId": "c1_query_239",
+    "name": "车辆控制q239",
+    "userId": "900115071",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5009 mingdi",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.879,
+    "updatedAt": 1775133944.883,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562772",
+    "caseId": "c1_query_238",
+    "name": "车辆控制q238",
+    "userId": "900100618",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5008 MD",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.844,
+    "updatedAt": 1775133944.848,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562771",
+    "caseId": "c1_query_237",
+    "name": "车辆控制q237",
+    "userId": "900100617",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5OO1鸣笛",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.808,
+    "updatedAt": 1775133944.813,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562770",
+    "caseId": "c1_query_236",
+    "name": "车辆控制q236",
+    "userId": "900115070",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5015 go发车",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.766,
+    "updatedAt": 1775133944.771,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56276f",
+    "caseId": "c1_query_235",
+    "name": "车辆控制q235",
+    "userId": "900100616",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5012 volume调到30",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.731,
+    "updatedAt": 1775133944.736,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56276e",
+    "caseId": "c1_query_234",
+    "name": "车辆控制q234",
+    "userId": "900100615",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "check X6S5010 battery电量",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.696,
+    "updatedAt": 1775133944.701,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56276d",
+    "caseId": "c1_query_233",
+    "name": "车辆控制q233",
+    "userId": "900100614",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5009 flash light双闪",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.658,
+    "updatedAt": 1775133944.662,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56276c",
+    "caseId": "c1_query_232",
+    "name": "车辆控制q232",
+    "userId": "900115069",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "honk X6S5008",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.621,
+    "updatedAt": 1775133944.626,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56276b",
+    "caseId": "c1_query_231",
+    "name": "车辆控制q231",
+    "userId": "900100613",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "open X6S5001 door",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.586,
+    "updatedAt": 1775133944.591,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56276a",
+    "caseId": "c1_query_230",
+    "name": "车辆控制q230",
+    "userId": "900100612",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5045双山打开",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.55,
+    "updatedAt": 1775133944.555,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562769",
+    "caseId": "c1_query_229",
+    "name": "车辆控制q229",
+    "userId": "900100611",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "把X6S5026们打开",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.515,
+    "updatedAt": 1775133944.519,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562768",
+    "caseId": "c1_query_228",
+    "name": "车辆控制q228",
+    "userId": "900115068",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "打开X6S5022的灯广",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.478,
+    "updatedAt": 1775133944.482,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562767",
+    "caseId": "c1_query_227",
+    "name": "车辆控制q227",
+    "userId": "900100610",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "把X6S5017音亮调小",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.442,
+    "updatedAt": 1775133944.447,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562766",
+    "caseId": "c1_query_226",
+    "name": "车辆控制q226",
+    "userId": "900100609",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5015的任物列表",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.406,
+    "updatedAt": 1775133944.411,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562765",
+    "caseId": "c1_query_225",
+    "name": "车辆控制q225",
+    "userId": "900115067",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "打开X6S5012的监空",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.37,
+    "updatedAt": 1775133944.375,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562764",
+    "caseId": "c1_query_224",
+    "name": "车辆控制q224",
+    "userId": "900100608",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5010电亮多少",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.334,
+    "updatedAt": 1775133944.338,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562763",
+    "caseId": "c1_query_223",
+    "name": "车辆控制q223",
+    "userId": "900100607",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5009发撤",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.298,
+    "updatedAt": 1775133944.303,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562762",
+    "caseId": "c1_query_222",
+    "name": "车辆控制q222",
+    "userId": "900115066",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5008双陕打开",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.262,
+    "updatedAt": 1775133944.267,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562761",
+    "caseId": "c1_query_221",
+    "name": "车辆控制q221",
+    "userId": "900100606",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5001鸣迪",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.222,
+    "updatedAt": 1775133944.228,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd562760",
+    "caseId": "c1_query_220",
+    "name": "车辆控制q220",
+    "userId": "900100605",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "从停车场到正阳路的路线采集",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.187,
+    "updatedAt": 1775133944.191,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56275f",
+    "caseId": "c1_query_219",
+    "name": "车辆控制q219",
+    "userId": "900115065",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "把你的声音换成男声",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.147,
+    "updatedAt": 1775133944.152,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56275e",
+    "caseId": "c1_query_218",
+    "name": "车辆控制q218",
+    "userId": "900100604",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "附近有什么好吃的",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.102,
+    "updatedAt": 1775133944.106,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce64f808696b75cd56275d",
+    "caseId": "c1_query_217",
+    "name": "车辆控制q217",
+    "userId": "900100603",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "无人车上路需要什么牌照",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "确认",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "groupName": "车辆控制",
+    "createdAt": 1775133944.065,
+    "updatedAt": 1775133944.069,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05564af8664e0ed28e956",
+    "caseId": "cd_perm_op_safety_001",
+    "name": "[权限]运营角色_可查接管走didi",
+    "userId": "900110138",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "查下最近的接管数据",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309604.766,
+    "updatedAt": 1776309604.814,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05565af8664e0ed28e958",
+    "caseId": "cd_perm_denied_002",
+    "name": "[权限]无权限_查里程应拦截",
+    "userId": "900115073",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "查下上周里程",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309605.357,
+    "updatedAt": 1776309605.404,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05565af8664e0ed28e957",
+    "caseId": "cd_perm_denied_001",
+    "name": "[权限]无权限_查运营数据应拦截",
+    "userId": "900115072",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "昨天运营数据怎么样",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309605.064,
+    "updatedAt": 1776309605.113,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05564af8664e0ed28e955",
+    "caseId": "cd_perm_op_speed_001",
+    "name": "[权限]运营角色_可查速度走didi",
+    "userId": "900110137",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "昨天平均速度多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309604.471,
+    "updatedAt": 1776309604.518,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05564af8664e0ed28e954",
+    "caseId": "cd_perm_op_mileage_001",
+    "name": "[权限]运营角色_可查里程走didi",
+    "userId": "900110136",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "查一下上周的里程数据",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309604.145,
+    "updatedAt": 1776309604.196,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05563af8664e0ed28e953",
+    "caseId": "cd_perm_op_overview_001",
+    "name": "[权限]运营角色_可查概览走didi",
+    "userId": "900110135",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "昨天全国运营情况怎么样",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309603.838,
+    "updatedAt": 1776309603.889,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05563af8664e0ed28e952",
+    "caseId": "cd_complex_dim_time_001",
+    "name": "[复合]战区+时间对比_华南周环比",
+    "userId": "900100668",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "华南战区上周和本周的运营效率对比",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309603.54,
+    "updatedAt": 1776309603.589,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05563af8664e0ed28e951",
+    "caseId": "cd_complex_multi_dim_001",
+    "name": "[复合]省份下钻城市_广东各城市里程",
+    "userId": "900100667",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "广东省各城市昨天运营车辆数和里程",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309603.189,
+    "updatedAt": 1776309603.261,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05562af8664e0ed28e950",
+    "caseId": "cd_complex_dim_metric_001",
+    "name": "[复合]城市+派生指标_深圳百公里接管",
+    "userId": "900100666",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "深圳上周的接管次数和百公里接管数",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309602.888,
+    "updatedAt": 1776309602.936,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05562af8664e0ed28e94f",
+    "caseId": "cd_complex_cross_group_001",
+    "name": "[复合]跨指标组_速度+刹车同时查",
+    "userId": "900100665",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "昨天的速度和刹车安全数据一起查下",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309602.585,
+    "updatedAt": 1776309602.636,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05562af8664e0ed28e94e",
+    "caseId": "cd_time_compare_001",
+    "name": "[时间]环比对比_上周vs上上周",
+    "userId": "900100664",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "上周和上上周的运营数据环比一下",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309602.271,
+    "updatedAt": 1776309602.326,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05562af8664e0ed28e94d",
+    "caseId": "cd_time_month_001",
+    "name": "[时间]本月_月度累计",
+    "userId": "900100663",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "本月到目前为止的运营概览",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309601.959,
+    "updatedAt": 1776309602.006,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05561af8664e0ed28e94c",
+    "caseId": "cd_time_7days_001",
+    "name": "[时间]最近7天_滚动窗口",
+    "userId": "900100662",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "最近7天的运营数据趋势",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309601.653,
+    "updatedAt": 1776309601.702,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69e05561af8664e0ed28e94b",
+    "caseId": "cd_time_lastweek_001",
+    "name": "[时间]上周_周维度查询",
+    "userId": "900100661",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "上周的总里程和AD占比",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营数据查询",
+    "createdAt": 1776309601.35,
+    "updatedAt": 1776309601.397,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d44dfe02e9bd353ada4",
+    "caseId": "t2_lamp_022",
+    "name": "氛围灯颜色参数口语拆分，灯型未明说",
+    "userId": "900100046",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "氛围灯换个颜色，白色那个",
+        "expectedTool": "vehicle_selective_query"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "全部都换白色",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345540.779,
+    "updatedAt": 1774508512.67,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c623441db038567293d887",
+    "caseId": "ck1_002",
+    "name": "",
+    "userId": "900100471",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "怎么和你们签合同",
+        "expectedTool": "RAG"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774592836.194,
+    "updatedAt": 1774592836.194,
+    "createdBy": "admin"
+  },
+  {
+    "id": "69c38c1f65969a8b33c74a85",
+    "caseId": "s1_t1_vod_015",
+    "name": "",
+    "userId": "900100111",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "潍坊周末路口平均通行耗时多少，拉个数据看看",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "createdAt": 1774423071.204,
+    "updatedAt": 1774424393.969,
+    "createdBy": "admin"
+  },
+  {
+    "id": "69c25d46dfe02e9bd353add2",
+    "caseId": "t4_interact_024",
+    "name": "人工干预中的车叫两声，卡那里了容易触发遥控/报障意图，高歧义",
+    "userId": "900100092",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "045这台卡那里了，叫两声",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345542.465,
+    "updatedAt": 1774504862.929,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d4edfe02e9bd353aea2",
+    "caseId": "t4_fc_030",
+    "name": "前半部分像数据查询，整句带感慨语气属闲聊",
+    "userId": "900100300",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "今天跑了几台车出去，累不累",
+        "expectedTool": "freeChat"
+      }
+    ],
+    "createdAt": 1774345550.134,
+    "updatedAt": 1774345550.157,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d47dfe02e9bd353adf3",
+    "caseId": "t1_router_023",
+    "name": "派单状态查询极易被误判为订单数据查询",
+    "userId": "900100125",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "X6S5017这趟派单发了吗，看看",
+        "expectedTool": "return_app_native_router"
+      }
+    ],
+    "createdAt": 1774345543.638,
+    "updatedAt": 1774345543.657,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c61cbd1db038567293d885",
+    "caseId": "ck1_001",
+    "name": "",
+    "userId": "900100156",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "刚刚我的车撞人了，谁赔钱",
+        "expectedTool": "RAG"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774591165.586,
+    "updatedAt": 1774591165.586,
+    "createdBy": "admin"
+  },
+  {
+    "id": "69c25d48dfe02e9bd353ae08",
+    "caseId": "t1_vq_045",
+    "name": "电量38%定位充电中车辆唯一，查充电剩余时间，还要多久含时效查询",
+    "userId": "900100146",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "在充电的还要多久充完",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345544.493,
+    "updatedAt": 1774505818.087,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d48dfe02e9bd353ae04",
+    "caseId": "t1_vq_041",
+    "name": "双条件筛选+排序，任务中+电量最低，在哪查位置，语义含运营数据分析倾向",
+    "userId": "900100142",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "有任务的电量最低的那辆在哪",
+        "expectedTool": "vehicle_selective_query"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345544.35,
+    "updatedAt": 1774505772.036,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d45dfe02e9bd353adad",
+    "caseId": "t3_vol_008",
+    "name": "3位尾号+具体数值，行驶中车辆音量设置",
+    "userId": "900100055",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "017声音调到50",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345541.122,
+    "updatedAt": 1774504419.197,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d45dfe02e9bd353adb0",
+    "caseId": "t3_vol_011",
+    "name": "极低电量车辆静音，静音=音量0但也易误判为停止鸣笛的交互操作",
+    "userId": "900100058",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "5009静音",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345541.222,
+    "updatedAt": 1774504382.064,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d44dfe02e9bd353ad98",
+    "caseId": "t2_lamp_010",
+    "name": "充电中车辆，4位尾号关灯，操作明确",
+    "userId": "900100034",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "5011近光灯关掉",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345540.362,
+    "updatedAt": 1774504154.2,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d44dfe02e9bd353ad97",
+    "caseId": "t2_lamp_009",
+    "name": "EPS异常车辆开雾灯，4位尾号匹配唯一，车辆状态特殊",
+    "userId": "900100033",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "5016雾灯开一下",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345540.326,
+    "updatedAt": 1774504148.913,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d44dfe02e9bd353ad96",
+    "caseId": "t2_lamp_008",
+    "name": "3位尾号，持续双闪容易混淆为vehicle_control而非灯控",
+    "userId": "900100032",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "027双闪别关，一直开着",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345540.288,
+    "updatedAt": 1774504143.889,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d44dfe02e9bd353ad95",
+    "caseId": "t2_lamp_007",
+    "name": "3位尾号+氛围灯口语化，给它开上省略颜色参数",
+    "userId": "900100031",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "017的氛围灯给它开上",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345540.253,
+    "updatedAt": 1774504137.92,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d44dfe02e9bd353ad94",
+    "caseId": "t2_lamp_006",
+    "name": "3位尾号+灯型明确，最简模糊ID灯控测试",
+    "userId": "900100030",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "003近光开一下",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345540.217,
+    "updatedAt": 1774504106.636,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad82",
+    "caseId": "t1_door_013",
+    "name": "带车型前缀但号码不全，X6系列在mock中尾号017唯一",
+    "userId": "900100012",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "017开个门",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345539.542,
+    "updatedAt": 1774495901.789,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad81",
+    "caseId": "t1_door_012",
+    "name": "先…好的完成时语气，车辆正返程中，开门是接货前准备动作",
+    "userId": "900100011",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "5028先把门开好",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345539.508,
+    "updatedAt": 1774495803.958,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad80",
+    "caseId": "t1_door_011",
+    "name": "4位尾号+解锁口语替代开门，匹配唯一",
+    "userId": "900100010",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "5003解锁",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345539.473,
+    "updatedAt": 1774495778.526,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad7f",
+    "caseId": "t1_door_010",
+    "name": "充电中的车开门，一直关着是状态确认语气，容易误判为状态查询或交互操作",
+    "userId": "900100009",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "010那台舱门一直关着，打开",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345539.436,
+    "updatedAt": 1774495736.626,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad7e",
+    "caseId": "t1_door_009",
+    "name": "极简3位尾号+动作，无主语无前缀，靠尾号唯一匹配",
+    "userId": "900100008",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "026门打开",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345539.4,
+    "updatedAt": 1774495712.731,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad7c",
+    "caseId": "t1_door_007",
+    "name": "仅凭3位尾号指令，能否正确识别并命中X6S5001；尾号唯一无歧义",
+    "userId": "900100006",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "001开一下门",
+        "expectedTool": "vehicle_control"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "1号，开一下门",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345539.331,
+    "updatedAt": 1774495595.124,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad7d",
+    "caseId": "t1_door_008",
+    "name": "尾号3位+车辆当前AUTO状态，开门语义清晰但车辆正在行驶，有前置状态判断",
+    "userId": "900100007",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "017的舱门给我开一下",
+        "expectedTool": "vehicle_control"
+      }
+    ],
+    "tags": "",
+    "groupName": "默认分组",
+    "createdAt": 1774345539.364,
+    "updatedAt": 1774495558.982,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c38c0065969a8b33c74a83",
+    "caseId": "s1_t1_vod_013",
+    "name": "",
+    "userId": "900100109",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "临沂昨天在线车辆数和接单车辆数分别是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "tags": "",
+    "createdAt": 1774423040.236,
+    "updatedAt": 1774424376.32,
+    "createdBy": "admin"
+  },
+  {
+    "id": "69c25d43dfe02e9bd353ad76",
+    "caseId": "t1_door_001",
+    "name": "开门基本流程",
+    "userId": "900100450",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "帮我开一下车门",
+        "expectedTool": "open_door"
+      },
+      {
+        "turnIndex": 2,
+        "userInput": "好的，开A001的",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "开门场景",
+    "createdAt": 1774345539.076,
+    "updatedAt": 1774505560.542,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185a9",
+    "caseId": "t1_query_009",
+    "name": "问数据q9",
+    "userId": "900110008",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "badcase 订单有多少个",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "订单",
+    "createdAt": 1775118348.498,
+    "updatedAt": 1775118348.509,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185a8",
+    "caseId": "t1_query_008",
+    "name": "问数据q8",
+    "userId": "900110007",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "异常订单数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "订单",
+    "createdAt": 1775118348.452,
+    "updatedAt": 1775118348.46,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185a7",
+    "caseId": "t1_query_007",
+    "name": "问数据q7",
+    "userId": "900110006",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "出问题的订单有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "订单",
+    "createdAt": 1775118348.409,
+    "updatedAt": 1775118348.419,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185a6",
+    "caseId": "t1_query_006",
+    "name": "问数据q6",
+    "userId": "900110005",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "总任务量是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "订单",
+    "createdAt": 1775118348.371,
+    "updatedAt": 1775118348.378,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185a5",
+    "caseId": "t1_query_005",
+    "name": "问数据q5",
+    "userId": "900110004",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "一共下发了多少个任务",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "订单",
+    "createdAt": 1775118348.327,
+    "updatedAt": 1775118348.337,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185a4",
+    "caseId": "t1_query_004",
+    "name": "问数据q4",
+    "userId": "900110003",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "总任务数有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "订单",
+    "createdAt": 1775118348.255,
+    "updatedAt": 1775118348.271,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185a3",
+    "caseId": "t1_query_003",
+    "name": "问数据q3",
+    "userId": "900110002",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "累计订单数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "订单",
+    "createdAt": 1775118348.199,
+    "updatedAt": 1775118348.207,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185a2",
+    "caseId": "t1_query_002",
+    "name": "问数据q2",
+    "userId": "900110001",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "一共完成了多少单",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "订单",
+    "createdAt": 1775118348.146,
+    "updatedAt": 1775118348.157,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185b5",
+    "caseId": "t1_query_021",
+    "name": "问数据q21",
+    "userId": "900110020",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "调度行驶的平均车速有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车速",
+    "createdAt": 1775118349.006,
+    "updatedAt": 1775118349.014,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185b4",
+    "caseId": "t1_query_020",
+    "name": "问数据q20",
+    "userId": "900110019",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "调度环节的平均车速是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车速",
+    "createdAt": 1775118348.962,
+    "updatedAt": 1775118348.971,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185b3",
+    "caseId": "t1_query_019",
+    "name": "问数据q19",
+    "userId": "900110018",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "调度平均车速多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车速",
+    "createdAt": 1775118348.921,
+    "updatedAt": 1775118348.928,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185b2",
+    "caseId": "t1_query_018",
+    "name": "问数据q18",
+    "userId": "900110017",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送驾的时候平均开多快",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车速",
+    "createdAt": 1775118348.889,
+    "updatedAt": 1775118348.894,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185b1",
+    "caseId": "t1_query_017",
+    "name": "问数据q17",
+    "userId": "900110016",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送驾环节的平均车速是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车速",
+    "createdAt": 1775118348.848,
+    "updatedAt": 1775118348.857,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185b0",
+    "caseId": "t1_query_016",
+    "name": "问数据q16",
+    "userId": "900110015",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送驾平均车速多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车速",
+    "createdAt": 1775118348.808,
+    "updatedAt": 1775118348.815,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185af",
+    "caseId": "t1_query_015",
+    "name": "问数据q15",
+    "userId": "900110014",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "接驾的时候平均开多快",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车速",
+    "createdAt": 1775118348.765,
+    "updatedAt": 1775118348.773,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280ceb3e67075d5185ae",
+    "caseId": "t1_query_014",
+    "name": "问数据q14",
+    "userId": "900110013",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "接驾环节的平均车速是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车速",
+    "createdAt": 1775118348.725,
+    "updatedAt": 1775118348.733,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185be",
+    "caseId": "t1_query_030",
+    "name": "问数据q30",
+    "userId": "900110029",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "运营时长达标的车辆数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营&车辆在线",
+    "createdAt": 1775118349.405,
+    "updatedAt": 1775118349.416,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185bd",
+    "caseId": "t1_query_029",
+    "name": "问数据q29",
+    "userId": "900110028",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "运营时长合格的车辆有多少辆",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营&车辆在线",
+    "createdAt": 1775118349.365,
+    "updatedAt": 1775118349.372,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185bc",
+    "caseId": "t1_query_028",
+    "name": "问数据q28",
+    "userId": "900110027",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "运营时长达标的车辆有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营&车辆在线",
+    "createdAt": 1775118349.324,
+    "updatedAt": 1775118349.333,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185bb",
+    "caseId": "t1_query_027",
+    "name": "问数据q27",
+    "userId": "900110026",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "车辆一共在线了多久",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营&车辆在线",
+    "createdAt": 1775118349.277,
+    "updatedAt": 1775118349.287,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185ba",
+    "caseId": "t1_query_026",
+    "name": "问数据q26",
+    "userId": "900110025",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "车辆总在线时长是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营&车辆在线",
+    "createdAt": 1775118349.225,
+    "updatedAt": 1775118349.237,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185b9",
+    "caseId": "t1_query_025",
+    "name": "问数据q25",
+    "userId": "900110024",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "车辆累计在线时长多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营&车辆在线",
+    "createdAt": 1775118349.161,
+    "updatedAt": 1775118349.177,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185b8",
+    "caseId": "t1_query_024",
+    "name": "问数据q24",
+    "userId": "900110023",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "每辆车平均运营了多长时间",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营&车辆在线",
+    "createdAt": 1775118349.1,
+    "updatedAt": 1775118349.11,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280deb3e67075d5185b7",
+    "caseId": "t1_query_023",
+    "name": "问数据q23",
+    "userId": "900110022",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "车均运营时长是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "运营&车辆在线",
+    "createdAt": 1775118349.067,
+    "updatedAt": 1775118349.072,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d3",
+    "caseId": "t1_query_051",
+    "name": "问数据q51",
+    "userId": "900110050",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "调度任务平均里程有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "里程",
+    "createdAt": 1775118350.604,
+    "updatedAt": 1775118350.616,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d2",
+    "caseId": "t1_query_050",
+    "name": "问数据q50",
+    "userId": "900110049",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "全天调度的平均里程是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "里程",
+    "createdAt": 1775118350.537,
+    "updatedAt": 1775118350.552,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d1",
+    "caseId": "t1_query_049",
+    "name": "问数据q49",
+    "userId": "900110048",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "全天调度平均里程多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "里程",
+    "createdAt": 1775118350.46,
+    "updatedAt": 1775118350.477,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d0",
+    "caseId": "t1_query_048",
+    "name": "问数据q48",
+    "userId": "900110047",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "调度累计跑了多少公里",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "里程",
+    "createdAt": 1775118350.394,
+    "updatedAt": 1775118350.403,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185cf",
+    "caseId": "t1_query_047",
+    "name": "问数据q47",
+    "userId": "900110046",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "调度环节总行驶里程是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "里程",
+    "createdAt": 1775118350.349,
+    "updatedAt": 1775118350.363,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185ce",
+    "caseId": "t1_query_046",
+    "name": "问数据q46",
+    "userId": "900110045",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "累计调度里程多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "里程",
+    "createdAt": 1775118350.272,
+    "updatedAt": 1775118350.292,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185cd",
+    "caseId": "t1_query_045",
+    "name": "问数据q45",
+    "userId": "900110044",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "ad 里程占比是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "里程",
+    "createdAt": 1775118350.178,
+    "updatedAt": 1775118350.197,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185cc",
+    "caseId": "t1_query_044",
+    "name": "问数据q44",
+    "userId": "900110043",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "ad 里程占总里程的比例是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "里程",
+    "createdAt": 1775118350.133,
+    "updatedAt": 1775118350.141,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185dc",
+    "caseId": "t1_query_060",
+    "name": "问数据q60",
+    "userId": "900110059",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "累计路口通行异常数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "异常任务 & 路口通行指标",
+    "createdAt": 1775118351.088,
+    "updatedAt": 1775118351.098,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185db",
+    "caseId": "t1_query_059",
+    "name": "问数据q59",
+    "userId": "900110058",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "路口通行出异常的次数有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "异常任务 & 路口通行指标",
+    "createdAt": 1775118351.023,
+    "updatedAt": 1775118351.037,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185da",
+    "caseId": "t1_query_058",
+    "name": "问数据q58",
+    "userId": "900110057",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "路口通行异常有多少次",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "异常任务 & 路口通行指标",
+    "createdAt": 1775118350.955,
+    "updatedAt": 1775118350.972,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d9",
+    "caseId": "t1_query_057",
+    "name": "问数据q57",
+    "userId": "900110056",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "车辆一共路过了多少个路口",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "异常任务 & 路口通行指标",
+    "createdAt": 1775118350.896,
+    "updatedAt": 1775118350.911,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d8",
+    "caseId": "t1_query_056",
+    "name": "问数据q56",
+    "userId": "900110055",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "累计途经路口数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "异常任务 & 路口通行指标",
+    "createdAt": 1775118350.847,
+    "updatedAt": 1775118350.861,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d7",
+    "caseId": "t1_query_055",
+    "name": "问数据q55",
+    "userId": "900110054",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "总共经过了多少个路口",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "异常任务 & 路口通行指标",
+    "createdAt": 1775118350.8,
+    "updatedAt": 1775118350.805,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d6",
+    "caseId": "t1_query_054",
+    "name": "问数据q54",
+    "userId": "900110053",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "ad 任务异常的有多少个",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "异常任务 & 路口通行指标",
+    "createdAt": 1775118350.756,
+    "updatedAt": 1775118350.768,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280eeb3e67075d5185d5",
+    "caseId": "t1_query_053",
+    "name": "问数据q53",
+    "userId": "900110052",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "累计异常 ad 任务数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "异常任务 & 路口通行指标",
+    "createdAt": 1775118350.706,
+    "updatedAt": 1775118350.717,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185ee",
+    "caseId": "t1_query_078",
+    "name": "问数据q78",
+    "userId": "900110077",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "卸货超时 20 分钟的订单有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "装卸货",
+    "createdAt": 1775118351.89,
+    "updatedAt": 1775118351.898,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185ed",
+    "caseId": "t1_query_077",
+    "name": "问数据q77",
+    "userId": "900110076",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "卸货耗时超过 20 分钟的订单数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "装卸货",
+    "createdAt": 1775118351.85,
+    "updatedAt": 1775118351.857,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185ec",
+    "caseId": "t1_query_076",
+    "name": "问数据q76",
+    "userId": "900110075",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "卸货超 20 分钟的订单有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "装卸货",
+    "createdAt": 1775118351.809,
+    "updatedAt": 1775118351.817,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185eb",
+    "caseId": "t1_query_075",
+    "name": "问数据q75",
+    "userId": "900110074",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "平均卸货要用多长时间",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "装卸货",
+    "createdAt": 1775118351.768,
+    "updatedAt": 1775118351.776,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185ea",
+    "caseId": "t1_query_074",
+    "name": "问数据q74",
+    "userId": "900110073",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "卸货耗时是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "装卸货",
+    "createdAt": 1775118351.74,
+    "updatedAt": 1775118351.746,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185e9",
+    "caseId": "t1_query_073",
+    "name": "问数据q73",
+    "userId": "900110072",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "卸货平均花了多久",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "装卸货",
+    "createdAt": 1775118351.71,
+    "updatedAt": 1775118351.715,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185e8",
+    "caseId": "t1_query_072",
+    "name": "问数据q72",
+    "userId": "900110071",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "平均等卸货要花多久",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "装卸货",
+    "createdAt": 1775118351.679,
+    "updatedAt": 1775118351.685,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce280feb3e67075d5185e7",
+    "caseId": "t1_query_071",
+    "name": "问数据q71",
+    "userId": "900110070",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "卸货等待时长是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "装卸货",
+    "createdAt": 1775118351.646,
+    "updatedAt": 1775118351.652,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518609",
+    "caseId": "t1_query_105",
+    "name": "问数据q105",
+    "userId": "900110104",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送货环节的 badcase 有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "偏差 & ETA",
+    "createdAt": 1775118353.221,
+    "updatedAt": 1775118353.229,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518608",
+    "caseId": "t1_query_104",
+    "name": "问数据q104",
+    "userId": "900110103",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送货环节的异常订单数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "偏差 & ETA",
+    "createdAt": 1775118353.165,
+    "updatedAt": 1775118353.174,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518607",
+    "caseId": "t1_query_103",
+    "name": "问数据q103",
+    "userId": "900110102",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送货环节问题订单有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "偏差 & ETA",
+    "createdAt": 1775118353.102,
+    "updatedAt": 1775118353.115,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518606",
+    "caseId": "t1_query_102",
+    "name": "问数据q102",
+    "userId": "900110101",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送货任务一共有多少个",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "偏差 & ETA",
+    "createdAt": 1775118353.036,
+    "updatedAt": 1775118353.052,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518605",
+    "caseId": "t1_query_101",
+    "name": "问数据q101",
+    "userId": "900110100",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送货环节的总任务数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "偏差 & ETA",
+    "createdAt": 1775118352.994,
+    "updatedAt": 1775118353.002,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2810eb3e67075d518604",
+    "caseId": "t1_query_100",
+    "name": "问数据q100",
+    "userId": "900110099",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "送货环节总任务有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "偏差 & ETA",
+    "createdAt": 1775118352.947,
+    "updatedAt": 1775118352.957,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2810eb3e67075d518603",
+    "caseId": "t1_query_099",
+    "name": "问数据q99",
+    "userId": "900110098",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "取货环节的 badcase 有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "偏差 & ETA",
+    "createdAt": 1775118352.906,
+    "updatedAt": 1775118352.914,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2810eb3e67075d518602",
+    "caseId": "t1_query_098",
+    "name": "问数据q98",
+    "userId": "900110097",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "取货环节的异常订单数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "偏差 & ETA",
+    "createdAt": 1775118352.86,
+    "updatedAt": 1775118352.87,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d51860f",
+    "caseId": "t1_query_111",
+    "name": "问数据q111",
+    "userId": "900110110",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "精准停靠的达标率是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "停靠相关指标",
+    "createdAt": 1775118353.5,
+    "updatedAt": 1775118353.508,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d51860e",
+    "caseId": "t1_query_110",
+    "name": "问数据q110",
+    "userId": "900110109",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "精准停靠的比例是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "停靠相关指标",
+    "createdAt": 1775118353.462,
+    "updatedAt": 1775118353.468,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d51860d",
+    "caseId": "t1_query_109",
+    "name": "问数据q109",
+    "userId": "900110108",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "精准停靠率是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "停靠相关指标",
+    "createdAt": 1775118353.422,
+    "updatedAt": 1775118353.432,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d51860c",
+    "caseId": "t1_query_108",
+    "name": "问数据q108",
+    "userId": "900110107",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "一共完成了多少次精准停靠",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "停靠相关指标",
+    "createdAt": 1775118353.376,
+    "updatedAt": 1775118353.384,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d51860b",
+    "caseId": "t1_query_107",
+    "name": "问数据q107",
+    "userId": "900110106",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "精准停靠数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "停靠相关指标",
+    "createdAt": 1775118353.328,
+    "updatedAt": 1775118353.338,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d51860a",
+    "caseId": "t1_query_106",
+    "name": "问数据q106",
+    "userId": "900110105",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "精准停靠次数有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "停靠相关指标",
+    "createdAt": 1775118353.276,
+    "updatedAt": 1775118353.289,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518615",
+    "caseId": "t1_query_117",
+    "name": "问数据q117",
+    "userId": "900110116",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "有接单记录的车辆有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车辆相关指标",
+    "createdAt": 1775118353.784,
+    "updatedAt": 1775118353.796,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518614",
+    "caseId": "t1_query_116",
+    "name": "问数据q116",
+    "userId": "900110115",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "成功接单的车辆数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车辆相关指标",
+    "createdAt": 1775118353.742,
+    "updatedAt": 1775118353.751,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518613",
+    "caseId": "t1_query_115",
+    "name": "问数据q115",
+    "userId": "900110114",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "接单车辆有多少辆",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车辆相关指标",
+    "createdAt": 1775118353.693,
+    "updatedAt": 1775118353.705,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518612",
+    "caseId": "t1_query_114",
+    "name": "问数据q114",
+    "userId": "900110113",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "上线运营的车辆有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车辆相关指标",
+    "createdAt": 1775118353.641,
+    "updatedAt": 1775118353.652,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518611",
+    "caseId": "t1_query_113",
+    "name": "问数据q113",
+    "userId": "900110112",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "正在运营的车辆数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车辆相关指标",
+    "createdAt": 1775118353.589,
+    "updatedAt": 1775118353.596,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2811eb3e67075d518610",
+    "caseId": "t1_query_112",
+    "name": "问数据q112",
+    "userId": "900110111",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "运营车辆有多少辆",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "车辆相关指标",
+    "createdAt": 1775118353.543,
+    "updatedAt": 1775118353.553,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2812eb3e67075d518627",
+    "caseId": "t1_query_135",
+    "name": "问数据q135",
+    "userId": "900110134",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "白天异常调度任务数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "调度 & 空驶",
+    "createdAt": 1775118354.5,
+    "updatedAt": 1775118354.507,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2812eb3e67075d518626",
+    "caseId": "t1_query_134",
+    "name": "问数据q134",
+    "userId": "900110133",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "白天调度异常的任务有多少个",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "调度 & 空驶",
+    "createdAt": 1775118354.45,
+    "updatedAt": 1775118354.461,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2812eb3e67075d518625",
+    "caseId": "t1_query_133",
+    "name": "问数据q133",
+    "userId": "900110132",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "白天异常调度任务有多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "调度 & 空驶",
+    "createdAt": 1775118354.423,
+    "updatedAt": 1775118354.428,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2812eb3e67075d518624",
+    "caseId": "t1_query_132",
+    "name": "问数据q132",
+    "userId": "900110131",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "白天一共下发了多少调度任务",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "调度 & 空驶",
+    "createdAt": 1775118354.395,
+    "updatedAt": 1775118354.4,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2812eb3e67075d518623",
+    "caseId": "t1_query_131",
+    "name": "问数据q131",
+    "userId": "900110130",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "白天的调度任务总数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "调度 & 空驶",
+    "createdAt": 1775118354.367,
+    "updatedAt": 1775118354.372,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2812eb3e67075d518622",
+    "caseId": "t1_query_130",
+    "name": "问数据q130",
+    "userId": "900110129",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "白天调度任务有多少个",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "调度 & 空驶",
+    "createdAt": 1775118354.341,
+    "updatedAt": 1775118354.345,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2812eb3e67075d518621",
+    "caseId": "t1_query_129",
+    "name": "问数据q129",
+    "userId": "900110128",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "全天异常调度任务数是多少",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "调度 & 空驶",
+    "createdAt": 1775118354.314,
+    "updatedAt": 1775118354.319,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69ce2812eb3e67075d518620",
+    "caseId": "t1_query_128",
+    "name": "问数据q128",
+    "userId": "900110127",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "全天调度异常的任务有多少个",
+        "expectedTool": "vehicle_operation_data_query"
+      }
+    ],
+    "groupName": "调度 & 空驶",
+    "createdAt": 1775118354.285,
+    "updatedAt": 1775118354.29,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c4bf001a4c1a06d8c4f894",
+    "caseId": "t4_perm_001",
+    "name": "无权限开门",
+    "userId": "900115001",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "帮我开下门",
+        "expectedTool": "open_door"
+      }
+    ],
+    "groupName": "权限测试",
+    "createdAt": 1774501632.622,
+    "updatedAt": 1774505560.619,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c3b44869a3d2c506a6b315",
+    "caseId": "vc_full_020",
+    "name": "028关灯静音+附近鸣笛",
+    "userId": "900100318",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "028灯关了声音调最小，附近的车也鸣个笛",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "车控复合意图",
+    "createdAt": 1774433352.062,
+    "updatedAt": 1774433352.074,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c3b44769a3d2c506a6b314",
+    "caseId": "vc_full_019",
+    "name": "低于15%鸣笛双闪",
+    "userId": "900100317",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "帮我看看周围有没有电量低于15%的车，有的话鸣笛开双闪提醒我",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "车控复合意图",
+    "createdAt": 1774433351.984,
+    "updatedAt": 1774433351.996,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c3b44769a3d2c506a6b313",
+    "caseId": "vc_full_018",
+    "name": "5辆鸣笛+028声音调小",
+    "userId": "900100316",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "找附近5辆车鸣笛，然后把028声音调小",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "车控复合意图",
+    "createdAt": 1774433351.908,
+    "updatedAt": 1774433351.92,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c3b44769a3d2c506a6b312",
+    "caseId": "vc_full_017",
+    "name": "028近光+查低电量车近光鸣笛",
+    "userId": "900100315",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "028开近光灯，再查下附近电量低的车也开近光灯鸣笛",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "车控复合意图",
+    "createdAt": 1774433351.829,
+    "updatedAt": 1774433351.843,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c3b44769a3d2c506a6b311",
+    "caseId": "vc_full_016",
+    "name": "灯光太亮全关",
+    "userId": "900100314",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "这里的车灯光太亮了，都关掉",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "车控复合意图",
+    "createdAt": 1774433351.748,
+    "updatedAt": 1774433351.762,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c3b44769a3d2c506a6b310",
+    "caseId": "vc_full_015",
+    "name": "关声音+鸣笛",
+    "userId": "900100313",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "太吵了，把车的声音关掉再鸣个笛",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "车控复合意图",
+    "createdAt": 1774433351.65,
+    "updatedAt": 1774433351.664,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c3b44769a3d2c506a6b30f",
+    "caseId": "vc_full_014",
+    "name": "低于10%双闪提醒",
+    "userId": "900100312",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "旁边电量不到10%的车双闪打开提醒一下",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "车控复合意图",
+    "createdAt": 1774433351.564,
+    "updatedAt": 1774433351.577,
+    "createdBy": "csv-import"
+  },
+  {
+    "id": "69c3b44769a3d2c506a6b30e",
+    "caseId": "vc_full_013",
+    "name": "最近低电量车鸣笛开门",
+    "userId": "900100311",
+    "enabled": true,
+    "turns": [
+      {
+        "turnIndex": 1,
+        "userInput": "离我最近的那辆低电量车鸣笛开门",
+        "expectedTool": ""
+      }
+    ],
+    "groupName": "车控复合意图",
+    "createdAt": 1774433351.482,
+    "updatedAt": 1774433351.496,
+    "createdBy": "csv-import"
+  }
+]

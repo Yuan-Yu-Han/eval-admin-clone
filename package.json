@@ -1,0 +1,14 @@
+{
+  "name": "eval-admin-clone",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One-to-one local demo for the /admin/eval page with mock APIs.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test --test-concurrency=1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
