@@ -199,6 +199,42 @@ test('case generation schema is project-scoped and assembled with editable busin
   assert.match(prompt, /vehicle_operation_data_query/);
 });
 
+test('case generation prompt includes editable field contract while locking selected group', async () => {
+  const opsLogin = await loginForProject(OPS_ACCESS_CODE);
+  const editableContract = [
+    '输出字段结构：字段结构全项目统一，业务覆盖目标单独填写。',
+    '必填字段：caseId, name, groupName, allowedTools, turns, expectedTools, evalDimensions, riskLevel',
+    '轮次字段：userInput, expectedTool；断言字段：expectedArgs, replyContains, replyNotContains, judgePrompt, judgeThreshold',
+    '导入列：enable, case_id, name, user_id, group_name, input1, expected_tool_1, expected_args_1, reply_contains_1, reply_not_contains_1, judge_prompt_1, judge_threshold_1'
+  ].join('\n');
+
+  const genJson = await rawFetch(`${BASE}/case-service/generate-preview`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${opsLogin.data.token}`
+    },
+    body: JSON.stringify({
+      mode: 'generate',
+      module: 'operation_data',
+      count: 1,
+      groupName: '运营日报专项',
+      businessObjective: '只生成运营日报内容覆盖，不要决定分组。',
+      schemaPrompt: editableContract,
+      allowedTools: ['vehicle_operation_data_query']
+    })
+  }).then((res) => res.json());
+
+  assert.equal(genJson.code, '10000');
+  const generated = genJson.data.preview[0];
+  assert.equal(generated.groupName, '运营日报专项');
+  assert.match(generated.generationPrompt, /# 可编辑字段契约/);
+  assert.match(generated.generationPrompt, /字段结构全项目统一/);
+  assert.match(generated.generationPrompt, /# 锁定目标分组/);
+  assert.match(generated.generationPrompt, /groupName 必须固定为：运营日报专项/);
+  assert.match(generated.generationPrompt, /业务覆盖目标只生成内容覆盖，不得改写分组/);
+});
+
 test('case CSV export and generated preview align to source admin flat assertion columns', async () => {
   const casesJson = await apiFetch('/cases').then((res) => res.json());
   const firstCase = casesJson.data[0];
@@ -583,6 +619,8 @@ test('local page includes run version setup, filtering, and funnel explanation c
     '目标分组',
     '业务覆盖目标',
     '输出字段结构',
+    '字段契约 Prompt（可编辑）',
+    '重置字段契约',
     'Run 总览',
     '无 SkillResult 链路',
     '回复质量评分',
@@ -590,6 +628,68 @@ test('local page includes run version setup, filtering, and funnel explanation c
     '逐轮明细'
   ]) {
     assert.equal(html.includes(text), true, `page should include new workflow text: ${text}`);
+  }
+});
+
+test('Generate page separates batch locks, CSV template fields, content instructions, and preview editing', async () => {
+  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+
+  for (const text of [
+    '批次控制',
+    '字段模板',
+    '内容生成',
+    '生成预览与编辑',
+    '断言字段',
+    'CSV 模板列',
+    '模板字段说明',
+    'expected_args',
+    'reply_contains',
+    'reply_not_contains',
+    'judge_prompt',
+    'judge_threshold',
+    '是否启用(true/false)',
+    '用户ID(数字 或 权限类型: FULL/OPEN_DOOR_ONLY/OPERATIONAL_ONLY/DENIED)',
+    '第1轮期望参数(JSON)',
+    '第1轮回复须含(分号分隔)',
+    '第1轮评判及格线(0-1)',
+    'gen-preview-scroll'
+  ]) {
+    assert.equal(html.includes(text), true, `Generate page should clarify field ownership: ${text}`);
+  }
+
+  for (const text of [
+    '分组由页面选择锁定，生成器只负责内容覆盖和断言细节。',
+    'ALLOWEDTOOLS（页面锁定，可多选）',
+    '由页面锁定',
+    '交给 LLM 生成',
+    '预览后可编辑',
+    '生成出来的 case 名称、输入内容、期望工具、断言字段、启用状态和风险等级都能在入库前改。',
+    '<label class="fl">evalDimensions</label>',
+    'id="pg-eval-dimensions"',
+    '>intent</label>',
+    '>tool</label>',
+    '>params</label>',
+    '>responseQuality</label>',
+    '>expectedArgs</label>',
+    '>replyContains</label>',
+    '>replyNotContains</label>',
+    '>judgePrompt</label>',
+    '>judgeThreshold</label>',
+    '默认 riskLevel',
+    'expectedTool 策略',
+    '配置本次生成批次。',
+    '配置输出字段和断言列。',
+    '填写要覆盖的业务场景。',
+    '覆盖标签',
+    '权限边界,弱网,多轮引用',
+    '生成口径',
+    '像真实用户说话，不要出现生成器痕迹；断言要可复核。',
+    '<span class="gen-step-num">4</span>生成预览与编辑',
+    '按 CSV 字段预览，确认后加入用例库。',
+    '固定为右侧工具',
+    'LLM 在 allowedTools 中选择'
+  ]) {
+    assert.equal(html.includes(text), false, `Generate page should avoid noisy explanation text: ${text}`);
   }
 });
 
@@ -798,7 +898,6 @@ test('Generate Cases page is the only generation entry point', async () => {
     'expectedTool',
     'expectedTools',
     '期望函数字段',
-    '本次生成只使用一个 expectedTool',
     'return_app_native_router',
     'Case ID 前缀',
     '车辆控制专项',

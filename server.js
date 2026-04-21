@@ -2120,6 +2120,9 @@ function makePromptText(expectedTool, boundaryTag, index) {
 function buildGeneratedTurns(payload, expectedTool, boundary, index, baseCase) {
   const turnCount = Math.max(1, Math.min(3, Number(payload.turnCount || 1)));
   const existingTurns = Array.isArray(baseCase?.turns) ? baseCase.turns : [];
+  const selectedAssertionFields = Array.isArray(payload.selectedAssertionFields) && payload.selectedAssertionFields.length
+    ? new Set(payload.selectedAssertionFields)
+    : new Set(CASE_TURN_ASSERTION_FIELDS);
   const turns = [];
   for (let i = 0; i < turnCount; i++) {
     const baseTurn = existingTurns[i];
@@ -2136,6 +2139,12 @@ function buildGeneratedTurns(payload, expectedTool, boundary, index, baseCase) {
       judgePrompt: baseTurn?.judgePrompt || '',
       judgeThreshold: baseTurn?.judgeThreshold ?? ''
     });
+    const turn = turns[turns.length - 1];
+    if (!selectedAssertionFields.has('expectedArgs')) turn.expectedArgs = '';
+    if (!selectedAssertionFields.has('replyContains')) turn.replyContains = [];
+    if (!selectedAssertionFields.has('replyNotContains')) turn.replyNotContains = [];
+    if (!selectedAssertionFields.has('judgePrompt')) turn.judgePrompt = '';
+    if (!selectedAssertionFields.has('judgeThreshold')) turn.judgeThreshold = '';
   }
   return turns;
 }
@@ -2172,32 +2181,55 @@ function buildGenerationPrompt(payload, moduleDef) {
   if (String(payload.businessObjective || '').trim()) {
     const schema = generationSchemaForProject(payload.authContext || null);
     const allowedTools = normalizeAllowedTools(payload, moduleDef.tool);
+    const targetGroup = payload.groupName || moduleDef.groupName;
+    const selectedAssertionFields = Array.isArray(payload.selectedAssertionFields) && payload.selectedAssertionFields.length
+      ? payload.selectedAssertionFields
+      : schema.assertionFields;
+    const dims = Array.isArray(payload.evalDimensions) && payload.evalDimensions.length
+      ? payload.evalDimensions
+      : schema.evalDimensions;
+    const schemaPrompt = String(payload.schemaPrompt || '').trim() || [
+      '输出字段结构：字段结构全项目统一，业务覆盖目标单独填写。',
+      `必填字段：${schema.requiredFields.join(', ')}`,
+      `轮次字段：${schema.turnFields.join(', ')}；断言字段：${selectedAssertionFields.join(', ')}`,
+      `导入列：${schema.importColumns.join(', ')}`
+    ].join('\n');
     return [
       '# 平台固定结构约束',
       '你是 Eval Console 的评测用例生成器。必须输出可直接解析入库的 JSON 数组，不允许输出 Markdown、注释或额外解释。',
-      '平台会锁定输出字段结构，业务使用方只能调整覆盖目标、分组和边界条件。',
+      '平台会锁定输出字段结构，业务使用方可以编辑字段契约说明、业务覆盖目标和边界条件。',
       '',
       '# 项目 Schema',
       `schemaId: ${schema.schemaId}`,
       `projectId: ${schema.projectId}`,
       `requiredFields: ${schema.requiredFields.join(', ')}`,
       `turnFields: ${schema.turnFields.join(', ')}`,
+      `selectedAssertionFields: ${selectedAssertionFields.join(', ')}`,
       `importColumns: ${schema.importColumns.join(', ')}`,
-      `evalDimensions: ${schema.evalDimensions.join(', ')}`,
+      `evalDimensions: ${dims.join(', ')}`,
       `riskLevels: ${schema.riskLevels.join(', ')}`,
+      `defaultRiskLevel: ${payload.defaultRiskLevel || 'medium'}`,
+      `userIdStrategy: ${payload.userTier || payload.userId || 'FULL'}`,
+      `expectedToolStrategy: ${payload.expectedToolStrategy === 'llm' ? 'LLM 在 allowedTools 中选择' : '固定 expectedTool'}`,
       `allowedTools: ${allowedTools.join(', ')}`,
       ...schema.schemaNotes.map((note, idx) => `rule${idx + 1}: ${note}`),
+      '',
+      '# 可编辑字段契约',
+      schemaPrompt,
       '',
       '# 业务覆盖目标',
       String(payload.businessObjective || '').trim(),
       '',
-      '# 目标分组',
-      payload.groupName || moduleDef.groupName,
+      '# 锁定目标分组',
+      `groupName 必须固定为：${targetGroup}`,
+      '业务覆盖目标只生成内容覆盖，不得改写分组；所有输出项的 groupName 都使用上面的固定值。',
       '',
       '# 输出要求',
       '每项必须包含 caseId、name、groupName、allowedTools、turns、expectedTools、evalDimensions、riskLevel。',
       'turns 中每轮必须包含 userInput 和 expectedTool。',
       'expectedTools 必须与 turns[].expectedTool 顺序一致。',
+      `只生成这些断言字段：${selectedAssertionFields.join(', ')}；未选择的断言字段保持空值或空数组。`,
+      `riskLevel 默认使用 ${payload.defaultRiskLevel || 'medium'}，除非业务覆盖目标明确要求更高风险。`,
       'userInput 要像真实用户说话，不要出现“请说明筛选条件(1)”等生成器痕迹。'
     ].join('\n');
   }
@@ -2242,7 +2274,7 @@ function createGeneratedCase(payload, index, baseCase, usedCaseIds) {
     id: id('case'),
     caseId: `${caseIdPrefix}_${seed}`,
     name: `LLM生成-${moduleDef.groupName}-${index + 1}`,
-    userId: payload.userId || uidFromTier('FULL'),
+    userId: payload.userId || uidFromTier(payload.userTier || 'FULL'),
     enabled: true,
     turns,
     allowedTools,
@@ -2251,6 +2283,7 @@ function createGeneratedCase(payload, index, baseCase, usedCaseIds) {
     groupName: targetGroup,
     generationPrompt: buildGenerationPrompt({ ...payload, groupName: targetGroup, allowedTools }, moduleDef),
     evalDimensions: Array.isArray(payload.evalDimensions) && payload.evalDimensions.length ? payload.evalDimensions : DEFAULT_EVAL_DIMENSIONS,
+    riskLevel: CASE_RISK_LEVELS.includes(payload.defaultRiskLevel) ? payload.defaultRiskLevel : 'medium',
     regression: false,
     regressionCandidate: false,
     regressionAudit: [],
