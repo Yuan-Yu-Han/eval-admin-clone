@@ -1,4 +1,5 @@
 import http from 'node:http';
+import crypto from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -14,9 +15,39 @@ const CASES_JSON = path.join(__dirname, 'data', 'original-cases.json');
 const RUNS_JSON = path.join(__dirname, 'data', 'original-runs.json');
 const PROMPTS_JSON = path.join(__dirname, 'data', 'original-prompts.json');
 const OK = '10000';
+const DEMO_ACCESS_CODE = process.env.EVAL_DEMO_ACCESS_CODE || 'eval-demo-5178';
+const AUTH_SECRET = process.env.EVAL_DEMO_AUTH_SECRET || DEMO_ACCESS_CODE;
+const AUTH_TOKEN_TTL_MS = Number(process.env.EVAL_DEMO_AUTH_TTL_MS || 12 * 60 * 60 * 1000);
+const DEFAULT_PROJECT_ACCESS = [
+  { code: 'eval', projectId: 'all', projectName: '管理员视角', role: 'admin' },
+  { code: DEMO_ACCESS_CODE, projectId: 'all', projectName: '管理员视角', role: 'admin' },
+  { code: 'ops', projectId: 'ops-eval', projectName: '运营数据评测', role: 'member' },
+  { code: 'vehicle', projectId: 'vehicle-eval', projectName: '车辆控制评测', role: 'member' },
+  { code: 'general', projectId: 'general-eval', projectName: '通用助手评测', role: 'member' }
+];
 const CASE_SOURCES = ['manual', 'llm'];
 const CASE_RISK_LEVELS = ['low', 'medium', 'high'];
 const DEFAULT_EVAL_DIMENSIONS = ['intent', 'tool', 'params', 'responseQuality'];
+const CASE_TURN_ASSERTION_FIELDS = [
+  'expectedArgs',
+  'replyContains',
+  'replyNotContains',
+  'judgePrompt',
+  'judgeThreshold'
+];
+const CASE_IMPORT_BASE_COLUMNS = ['enable', 'case_id', 'name', 'user_id', 'group_name'];
+const CASE_IMPORT_COLUMNS = [
+  ...CASE_IMPORT_BASE_COLUMNS,
+  ...[1, 2, 3].flatMap((turnNo) => [
+    `input${turnNo}`,
+    `expected_tool_${turnNo}`,
+    `expected_args_${turnNo}`,
+    `reply_contains_${turnNo}`,
+    `reply_not_contains_${turnNo}`,
+    `judge_prompt_${turnNo}`,
+    `judge_threshold_${turnNo}`
+  ])
+];
 const ALL_AGENT_TOOLS = [
   'RAG',
   'freeChat',
@@ -93,6 +124,40 @@ const LLM_MODULE_TOOL_MAP = {
   rag_guard: { groupName: 'RAG防幻觉', tool: 'RAG' }
 };
 
+function projectAccessList() {
+  if (!process.env.EVAL_DEMO_PROJECT_CODES) return DEFAULT_PROJECT_ACCESS;
+  try {
+    const parsed = JSON.parse(process.env.EVAL_DEMO_PROJECT_CODES);
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  } catch {
+    // Fall back to defaults when env JSON is malformed.
+  }
+  return DEFAULT_PROJECT_ACCESS;
+}
+
+const PROJECT_ACCESS = projectAccessList().map((item) => ({
+  code: String(item.code || ''),
+  projectId: item.projectId || 'all',
+  projectName: item.projectName || item.projectId || '项目空间',
+  role: item.role || (item.projectId === 'all' ? 'admin' : 'member')
+})).filter((item) => item.code);
+
+const CASE_GENERATION_SCHEMA = {
+  schemaId: 'eval-case-v1',
+  requiredFields: ['caseId', 'name', 'groupName', 'allowedTools', 'turns', 'expectedTools', 'evalDimensions', 'riskLevel'],
+  turnFields: ['userInput', 'expectedTool'],
+  assertionFields: CASE_TURN_ASSERTION_FIELDS,
+  importColumns: CASE_IMPORT_COLUMNS,
+  evalDimensions: DEFAULT_EVAL_DIMENSIONS,
+  riskLevels: CASE_RISK_LEVELS,
+  schemaNotes: [
+    '字段结构全项目统一：不同项目只改变业务目标、目标分组和允许工具，不改变 JSON 字段名。',
+    'expectedTool 必须从 allowedTools 中选择。',
+    'turns 最多 3 轮，每轮必须兼容原页面 CSV 断言列：expectedArgs、replyContains、replyNotContains、judgePrompt、judgeThreshold。',
+    '输出只能是 JSON 数组，不要输出 Markdown、解释文字或生成器痕迹。'
+  ]
+};
+
 let cachedHtml = '';
 let nextId = 1000;
 const now = () => new Date().toISOString();
@@ -106,6 +171,7 @@ const mockConfigs = [
   {
     configId: 'mock_default',
     name: '默认 Mock 数据集',
+    projectId: 'shared',
     userLatitude: 36.292,
     userLongitude: 120.369,
     vehicles: [
@@ -701,19 +767,58 @@ function normalizeCase(item) {
     ? item.evalDimensions
     : DEFAULT_EVAL_DIMENSIONS;
   const audit = Array.isArray(item.regressionAudit) ? item.regressionAudit : [];
+  const expectedTools = Array.isArray(item.expectedTools)
+    ? item.expectedTools
+    : (item.turns || []).map((turn) => turn.expectedTool).filter(Boolean);
+  const turns = (Array.isArray(item.turns) ? item.turns : []).map((turn, idx) => normalizeCaseTurn(turn, idx));
   return {
     ...item,
+    projectId: item.projectId || inferProjectId(item.groupName, expectedTools),
     source,
     riskLevel,
     evalDimensions,
     regression: Boolean(item.regression),
     regressionCandidate: Boolean(item.regressionCandidate),
     regressionAudit: audit,
-    expectedTools: Array.isArray(item.expectedTools)
-      ? item.expectedTools
-      : (item.turns || []).map((turn) => turn.expectedTool).filter(Boolean),
+    turns,
+    expectedTools,
     updatedAt: item.updatedAt || now()
   };
+}
+
+function listValue(value) {
+  if (Array.isArray(value)) return value;
+  if (value === undefined || value === null || value === '') return [];
+  return String(value)
+    .split(/[|,，\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeCaseTurn(turn = {}, idx = 0) {
+  return {
+    ...turn,
+    turnIndex: Number(turn.turnIndex || idx + 1),
+    userInput: turn.userInput || '',
+    expectedTool: turn.expectedTool || '',
+    expectedArgs: turn.expectedArgs ?? '',
+    replyContains: listValue(turn.replyContains),
+    replyNotContains: listValue(turn.replyNotContains),
+    judgePrompt: turn.judgePrompt || '',
+    judgeThreshold: turn.judgeThreshold ?? ''
+  };
+}
+
+function inferProjectId(groupName = '', expectedTools = []) {
+  const group = String(groupName || '');
+  const tools = expectedTools.map((tool) => String(tool || ''));
+  if (tools.includes('vehicle_operation_data_query') || /运营|订单|车速|里程|停靠|调度|空驶|装卸|偏差|ETA|指标/.test(group)) {
+    return 'ops-eval';
+  }
+  if (tools.some((tool) => ['open_door', 'vehicle_control', 'return_app_native_router'].includes(tool)) || /车控|车辆控制|开门|权限|复合意图/.test(group)) {
+    return 'vehicle-eval';
+  }
+  return 'general-eval';
 }
 
 function pushRegressionAudit(item, action, actor = 'manual-ui', extra = {}) {
@@ -1524,8 +1629,8 @@ function enrichRun(run) {
   return run;
 }
 
-function runsForDisplay() {
-  return [...runs].sort((a, b) => {
+function runsForDisplay(ctx = null) {
+  return [...scopedRuns(ctx)].sort((a, b) => {
     const byTime = new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime();
     if (byTime !== 0) return byTime;
     return String(b.runId || '').localeCompare(String(a.runId || ''));
@@ -1554,6 +1659,127 @@ function ok(data = null) {
   return { code: OK, message: 'success', data };
 }
 
+function unauthorized(res, message = '请先输入内部访问码') {
+  return json(res, { code: '401', message }, 401);
+}
+
+function b64url(value) {
+  return Buffer.from(value).toString('base64url');
+}
+
+function signAuthPayload(payload) {
+  return crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('base64url');
+}
+
+function makeAuthToken(project) {
+  const payload = JSON.stringify({
+    scope: 'eval-admin-demo',
+    projectId: project.projectId,
+    projectName: project.projectName,
+    role: project.role,
+    iat: Date.now(),
+    exp: Date.now() + AUTH_TOKEN_TTL_MS
+  });
+  const body = b64url(payload);
+  return `${body}.${signAuthPayload(body)}`;
+}
+
+function safeEqual(a, b) {
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+}
+
+function verifyAuthToken(token) {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return false;
+  const [body, signature] = token.split('.');
+  if (!body || !signature || !safeEqual(signature, signAuthPayload(body))) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return payload.scope === 'eval-admin-demo' && Number(payload.exp) > Date.now() ? payload : false;
+  } catch {
+    return false;
+  }
+}
+
+function authTokenFromRequest(req) {
+  const auth = req.headers.authorization || '';
+  const bearer = /^Bearer\s+(.+)$/i.exec(auth);
+  if (bearer) return bearer[1].trim();
+  const cookie = req.headers.cookie || '';
+  const match = /(?:^|;\s*)eval_admin_token=([^;]+)/.exec(cookie);
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
+function isAuthorized(req) {
+  return Boolean(verifyAuthToken(authTokenFromRequest(req)));
+}
+
+function authContext(req) {
+  const payload = verifyAuthToken(authTokenFromRequest(req));
+  if (!payload) return null;
+  return {
+    projectId: payload.projectId || 'all',
+    projectName: payload.projectName || '项目空间',
+    role: payload.role || 'member'
+  };
+}
+
+function isAdminProject(ctx) {
+  return !ctx || ctx.projectId === 'all' || ctx.role === 'admin';
+}
+
+function inProject(item, ctx) {
+  return isAdminProject(ctx) || item.projectId === 'shared' || item.projectId === ctx.projectId;
+}
+
+function scopedCases(ctx) {
+  return cases.filter((item) => inProject(item, ctx));
+}
+
+function inferRunProjectId(run) {
+  if (run.projectId) return run.projectId;
+  const resultTools = (run.results || []).flatMap((result) => (result.turns || []).map((turn) => turn.expectedTool || turn.actualTool));
+  const caseProjects = (run.caseIds || [])
+    .map((caseId) => caseById(caseId))
+    .filter(Boolean)
+    .map((item) => item.projectId);
+  const uniqueCaseProjects = [...new Set(caseProjects.filter(Boolean))];
+  if (uniqueCaseProjects.length === 1) return uniqueCaseProjects[0];
+  return inferProjectId('', [...resultTools, ...caseProjects]);
+}
+
+function normalizeRunProject(run) {
+  if (!run.projectId) run.projectId = inferRunProjectId(run);
+  return run;
+}
+
+function scopedRuns(ctx) {
+  return runs.map(normalizeRunProject).filter((item) => inProject(item, ctx));
+}
+
+function scopedMockConfigs(ctx) {
+  if (isAdminProject(ctx)) return mockConfigs;
+  return mockConfigs.filter((item) => item.projectId === ctx.projectId);
+}
+
+function toolsForProject(ctx) {
+  if (!ctx || ctx.projectId === 'all') return ALL_AGENT_TOOLS;
+  if (ctx.projectId === 'ops-eval') return ['vehicle_operation_data_query', 'freeChat', 'RAG'];
+  if (ctx.projectId === 'vehicle-eval') return ['vehicle_selective_query', 'vehicle_control', 'open_door', 'return_app_native_router', 'freeChat', 'RAG'];
+  return ['freeChat', 'RAG', 'vehicle_selective_query'];
+}
+
+function generationSchemaForProject(ctx) {
+  return {
+    ...CASE_GENERATION_SCHEMA,
+    projectId: ctx?.projectId || 'all',
+    projectName: ctx?.projectName || '管理员视角',
+    allowedTools: toolsForProject(ctx)
+  };
+}
+
 async function bodyJson(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -1572,24 +1798,25 @@ async function sourceHtml() {
   return cachedHtml;
 }
 
-function caseById(value) {
-  return cases.find((item) => item.id === value || item.caseId === value);
+function caseById(value, ctx = null) {
+  return cases.find((item) => (item.id === value || item.caseId === value) && inProject(item, ctx));
 }
 
-function configById(value) {
-  return mockConfigs.find((item) => item.configId === value) || mockConfigs[0];
+function configById(value, ctx = null) {
+  return mockConfigs.find((item) => item.configId === value && inProject(item, ctx)) || scopedMockConfigs(ctx)[0] || mockConfigs[0];
 }
 
-function configList() {
-  return mockConfigs.map((item) => ({
+function configList(ctx = null) {
+  return scopedMockConfigs(ctx).map((item) => ({
     configId: item.configId,
     name: item.name,
+    projectId: item.projectId,
     vehicleCount: item.vehicles.length
   }));
 }
 
-function groups() {
-  return [...new Set(cases.map((item) => item.groupName || '默认分组'))];
+function groups(ctx = null) {
+  return [...new Set(scopedCases(ctx).map((item) => item.groupName || '默认分组'))];
 }
 
 function agentVersionById(version) {
@@ -1600,8 +1827,8 @@ function datasetVersionById(version) {
   return DATASET_VERSIONS.find((item) => item.version === version) || DATASET_VERSIONS[0];
 }
 
-function demoTestsets() {
-  const enabled = cases.filter((item) => item.enabled);
+function demoTestsets(ctx = null) {
+  const enabled = scopedCases(ctx).filter((item) => item.enabled);
   const byGroup = (name, limit) => enabled.filter((item) => (item.groupName || '默认分组') === name).slice(0, limit);
   const fallback = (items, limit) => (items.length ? items : enabled).slice(0, limit);
   const defs = [
@@ -1641,8 +1868,8 @@ function demoTestsets() {
   }));
 }
 
-function testsetById(idValue) {
-  return demoTestsets().find((item) => item.id === idValue) || null;
+function testsetById(idValue, ctx = null) {
+  return demoTestsets(ctx).find((item) => item.id === idValue) || null;
 }
 
 function uidFromTier(tier) {
@@ -1782,11 +2009,11 @@ function evaluateCase(item) {
   };
 }
 
-function makeRun(payload) {
+function makeRun(payload, ctx = null) {
   const selectedIds = payload.testsetId
-    ? (testsetById(payload.testsetId)?.caseIds || [])
+    ? (testsetById(payload.testsetId, ctx)?.caseIds || [])
     : (payload.caseIds || []);
-  const selectedCases = selectedIds.map(caseById).filter(Boolean);
+  const selectedCases = selectedIds.map((caseId) => caseById(caseId, ctx)).filter(Boolean);
   const results = selectedCases.map(evaluateCase);
   const passedCases = results.filter((item) => item.pass).length;
   const totalCases = results.length;
@@ -1807,8 +2034,10 @@ function makeRun(payload) {
     finishedAt: now(),
     caseIds: selectedCases.map((item) => item.id),
     testsetId: payload.testsetId || '',
-    testsetName: payload.testsetId ? (testsetById(payload.testsetId)?.name || '') : '',
+    testsetName: payload.testsetId ? (testsetById(payload.testsetId, ctx)?.name || '') : '',
     mockConfigId: payload.mockConfigId || '',
+    projectId: isAdminProject(ctx) ? (payload.projectId || selectedCases[0]?.projectId || 'general-eval') : ctx.projectId,
+    projectName: isAdminProject(ctx) ? (payload.projectName || '') : ctx.projectName,
     promptOverrides: payload.promptOverrides || {},
     versionInfo: {
       datasetVersion: payload.datasetVersion || datasetVersion.version,
@@ -1900,7 +2129,12 @@ function buildGeneratedTurns(payload, expectedTool, boundary, index, baseCase) {
     turns.push({
       turnIndex: i + 1,
       userInput: text,
-      expectedTool: baseTurn?.expectedTool || expectedTool
+      expectedTool: baseTurn?.expectedTool || expectedTool,
+      expectedArgs: baseTurn?.expectedArgs ?? '',
+      replyContains: Array.isArray(baseTurn?.replyContains) ? baseTurn.replyContains : [],
+      replyNotContains: Array.isArray(baseTurn?.replyNotContains) ? baseTurn.replyNotContains : [],
+      judgePrompt: baseTurn?.judgePrompt || '',
+      judgeThreshold: baseTurn?.judgeThreshold ?? ''
     });
   }
   return turns;
@@ -1935,6 +2169,38 @@ function compactCaseSeed(prefix, used, start = 0) {
 }
 
 function buildGenerationPrompt(payload, moduleDef) {
+  if (String(payload.businessObjective || '').trim()) {
+    const schema = generationSchemaForProject(payload.authContext || null);
+    const allowedTools = normalizeAllowedTools(payload, moduleDef.tool);
+    return [
+      '# 平台固定结构约束',
+      '你是 Eval Console 的评测用例生成器。必须输出可直接解析入库的 JSON 数组，不允许输出 Markdown、注释或额外解释。',
+      '平台会锁定输出字段结构，业务使用方只能调整覆盖目标、分组和边界条件。',
+      '',
+      '# 项目 Schema',
+      `schemaId: ${schema.schemaId}`,
+      `projectId: ${schema.projectId}`,
+      `requiredFields: ${schema.requiredFields.join(', ')}`,
+      `turnFields: ${schema.turnFields.join(', ')}`,
+      `importColumns: ${schema.importColumns.join(', ')}`,
+      `evalDimensions: ${schema.evalDimensions.join(', ')}`,
+      `riskLevels: ${schema.riskLevels.join(', ')}`,
+      `allowedTools: ${allowedTools.join(', ')}`,
+      ...schema.schemaNotes.map((note, idx) => `rule${idx + 1}: ${note}`),
+      '',
+      '# 业务覆盖目标',
+      String(payload.businessObjective || '').trim(),
+      '',
+      '# 目标分组',
+      payload.groupName || moduleDef.groupName,
+      '',
+      '# 输出要求',
+      '每项必须包含 caseId、name、groupName、allowedTools、turns、expectedTools、evalDimensions、riskLevel。',
+      'turns 中每轮必须包含 userInput 和 expectedTool。',
+      'expectedTools 必须与 turns[].expectedTool 顺序一致。',
+      'userInput 要像真实用户说话，不要出现“请说明筛选条件(1)”等生成器痕迹。'
+    ].join('\n');
+  }
   if (String(payload.generationPrompt || '').trim()) return String(payload.generationPrompt).trim();
   const dims = Array.isArray(payload.evalDimensions) && payload.evalDimensions.length
     ? payload.evalDimensions
@@ -1994,7 +2260,7 @@ function createGeneratedCase(payload, index, baseCase, usedCaseIds) {
   return normalizeCase(doc);
 }
 
-function generateCasesForUpload(payload) {
+function generateCasesForUpload(payload, ctx = null) {
   const mode = payload.mode === 'expand' ? 'expand' : 'generate';
   const toolSequence = toolSequenceFromCounts(payload.toolCounts);
   const count = toolSequence.length || Math.max(1, Math.min(50, Number(payload.count || 5)));
@@ -2003,14 +2269,16 @@ function generateCasesForUpload(payload) {
     ...payload,
     allowedTools: countedAllowedTools || payload.allowedTools,
     mode,
-    count
+    count,
+    authContext: ctx
   };
   const usedCaseIds = new Set(cases.filter((item) => typeof item.caseId === 'string').map((item) => item.caseId));
+  safePayload.projectId = isAdminProject(ctx) ? payload.projectId : ctx.projectId;
 
   if (mode === 'expand') {
     const baseIds = Array.isArray(payload.baseCaseIds) ? payload.baseCaseIds : [];
     const baseCases = baseIds
-      .map((cid) => caseById(cid))
+      .map((cid) => caseById(cid, ctx))
       .filter(Boolean)
       .slice(0, count);
     if (!baseCases.length) {
@@ -2029,7 +2297,7 @@ function generateCasesForUpload(payload) {
 
 function csvCases() {
   const rows = [
-    ['enable', 'case_id', 'name', 'user_id', 'group_name', 'source', 'regression', 'eval_dimensions', 'input1', 'expected_tool_1', 'input2', 'expected_tool_2', 'input3', 'expected_tool_3'],
+    CASE_IMPORT_COLUMNS,
     ...cases.map((item) => {
       const turns = item.turns || [];
       return [
@@ -2038,19 +2306,29 @@ function csvCases() {
         item.name,
         item.userId,
         item.groupName,
-        item.source || 'manual',
-        item.regression ? 'true' : 'false',
-        (item.evalDimensions || []).join('|'),
-        turns[0]?.userInput || '',
-        turns[0]?.expectedTool || '',
-        turns[1]?.userInput || '',
-        turns[1]?.expectedTool || '',
-        turns[2]?.userInput || '',
-        turns[2]?.expectedTool || ''
+        ...[0, 1, 2].flatMap((idx) => turnCsvCells(turns[idx]))
       ];
     })
   ];
   return rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n');
+}
+
+function turnCsvCells(turn = {}) {
+  return [
+    turn.userInput || '',
+    turn.expectedTool || '',
+    stringifyCsvField(turn.expectedArgs),
+    listValue(turn.replyContains).join('|'),
+    listValue(turn.replyNotContains).join('|'),
+    turn.judgePrompt || '',
+    turn.judgeThreshold ?? ''
+  ];
+}
+
+function stringifyCsvField(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value);
 }
 
 async function routeApi(req, res, url) {
@@ -2058,38 +2336,42 @@ async function routeApi(req, res, url) {
   const method = req.method || 'GET';
 
   if (method === 'GET' && path === '/env') return json(res, ok({ env: 'local-demo' }));
-  if (method === 'GET' && path === '/cases') return json(res, ok(cases.map((item) => normalizeCase(item))));
+  if (method === 'GET' && path === '/auth/status') {
+    const ctx = authContext(req);
+    return json(res, ok({ enabled: true, authenticated: Boolean(ctx), ttlMs: AUTH_TOKEN_TTL_MS, project: ctx }));
+  }
+  if (method === 'POST' && path === '/auth/login') {
+    const payload = await bodyJson(req);
+    const project = PROJECT_ACCESS.find((item) => safeEqual(payload.accessCode || '', item.code));
+    if (!project) return unauthorized(res, '访问码不正确');
+    const token = makeAuthToken(project);
+    res.setHeader('set-cookie', `eval_admin_token=${encodeURIComponent(token)}; Path=/admin/eval; Max-Age=${Math.floor(AUTH_TOKEN_TTL_MS / 1000)}; SameSite=Lax; HttpOnly`);
+    return json(res, ok({ token, expiresInMs: AUTH_TOKEN_TTL_MS, projectId: project.projectId, projectName: project.projectName, role: project.role }));
+  }
+  if (!isAuthorized(req)) return unauthorized(res);
+  const ctx = authContext(req);
+
+  if (method === 'GET' && path === '/cases') return json(res, ok(scopedCases(ctx).map((item) => normalizeCase(item))));
   if (method === 'GET' && path === '/cases/export') {
     const group = url.searchParams.get('group');
     const source = url.searchParams.get('source');
     const onlyRegression = url.searchParams.get('regression') === 'true';
-    const scoped = cases.filter((item) => {
+    const scoped = scopedCases(ctx).filter((item) => {
       if (group && item.groupName !== group) return false;
       if (source && item.source !== source) return false;
       if (onlyRegression && !item.regression) return false;
       return true;
     });
     const rows = [
-      ['enable', 'case_id', 'name', 'user_id', 'group_name', 'source', 'regression', 'eval_dimensions', 'input1', 'expected_tool_1', 'input2', 'expected_tool_2', 'input3', 'expected_tool_3'],
-      ...scoped.map((item) => {
-        const turns = item.turns || [];
-        return [
-          item.enabled ? 'true' : 'false',
-          item.caseId,
-          item.name,
-          item.userId,
-          item.groupName,
-          item.source || 'manual',
-          item.regression ? 'true' : 'false',
-          (item.evalDimensions || []).join('|'),
-          turns[0]?.userInput || '',
-          turns[0]?.expectedTool || '',
-          turns[1]?.userInput || '',
-          turns[1]?.expectedTool || '',
-          turns[2]?.userInput || '',
-          turns[2]?.expectedTool || ''
-        ];
-      })
+      CASE_IMPORT_COLUMNS,
+      ...scoped.map((item) => [
+        item.enabled ? 'true' : 'false',
+        item.caseId,
+        item.name,
+        item.userId,
+        item.groupName,
+        ...[0, 1, 2].flatMap((idx) => turnCsvCells((item.turns || [])[idx]))
+      ])
     ];
     res.writeHead(200, {
       'content-type': 'text/csv; charset=utf-8',
@@ -2104,6 +2386,7 @@ async function routeApi(req, res, url) {
     let changed = 0;
     cases.forEach((item, idx) => {
       if (!targetIds.has(item.id)) return;
+      if (!inProject(item, ctx)) return;
       let next = { ...item };
       if (typeof payload.enabled === 'boolean') next.enabled = payload.enabled;
       if (typeof payload.regression === 'boolean' && next.regression !== payload.regression) {
@@ -2130,6 +2413,7 @@ async function routeApi(req, res, url) {
     let changed = 0;
     cases.forEach((item, idx) => {
       if (!ids.has(String(item.caseId))) return;
+      if (!inProject(item, ctx)) return;
       if (Boolean(item.regression) === Boolean(flag)) return;
       let next = { ...item, regression: Boolean(flag), updatedAt: now() };
       next = pushRegressionAudit(next, flag ? 'regression-approved' : 'regression-removed', actor, {
@@ -2143,7 +2427,7 @@ async function routeApi(req, res, url) {
   if (method === 'POST' && path === '/cases/import') return json(res, ok({ imported: 0 }));
   if (method === 'POST' && path === '/cases') {
     const payload = await bodyJson(req);
-    const doc = normalizeCase({ ...payload, id: id('case'), updatedAt: now() });
+    const doc = normalizeCase({ ...payload, projectId: isAdminProject(ctx) ? payload.projectId : ctx.projectId, id: id('case'), updatedAt: now() });
     cases.unshift(doc);
     return json(res, ok(doc));
   }
@@ -2152,6 +2436,7 @@ async function routeApi(req, res, url) {
     const targetId = decodeURIComponent(parts[1] || '');
     const index = cases.findIndex((item) => item.id === targetId);
     if (index < 0) return notFound(res);
+    if (!inProject(cases[index], ctx)) return notFound(res);
     if (method === 'GET' && parts.length === 2) return json(res, ok(cases[index]));
     if (method === 'PATCH' && parts[2] === 'regression-flags') {
       const payload = await bodyJson(req);
@@ -2192,15 +2477,16 @@ async function routeApi(req, res, url) {
     }
   }
 
-  if (method === 'GET' && path === '/groups') return json(res, ok(groups()));
+  if (method === 'GET' && path === '/groups') return json(res, ok(groups(ctx)));
   if (method === 'GET' && path === '/agent-versions') return json(res, ok(AGENT_VERSIONS));
   if (method === 'GET' && path === '/dataset-versions') return json(res, ok(DATASET_VERSIONS));
-  if (method === 'GET' && path === '/testsets') return json(res, ok(demoTestsets()));
+  if (method === 'GET' && path === '/testsets') return json(res, ok(demoTestsets(ctx)));
   if (method === 'DELETE' && path.startsWith('/groups/')) {
     const groupName = decodeURIComponent(path.split('/')[2] || '');
     let removed = 0;
     for (let i = cases.length - 1; i >= 0; i--) {
       if (cases[i].groupName === groupName) {
+        if (!inProject(cases[i], ctx)) continue;
         cases.splice(i, 1);
         removed++;
       }
@@ -2211,12 +2497,16 @@ async function routeApi(req, res, url) {
     return json(res, ok(uidFromTier(url.searchParams.get('tier') || 'FULL')));
   }
 
-  if (method === 'GET' && path === '/runs') return json(res, ok(runsForDisplay().map((run) => enrichRun(run))));
-  if (method === 'POST' && path === '/runs') return json(res, ok(makeRun(await bodyJson(req))));
+  if (method === 'GET' && path === '/runs') return json(res, ok(runsForDisplay(ctx).map((run) => enrichRun(run))));
+  if (method === 'POST' && path === '/runs') return json(res, ok(makeRun(await bodyJson(req), ctx)));
+
+  if (method === 'GET' && path === '/case-service/schema') {
+    return json(res, ok(generationSchemaForProject(ctx)));
+  }
 
   if (method === 'POST' && path === '/case-service/generate-preview') {
     const payload = await bodyJson(req);
-    const { generated, warning } = generateCasesForUpload(payload || {});
+    const { generated, warning } = generateCasesForUpload(payload || {}, ctx);
     return json(res, ok({
       mode: payload?.mode === 'expand' ? 'expand' : 'generate',
       count: generated.length,
@@ -2227,7 +2517,7 @@ async function routeApi(req, res, url) {
 
   if (method === 'POST' && path === '/case-service/generate-upload') {
     const payload = await bodyJson(req);
-    const { generated, warning } = generateCasesForUpload(payload || {});
+    const { generated, warning } = generateCasesForUpload(payload || {}, ctx);
     generated.forEach((doc) => cases.unshift(doc));
     return json(res, ok({
       inserted: generated.length,
@@ -2243,6 +2533,7 @@ async function routeApi(req, res, url) {
     const inserted = previewCases
       .map((item) => normalizeCase({
         ...item,
+        projectId: isAdminProject(ctx) ? item?.projectId : ctx.projectId,
         id: id('case'),
         caseId: item?.caseId || `llm_upload_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
         source: 'llm',
@@ -2261,7 +2552,7 @@ async function routeApi(req, res, url) {
   }
   if (path.startsWith('/runs/')) {
     const parts = path.split('/').filter(Boolean);
-    const run = runs.find((item) => item.id === parts[1]);
+    const run = runs.map(normalizeRunProject).find((item) => item.id === parts[1] && inProject(item, ctx));
     if (!run) return notFound(res);
     if (method === 'GET' && parts.length === 2) return json(res, ok(enrichRun(run)));
     if (method === 'DELETE' && parts.length === 2) {
@@ -2317,13 +2608,14 @@ async function routeApi(req, res, url) {
     }
   }
 
-  if (method === 'GET' && path === '/mock-configs') return json(res, ok(configList()));
+  if (method === 'GET' && path === '/mock-configs') return json(res, ok(configList(ctx)));
   if (method === 'POST' && path === '/mock-configs') {
     const payload = await bodyJson(req);
-    const clone = payload.cloneFrom ? configById(payload.cloneFrom) : null;
+    const clone = payload.cloneFrom ? configById(payload.cloneFrom, ctx) : null;
     const created = {
       configId: id('mock'),
       name: payload.name || '新数据集',
+      projectId: isAdminProject(ctx) ? (payload.projectId || 'shared') : ctx.projectId,
       userLatitude: clone?.userLatitude ?? 36.292,
       userLongitude: clone?.userLongitude ?? 120.369,
       vehicles: clone ? JSON.parse(JSON.stringify(clone.vehicles)) : []
@@ -2333,7 +2625,7 @@ async function routeApi(req, res, url) {
   }
   if (path.startsWith('/mock-configs/')) {
     const parts = path.split('/').filter(Boolean);
-    const cfg = configById(decodeURIComponent(parts[1] || ''));
+    const cfg = configById(decodeURIComponent(parts[1] || ''), ctx);
     if (!cfg) return notFound(res);
     if (method === 'PUT' && parts[2] === 'name') {
       cfg.name = (await bodyJson(req)).name || cfg.name;
@@ -2345,10 +2637,10 @@ async function routeApi(req, res, url) {
       return json(res, ok(true));
     }
   }
-  if (method === 'GET' && path === '/mock-config') return json(res, ok(configById(url.searchParams.get('configId'))));
+  if (method === 'GET' && path === '/mock-config') return json(res, ok(configById(url.searchParams.get('configId'), ctx)));
   if (method === 'POST' && path === '/mock-config/test') {
     const payload = await bodyJson(req);
-    const cfg = configById(payload.configId);
+    const cfg = configById(payload.configId, ctx);
     return json(res, ok({
       url: payload.url,
       params: JSON.parse(payload.params || '{}'),
@@ -2358,14 +2650,14 @@ async function routeApi(req, res, url) {
     }));
   }
   if (method === 'PUT' && path === '/mock-config/location') {
-    const cfg = configById(url.searchParams.get('configId'));
+    const cfg = configById(url.searchParams.get('configId'), ctx);
     const payload = await bodyJson(req);
     cfg.userLatitude = Number(payload.latitude);
     cfg.userLongitude = Number(payload.longitude);
     return json(res, ok(cfg));
   }
   if (path === '/mock-config/vehicles') {
-    const cfg = configById(url.searchParams.get('configId'));
+    const cfg = configById(url.searchParams.get('configId'), ctx);
     if (method === 'POST') {
       cfg.vehicles.push({ values: await bodyJson(req) });
       return json(res, ok(cfg));
@@ -2377,7 +2669,7 @@ async function routeApi(req, res, url) {
   }
   if (method === 'POST' && path === '/mock-config/vehicles/import') return json(res, ok({ imported: 0 }));
   if (path.startsWith('/mock-config/vehicles/')) {
-    const cfg = configById(url.searchParams.get('configId'));
+    const cfg = configById(url.searchParams.get('configId'), ctx);
     const vinId = decodeURIComponent(path.split('/')[3] || '');
     const index = cfg.vehicles.findIndex((item) => item.values?.vinid === vinId);
     if (index < 0) return notFound(res);

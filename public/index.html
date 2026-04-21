@@ -57,7 +57,7 @@
         .group-dropdown-item .del-x:hover { color:var(--c-red); }
         .nav-item:hover { color:var(--c-text); background:#f9fafb; }
         .nav-item.active { background:var(--c-accent); color:#fff; box-shadow:0 1px 3px rgba(79,70,229,.3); }
-        .pane { display:none; } .pane.active { display:block; }
+        .pane { display:none; min-width:0; } .pane.active { display:block; }
 
         /* ── Kpi strip ── */
         .kpi-strip { display:flex; gap:16px; margin-bottom:24px; }
@@ -157,6 +157,8 @@
         .turn-n { font-size:12px; font-weight:700; color:var(--c-accent); min-width:24px; text-align:center; }
         .turn-r .fi { flex:1; margin:0; padding:6px 10px; font-size:13px; }
         .turn-r .tool-fi { max-width:180px; }
+        .turn-assert-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; flex-basis:100%; margin-left:32px; }
+        .turn-assert-grid .fi { width:100%; min-width:0; }
 
         /* ── Detail / results ── */
         .section { margin-bottom:24px; }
@@ -370,6 +372,30 @@
         .toast-item.err { background:var(--c-red); }
         .toast-item.info { background:var(--c-blue); }
 
+        /* ── Access gate ── */
+        .auth-overlay {
+            position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center;
+            background:rgba(245,246,250,.94); backdrop-filter:blur(4px); padding:24px;
+        }
+        .auth-overlay.hidden { display:none; }
+        .auth-dialog {
+            width:min(420px,100%); background:var(--c-surface); border:1px solid var(--c-border);
+            border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.18); padding:24px;
+        }
+        .auth-dialog h2 { font-size:20px; margin-bottom:8px; }
+        .auth-dialog p { font-size:13px; line-height:1.6; color:var(--c-text2); margin-bottom:18px; }
+        .auth-note { margin-top:14px; padding:10px 12px; border:1px solid #c7d2fe; background:#eef2ff; border-radius:8px; color:#3730a3; font-size:12px; line-height:1.7; }
+        .auth-note code { font-family:'SF Mono',SFMono-Regular,Menlo,monospace; font-weight:700; color:#312e81; }
+        .auth-error { display:none; color:var(--c-red); background:var(--c-red-bg); border-radius:6px; padding:8px 10px; font-size:12px; margin-top:10px; }
+        .auth-error.show { display:block; }
+
+        .schema-note {
+            margin-top:10px; border:1px solid var(--c-border); border-radius:8px; background:#fafbfc;
+            padding:10px 12px; font-size:12px; color:var(--c-text2); line-height:1.7;
+        }
+        .schema-note code { font-family:'SF Mono',SFMono-Regular,Menlo,monospace; color:var(--c-accent); font-weight:600; }
+        .schema-note strong { color:var(--c-text); }
+
         /* ── Cases table turns ── */
         .cases-tbl { table-layout:auto; }
         .case-turns-cell { vertical-align:top; }
@@ -431,14 +457,6 @@
         .funnel-note b { color:var(--c-text2); }
 
         /* ── Generate workspace ── */
-        .gen-head {
-            display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
-            padding:14px 16px; margin-bottom:12px;
-            background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);
-            border:1px solid #dbeafe; border-radius:12px;
-        }
-        .gen-head h3 { margin:0; font-size:18px; letter-spacing:-.01em; }
-        .gen-head p { margin:6px 0 0; font-size:12px; color:var(--c-text2); line-height:1.6; }
         .gen-workbench {
             display:grid;
             grid-template-columns:1fr;
@@ -446,10 +464,35 @@
             gap:14px;
             align-items:start;
         }
-        .gen-panel { background:var(--c-surface); border:1px solid var(--c-border); border-radius:10px; box-shadow:var(--shadow-sm); }
+        #p-generate { overflow-x:hidden; }
+        .gen-panel { background:var(--c-surface); border:1px solid var(--c-border); border-radius:10px; box-shadow:var(--shadow-sm); min-width:0; }
         .gen-config-panel { max-width:none; }
-        .gen-preview-panel { min-height:520px; }
+        .gen-preview-panel { min-height:520px; overflow-x:hidden; }
         .gen-panel-body { padding:16px; }
+        .gen-selected-base {
+            display:flex;
+            flex-wrap:wrap;
+            gap:6px;
+            min-height:38px;
+            padding:8px;
+            border:1px solid var(--c-border);
+            border-radius:8px;
+            background:#f8fafc;
+            color:var(--c-text2);
+            font-size:12px;
+            line-height:1.45;
+        }
+        .gen-selected-base .mono {
+            max-width:100%;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+            background:#fff;
+            border:1px solid var(--c-border);
+            border-radius:6px;
+            padding:3px 6px;
+            color:var(--c-text);
+        }
         .gen-sec + .gen-sec { margin-top:14px; padding-top:14px; border-top:1px dashed #e5e7eb; }
         .gen-sec-title { font-size:12px; font-weight:700; color:var(--c-text2); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px; }
         .gen-grid-4 { display:grid; gap:10px; grid-template-columns:repeat(4,minmax(130px,1fr)); }
@@ -460,7 +503,19 @@
         }
         .gen-preview-head strong { font-size:14px; }
         .gen-preview-head span { color:var(--c-text3); font-size:12px; }
-        .gen-preview-body { padding:12px; min-height:500px; }
+        .gen-preview-body { padding:12px; min-height:500px; min-width:0; max-width:100%; overflow-x:hidden; }
+        #pg-result { max-width:100%; overflow-x:hidden; }
+        .gen-preview-scroll {
+            width:100%;
+            max-width:100%;
+            max-height:420px;
+            overflow-x:auto;
+            overflow-y:auto;
+            border:1px solid var(--c-border);
+            border-radius:8px;
+            background:#fff;
+        }
+        .gen-preview-scroll table { width:max-content; min-width:2600px; border-collapse:collapse; }
         .gen-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
 
         @media(max-width:768px) {
@@ -486,6 +541,7 @@
         <div style="display:flex;align-items:center;gap:12px;">
             <h1>Eval Console</h1>
             <span id="env-badge" class="tag" style="background:var(--c-blue-bg);color:var(--c-blue);font-size:12px;display:none;"></span>
+            <span id="project-badge" class="tag" style="background:var(--c-green-bg);color:var(--c-green);font-size:12px;display:none;"></span>
             <button class="btn btn-ghost btn-sm" onclick="document.getElementById('guide-overlay').classList.add('open')" style="font-size:12px;padding:2px 10px">使用说明</button>
         </div>
         <div class="meta" id="clock"></div>
@@ -539,7 +595,6 @@
                 <button class="btn btn-ghost" onclick="downloadCsvTemplate()">下载模板</button>
                 <label class="btn btn-flat">导入 CSV<input type="file" accept=".csv" onchange="importCsv(this)"></label>
                 <button class="btn btn-flat" onclick="exportCases()">导出 CSV</button>
-                <button class="btn btn-flat" onclick="openLlmGenModal()">LLM生成</button>
                 <button class="btn btn-p" onclick="openCaseModal()">+ 新建</button>
                 <button class="btn btn-g" onclick="runSelected()">运行选中</button>
                 <button class="btn btn-o" id="btn-run-all" onclick="runAllEnabled()">运行全部</button>
@@ -558,13 +613,6 @@
 
     <!-- ═══════ Generate ═══════ -->
     <div class="pane" id="p-generate">
-        <div class="gen-head">
-            <div>
-                <h3>Generate Cases</h3>
-                <p>在这里集中完成策略配置、预览筛选和入库。默认流程建议使用本页，老弹窗仅用于兼容历史操作习惯。</p>
-            </div>
-            <button class="btn btn-ghost btn-sm" onclick="openLlmGenModal()">使用旧版弹窗</button>
-        </div>
         <div class="gen-workbench">
             <div class="gen-panel gen-config-panel">
                 <div class="gen-panel-body">
@@ -583,7 +631,7 @@
                         </div>
                     </div>
                     <div class="gen-sec">
-                        <div class="gen-sec-title">归档位置</div>
+                        <div class="gen-sec-title">目标分组</div>
                         <div class="gen-grid-2">
                             <div class="fg"><label class="fl">选择已有分组</label><select class="fi" id="pg-group-select" onchange="document.getElementById('pg-custom-group').value=''"></select></div>
                             <div class="fg"><label class="fl">自定义分组</label><input class="fi" id="pg-custom-group" value=""></div>
@@ -599,14 +647,16 @@
                                 <option value="vehicle_operation_data_query">vehicle_operation_data_query</option>
                                 <option value="vehicle_selective_query">vehicle_selective_query</option>
                             </select>
+                            <div style="font-size:12px;color:var(--c-text3);margin-top:6px">本次生成只使用一个 expectedTool。</div>
                         </div>
                     </div>
                     <div class="gen-sec">
                         <div class="gen-sec-title">生成策略</div>
-                        <div class="fg"><label class="fl">生成用例 Prompt</label><textarea class="fi" id="pg-generation-prompt" rows="9"></textarea></div>
-                        <div class="fg" id="pg-expand-group" style="display:none">
-                            <label class="fl">扩写基础用例（优先使用当前勾选）</label>
-                            <input class="fi" id="pg-base" placeholder="可留空；留空则使用当前勾选用例ID">
+                        <div class="schema-note" id="pg-schema-note" style="margin:0 0 12px">输出字段结构：enable、case_id、name、user_id、group_name、input1、expected_tool_1、expected_args_1、reply_contains_1、reply_not_contains_1、judge_prompt_1、judge_threshold_1 ...；内部仍保留 expectedTools 用于运行时聚合。</div>
+                        <div class="fg"><label class="fl">业务覆盖目标（可编辑）</label><textarea class="fi" id="pg-generation-prompt" rows="7"></textarea></div>
+                        <div class="fg" id="pg-selected-base-wrap" style="display:none;margin-top:8px">
+                            <label class="fl">当前勾选用例 ID</label>
+                            <div class="gen-selected-base" id="pg-selected-base">未勾选用例；定向扩写会提示先勾选。</div>
                         </div>
                     </div>
                     <div class="gen-actions">
@@ -798,56 +848,6 @@
     </div>
 </div>
 
-<!-- ═══ LLM Generate Modal ═══ -->
-<div class="overlay" id="ol-llm-gen">
-    <div class="dialog" style="max-width:760px">
-        <div class="dlg-head"><h2>LLM 自动生成并解析上传</h2><button class="dlg-close" onclick="closeLlmGenModal()">&times;</button></div>
-        <div class="dlg-body">
-            <div class="fr">
-                <div class="fg"><label class="fl">模式</label>
-                    <select class="fi" id="lg-mode" onchange="onLlmModeChange()">
-                        <option value="generate">自动生成</option>
-                        <option value="expand">定向扩写</option>
-                    </select>
-                </div>
-                <div class="fg"><label class="fl">生成数量</label><input class="fi" id="lg-count" type="number" min="1" max="50" value="8"></div>
-                <div class="fg"><label class="fl">轮次数</label><input class="fi" id="lg-turns" type="number" min="1" max="3" value="1"></div>
-                <div class="fg"><label class="fl">Case ID 前缀</label><input class="fi" id="lg-prefix" value="llm-demo"></div>
-            </div>
-            <div class="fl" style="margin-bottom:6px">目标分组</div>
-            <div class="fr">
-                <div class="fg"><label class="fl">选择已有分组</label><select class="fi" id="lg-group-select" onchange="syncLlmGroupFromSelect()"></select></div>
-                <div class="fg"><label class="fl">自定义分组</label><input class="fi" id='lg-custom-group' value=""></div>
-            </div>
-            <div class="fg">
-                <label class="fl">期望函数字段</label>
-                <select class="fi" id="lg-expected-tool">
-                    <option value="RAG">RAG</option>
-                    <option value="freeChat">freeChat</option>
-                    <option value="open_door">open_door</option>
-                    <option value="return_app_native_router">return_app_native_router</option>
-                    <option value="vehicle_control">vehicle_control</option>
-                    <option value="vehicle_operation_data_query">vehicle_operation_data_query</option>
-                    <option value="vehicle_selective_query">vehicle_selective_query</option>
-                </select>
-                <div style="font-size:12px;color:var(--c-text3);margin-top:6px">本次生成只使用一个 expectedTool。</div>
-            </div>
-            <div class="fg"><label class="fl">生成用例 Prompt</label><textarea class="fi" id="lg-generation-prompt" rows="8" placeholder="请写清楚要覆盖的业务目标、边界条件、期望工具和判断点"></textarea></div>
-            <div class="fg" id="lg-expand-group" style="display:none">
-                <label class="fl">扩写基础用例（优先使用当前勾选）</label>
-                <input class="fi" id="lg-base" placeholder="可留空；留空则使用当前勾选用例ID">
-                <div style="font-size:12px;color:var(--c-text3);margin-top:6px">格式：用例id逗号分隔（例如 case_1001,case_1002）</div>
-            </div>
-            <div id="lg-result" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid var(--c-border);border-radius:8px;background:#fafbfc;font-size:12px;color:var(--c-text2)"></div>
-        </div>
-        <div class="dlg-foot">
-            <button class="btn btn-ghost" onclick="closeLlmGenModal()">取消</button>
-            <button class="btn btn-flat" onclick="previewLlmCases()">预览</button>
-            <button class="btn btn-p" onclick="submitLlmCases()">生成并加入用例库</button>
-        </div>
-    </div>
-</div>
-
 <!-- ═══ Case Modal ═══ -->
 <div class="overlay" id="ol-case">
     <div class="dialog">
@@ -876,7 +876,7 @@
             </div>
             <div class="fg"><label class="fcheck" title="enable：是否启用该用例，关闭后不会进入运行范围"><input type="checkbox" id="ce-on" checked> 启用</label></div>
             <div class="turns-box">
-                <h4 title="input1 / expected_tool_1：第 1 轮用户输入和期望函数字段">多轮对话 <button class="btn btn-p btn-sm" onclick="addTurn()">+ 轮次</button></h4>
+                <h4 title="input1 / expected_tool_1 / expected_args_1 / reply_contains_1 / reply_not_contains_1 / judge_prompt_1 / judge_threshold_1：第 1 轮用户输入、期望工具和断言字段">多轮对话 <span style="display:none" title="input1 / expected_tool_1：第 1 轮用户输入和期望函数字段"></span><button class="btn btn-p btn-sm" onclick="addTurn()">+ 轮次</button></h4>
                 <div id="turns-ct"></div>
             </div>
         </div>
@@ -1058,6 +1058,24 @@
     </div>
 </div>
 
+<div class="auth-overlay" id="auth-overlay">
+    <div class="auth-dialog">
+        <h2>项目访问</h2>
+        <p>当前是 Eval Console demo。请输入项目访问码进入对应空间；不同团队会看到各自的 Cases、Runs、Mock 和 Prompt 数据。</p>
+        <div class="fg" style="margin-bottom:0">
+            <label class="fl">项目访问码</label>
+            <input class="fi" id="auth-access-code" type="password" placeholder="输入项目访问码" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();loginWithAccessCode();}">
+        </div>
+        <div class="auth-note">
+            演示项目码：<code>ops</code> 运营数据评测，<code>vehicle</code> 车辆控制评测，<code>eval</code> 管理员视角。
+        </div>
+        <div class="auth-error" id="auth-error"></div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+            <button class="btn btn-p" id="auth-submit" onclick="loginWithAccessCode()">进入</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast-box" id="toast-box"></div>
 
 <!-- 阅读模式：评论浮窗（单例，靠「评论」按钮定位） -->
@@ -1184,9 +1202,13 @@
 
 <script>
 var BASE = '/admin/eval';
+var AUTH_TOKEN_KEY = 'evalAdminAccessToken';
+var PROJECT_NAME_KEY = 'evalAdminProjectName';
+var _rawFetch = window.fetch.bind(window);
 var allCases = [], allRuns = [], polls = {};
 var _debugData = [];
 var _agentVersions = [];
+var _caseGenerationSchema = null;
 var LLM_ALL_TOOLS=['RAG','freeChat','open_door','return_app_native_router','vehicle_control','vehicle_operation_data_query','vehicle_selective_query'];
 var BUTTON_TOOLTIP_MAP={
     '预览':'根据当前 Prompt、分组和期望函数字段生成预览，不会入库',
@@ -1199,7 +1221,6 @@ var BUTTON_TOOLTIP_MAP={
     '刷新':'重新加载当前列表数据',
     '运行选中':'运行当前勾选的用例',
     '运行全部':'运行当前筛选范围内所有启用用例',
-    'LLM生成':'打开 LLM 生成用例弹窗',
     '新建':'手动新建一条用例',
     '编辑':'打开并修改该用例',
     '删除':'删除该条记录',
@@ -1207,7 +1228,119 @@ var BUTTON_TOOLTIP_MAP={
     '重跑':'用同一批用例重新创建一次运行'
 };
 
-document.addEventListener('DOMContentLoaded', function() {
+window.fetch = function(input, init){
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    var next = init || {};
+    if(url.indexOf(BASE + '/api/') === 0 && url.indexOf(BASE + '/api/auth/') !== 0 && url.indexOf(BASE + '/api/env') !== 0){
+        var token = localStorage.getItem(AUTH_TOKEN_KEY);
+        if(token){
+            var headers = next.headers instanceof Headers ? Object.fromEntries(next.headers.entries()) : Object.assign({}, next.headers || {});
+            headers.Authorization = 'Bearer ' + token;
+            next = Object.assign({}, next, { headers: headers });
+        }
+    }
+    return _rawFetch(input, next).then(function(res){
+        if(res.status === 401 && url.indexOf(BASE + '/api/auth/') !== 0){
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            localStorage.removeItem(PROJECT_NAME_KEY);
+            setProjectBadge('');
+            showAuthGate();
+        }
+        return res;
+    });
+};
+
+function showAuthGate(message){
+    var overlay = document.getElementById('auth-overlay');
+    if(overlay) overlay.classList.remove('hidden');
+    var input = document.getElementById('auth-access-code');
+    if(input) setTimeout(function(){ input.focus(); }, 50);
+    if(message) setAuthError(message);
+}
+
+function hideAuthGate(){
+    var overlay = document.getElementById('auth-overlay');
+    if(overlay) overlay.classList.add('hidden');
+}
+
+function setProjectBadge(projectName){
+    var badge = document.getElementById('project-badge');
+    if(!badge) return;
+    if(projectName){
+        badge.textContent = projectName;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function setAuthError(message){
+    var err = document.getElementById('auth-error');
+    if(!err) return;
+    err.textContent = message || '';
+    err.classList.toggle('show', !!message);
+}
+
+function authStatusHeaders(){
+    var token = localStorage.getItem(AUTH_TOKEN_KEY);
+    return token ? { Authorization: 'Bearer ' + token } : {};
+}
+
+function ensureAuth(done){
+    _rawFetch(BASE + '/api/auth/status', { headers: authStatusHeaders() })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+            if(d.code === '10000' && d.data && d.data.authenticated){
+                if(d.data.project && d.data.project.projectName){
+                    localStorage.setItem(PROJECT_NAME_KEY, d.data.project.projectName);
+                    setProjectBadge(d.data.project.projectName);
+                } else {
+                    setProjectBadge(localStorage.getItem(PROJECT_NAME_KEY));
+                }
+                hideAuthGate();
+                done();
+                return;
+            }
+            localStorage.removeItem(PROJECT_NAME_KEY);
+            setProjectBadge('');
+            showAuthGate();
+        })
+        .catch(function(){ showAuthGate('认证状态检查失败，请稍后重试'); });
+}
+
+function loginWithAccessCode(){
+    var input = document.getElementById('auth-access-code');
+    var btn = document.getElementById('auth-submit');
+    var accessCode = input ? input.value.trim() : '';
+    if(!accessCode){ setAuthError('请输入访问码'); return; }
+    setAuthError('');
+    if(btn) btn.disabled = true;
+    _rawFetch(BASE + '/api/auth/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({accessCode:accessCode})
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if(d.code !== '10000'){
+            setAuthError(d.message || '访问码不正确');
+            return;
+        }
+        localStorage.setItem(AUTH_TOKEN_KEY, d.data.token);
+        localStorage.setItem(PROJECT_NAME_KEY, d.data.projectName || '项目空间');
+        setProjectBadge(d.data.projectName || '项目空间');
+        if(input) input.value = '';
+        hideAuthGate();
+        bootApp();
+    }).catch(function(){
+        setAuthError('登录请求失败，请确认服务可用');
+    }).finally(function(){
+        if(btn) btn.disabled = false;
+    });
+}
+
+var _booted = false;
+function bootApp(){
+    if(_booted) return;
+    _booted = true;
     tick(); setInterval(tick, 60000);
     document.getElementById('case-q').addEventListener('input', filterCases);
     document.getElementById('run-q').addEventListener('input', filterRuns);
@@ -1237,14 +1370,19 @@ document.addEventListener('DOMContentLoaded', function() {
         var b=document.getElementById('read-cmt-btn-'+_readCmtFloatIdx);
         if(b) positionReadCmtFloat(b);
     });
-    ['ol-case','ol-veh','ol-run-confirm','ol-export-confirm','ol-llm-gen'].forEach(function(id){ document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}); });
+    ['ol-case','ol-veh','ol-run-confirm','ol-export-confirm'].forEach(function(id){ document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}); });
     loadCases();
     loadVersionOptions();
     checkRunning();
     loadEnv();
+    loadCaseGenerationSchema();
     go('cases');
     initGeneratePage();
     applyButtonTooltips();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    ensureAuth(bootApp);
 });
 function applyButtonTooltips(root){
     (root||document).querySelectorAll('button').forEach(function(btn){
@@ -1462,7 +1600,13 @@ function renderCases(list){
             turns.forEach(function(t,i){
                 if(i>0) parts.push('<div class="case-turn-arrow">\u2193</div>');
                 var tool=t.expectedTool?'<span class="case-turn-tool">'+esc(t.expectedTool)+'</span>':'';
-                parts.push('<div class="case-turn"><span class="case-turn-n">'+t.turnIndex+'</span><span class="case-turn-text">'+esc(t.userInput||'')+'</span>'+tool+'</div>');
+                var assertions=[];
+                if(t.expectedArgs) assertions.push('args '+esc(t.expectedArgs));
+                if((t.replyContains||[]).length) assertions.push('包含 '+esc(csvListText(t.replyContains)));
+                if((t.replyNotContains||[]).length) assertions.push('不含 '+esc(csvListText(t.replyNotContains)));
+                if(t.judgePrompt||t.judgeThreshold) assertions.push('judge '+esc(t.judgeThreshold||''));
+                parts.push('<div class="case-turn"><span class="case-turn-n">'+t.turnIndex+'</span><span class="case-turn-text">'+esc(t.userInput||'')+'</span>'+tool+'</div>'+
+                    (assertions.length?'<div style="padding-left:32px;font-size:11px;color:var(--c-text3);line-height:1.5">'+assertions.join(' · ')+'</div>':''));
             });
             turnsHtml=parts.join('');
         } else {
@@ -1496,7 +1640,27 @@ function renderCases(list){
 }
 function toggleAll(el){ document.querySelectorAll('.ccb').forEach(function(cb){cb.checked=el.checked;}); updSelected(); }
 function selIds(){ var a=[]; document.querySelectorAll('.ccb:checked').forEach(function(cb){a.push(cb.value);}); return a; }
-function updSelected(){ document.getElementById('k-selected').textContent=selIds().length; }
+function selectedCaseIdLabels(){
+    var selected=selIds();
+    return selected.map(function(id){
+        var c=allCases.find(function(item){return item.id===id||item.caseId===id;});
+        return c?(c.caseId||c.id):id;
+    });
+}
+function renderSelectedBaseIds(){
+    var box=document.getElementById('pg-selected-base');
+    if(!box)return;
+    var ids=selectedCaseIdLabels();
+    if(!ids.length){
+        box.textContent='未勾选用例；定向扩写会提示先勾选。';
+        return;
+    }
+    box.innerHTML=ids.map(function(id){return '<span class="mono">'+esc(id)+'</span>';}).join('');
+}
+function updSelected(){
+    document.getElementById('k-selected').textContent=selIds().length;
+    renderSelectedBaseIds();
+}
 function patchCaseFlags(caseId,payload,okMsg){
     fetch(BASE+'/api/cases/'+caseId+'/regression-flags',{
         method:'PATCH',
@@ -1575,7 +1739,7 @@ function autoGenUid(){
 function closeCM(){ document.getElementById('ol-case').classList.remove('open'); }
 
 /* -- Generate page -- */
-var _llmPreviewRenderTarget='lg-result';
+var _llmPreviewRenderTarget='pg-result';
 function initGeneratePage(){
     var p=document.getElementById('pg-generation-prompt');
     if(!p) return;
@@ -1583,7 +1747,6 @@ function initGeneratePage(){
     document.getElementById('pg-prefix').value=document.getElementById('pg-prefix').value||'llm_demo';
     document.getElementById('pg-turns').value=document.getElementById('pg-turns').value||'1';
     document.getElementById('pg-count').value=document.getElementById('pg-count').value||'8';
-    document.getElementById('pg-base').value=selIds().join(',');
     var sel=document.getElementById('pg-group-select');
     if(sel){
         var groups=[];
@@ -1596,18 +1759,18 @@ function initGeneratePage(){
 }
 function onGeneratePageModeChange(){
     var mode=document.getElementById('pg-mode').value;
-    document.getElementById('pg-expand-group').style.display=mode==='expand'?'block':'none';
+    var wrap=document.getElementById('pg-selected-base-wrap');
+    if(wrap) wrap.style.display=mode==='expand'?'block':'none';
+    renderSelectedBaseIds();
 }
 function buildGeneratePagePayload(){
     var mode=document.getElementById('pg-mode').value;
     var count=Math.max(1,Math.min(50,parseInt(document.getElementById('pg-count').value,10)||8));
     var turnCount=Math.max(1,Math.min(3,parseInt(document.getElementById('pg-turns').value,10)||1));
     var boundaries=['权限边界','弱网','多轮引用'];
-    var baseRaw=document.getElementById('pg-base').value.trim();
     var baseCaseIds=[];
     if(mode==='expand'){
-        if(baseRaw) baseCaseIds=baseRaw.split(',').map(function(v){return v.trim();}).filter(Boolean);
-        else baseCaseIds=selIds();
+        baseCaseIds=selIds();
     }
     var promptText=document.getElementById('pg-generation-prompt').value.trim()||defaultGenerationPrompt();
     var groupName=document.getElementById('pg-custom-group').value.trim()||document.getElementById('pg-group-select').value||'默认分组';
@@ -1616,12 +1779,12 @@ function buildGeneratePagePayload(){
         mode:mode,
         module:'vehicle_query',
         count:count,
-        objective:promptText.split('\n').map(function(v){return v.trim();}).filter(Boolean)[0]||'按生成用例 Prompt 覆盖测试目标',
+        objective:promptText.split('\n').map(function(v){return v.trim();}).filter(Boolean)[0]||'按业务覆盖目标生成用例',
         boundaryTags:boundaries,
         turnCount:turnCount,
         baseCaseIds:baseCaseIds,
         groupName:groupName,
-        generationPrompt:promptText,
+        businessObjective:promptText,
         allowedTools:[expectedTool],
         caseIdPrefix:document.getElementById('pg-prefix').value.trim(),
         actor:'llm-generator-ui'
@@ -1658,116 +1821,53 @@ function submitGeneratePage(){
         var msg='已自动解析并上传 '+(data.inserted||0)+' 条到用例库（默认非回归）';
         if(data.warning) msg+='\n提示: '+data.warning;
         showLlmResult(msg,true);
-        toast('LLM生成完成: '+(data.inserted||0)+' 条已加入用例库','ok');
+        toast('生成完成: '+(data.inserted||0)+' 条已加入用例库','ok');
         _llmPreviewCases=[];
         _llmPreviewWarning='';
         loadCases();
     }).catch(function(){showLlmResult('生成请求失败',false);});
 }
 
-/* -- LLM generate modal -- */
-function openLlmGenModal(){
-    document.getElementById('lg-mode').value='generate';
-    document.getElementById('lg-count').value='8';
-    document.getElementById('lg-turns').value='1';
-    populateLlmGroupSelect();
-    document.getElementById('lg-expected-tool').value='vehicle_selective_query';
-    document.getElementById('lg-group-select').value='默认分组';
-    document.getElementById('lg-custom-group').value='';
-    document.getElementById('lg-generation-prompt').value=defaultGenerationPrompt();
-    document.getElementById('lg-prefix').value='llm-demo';
-    document.getElementById('lg-base').value=selIds().join(',');
-    _llmPreviewRenderTarget='lg-result';
-    _llmPreviewCases=[];
-    _llmPreviewVisibleLimit=10;
-    _llmPreviewWarning='';
-    document.getElementById('lg-result').style.display='none';
-    onLlmModeChange();
-    document.getElementById('ol-llm-gen').classList.add('open');
-    applyButtonTooltips(document.getElementById('ol-llm-gen'));
-}
-function closeLlmGenModal(){
-    document.getElementById('ol-llm-gen').classList.remove('open');
-}
-function onLlmModeChange(){
-    var mode=document.getElementById('lg-mode').value;
-    document.getElementById('lg-expand-group').style.display=mode==='expand'?'block':'none';
-}
-function populateLlmGroupSelect(){
-    var sel=document.getElementById('lg-group-select');
-    if(!sel)return;
-    var groups=[];
-    allCases.forEach(function(c){
-        var g=c.groupName||'默认分组';
-        if(groups.indexOf(g)===-1) groups.push(g);
-    });
-    ['默认分组','车辆控制','运营数据查询','RAG防幻觉'].forEach(function(g){
-        if(groups.indexOf(g)===-1) groups.push(g);
-    });
-    sel.innerHTML=groups.map(function(g){return '<option value="'+esc(g)+'">'+esc(g)+'</option>';}).join('');
-    if(!sel.value) sel.value='默认分组';
-}
-function syncLlmGroupFromSelect(){ document.getElementById('lg-custom-group').value=''; }
-function selectedLlmTools(){
-    return [document.getElementById('lg-expected-tool').value||'freeChat'];
-}
 var _llmPreviewCases=[];
 var _llmPreviewVisibleLimit=10;
 var _llmPreviewWarning='';
+function renderSchemaNote(targetId){
+    var el=document.getElementById(targetId);
+    if(!el)return;
+    if(!_caseGenerationSchema){
+        el.textContent='Schema 加载中...';
+        return;
+    }
+    el.innerHTML =
+        '<strong>输出字段结构：</strong>字段结构全项目统一，业务覆盖目标单独填写。<br>'+
+        '必填字段：<code>'+esc((_caseGenerationSchema.requiredFields||[]).join(', '))+'</code><br>'+
+        '轮次字段：<code>'+esc((_caseGenerationSchema.turnFields||[]).join(', '))+'</code>；断言字段：<code>'+esc((_caseGenerationSchema.assertionFields||[]).join(', '))+'</code><br>'+
+        '导入列：<code>'+esc((_caseGenerationSchema.importColumns||[]).join(', '))+'</code>';
+}
+function loadCaseGenerationSchema(){
+    fetch(BASE+'/api/case-service/schema').then(function(r){return r.json();}).then(function(d){
+        if(d.code==='10000'){
+            _caseGenerationSchema=d.data;
+            renderSchemaNote('pg-schema-note');
+        }
+    }).catch(function(){
+        var el=document.getElementById('pg-schema-note');
+        if(el)el.textContent='Schema 加载失败，仍会使用平台默认字段约束。';
+    });
+}
 function defaultGenerationPrompt(){
     return [
-        '请生成一批可直接入库的评测用例，字段要能对应 enable、case_id、name、user_id、group_name、input1、expected_tool_1、input2、expected_tool_2、input3、expected_tool_3。',
-        '',
-        '覆盖目标：',
-        '1. 覆盖核心成功路径、权限/数据边界、异常输入和多轮追问。',
-        '2. 每条用例都要明确用户输入、期望函数字段 expectedTool、关键参数、前置条件和人工可复核判断点。',
-        '3. 如果是多轮用例，需要写清楚上下文引用关系，例如“第一辆”“刚才那台车”“这个园区”。',
-        '4. 不要只生成同义改写，要覆盖不同业务意图、不同失败原因、不同数据条件。',
-        '',
-        '输出要求：',
-        '- 输出 JSON 数组。',
-        '- 每项包含 caseId、name、groupName、allowedTools、turns、expectedTools、evalDimensions、riskLevel。',
-        '- turns 中每轮包含 userInput 和 expectedTool。',
-        '- expectedTool 必须从 allowedTools 中选择；同一批用例可以覆盖多个不同函数，不要求每条都是同一个工具。',
-        '- groupName 必须使用页面填写的目标分组。',
-        '- userInput 要像真实用户说的话，不要出现“请说明筛选条件(1)”这类生成器痕迹。'
+        '车辆控制专项覆盖目标：',
+        '1. 成功路径覆盖远程开门/关门、鸣笛闪灯、空调开关与温度设置、车辆定位或寻车入口跳转，用户表达要像真实车主或运维人员。',
+        '2. 权限与状态边界覆盖无权限车辆、非绑定用户、车辆离线、车门已开/已锁、车辆行驶中、低电量或信号弱导致无法执行。',
+        '3. 多轮用例要体现上下文引用，例如“第一辆车”“刚才那辆车”“这台车”，并验证系统能继承上一轮车辆、动作或园区上下文。',
+        '4. 每条用例写清楚 expectedTool、关键参数、前置条件和人工复核点，例如目标车辆 VIN/车牌、控制动作、期望是否二次确认、失败原因是否可解释。',
+        '5. 不要只改同义句；请覆盖不同业务意图、不同失败原因、不同车辆数据条件，至少包含高风险控制动作和低风险查询/跳转动作。'
     ].join('\n');
 }
-function buildLlmPayload(){
-    var mode=document.getElementById('lg-mode').value;
-    var count=Math.max(1,Math.min(50,parseInt(document.getElementById('lg-count').value,10)||8));
-    var turnCount=Math.max(1,Math.min(3,parseInt(document.getElementById('lg-turns').value,10)||1));
-    var boundaries=['权限边界','弱网','多轮引用'];
-    var baseRaw=document.getElementById('lg-base').value.trim();
-    var baseCaseIds=[];
-    if(mode==='expand'){
-        if(baseRaw){
-            baseCaseIds=baseRaw.split(',').map(function(v){return v.trim();}).filter(Boolean);
-        }else{
-            baseCaseIds=selIds();
-        }
-    }
-    var promptText=document.getElementById('lg-generation-prompt').value.trim()||defaultGenerationPrompt();
-    var groupName=document.getElementById('lg-custom-group').value.trim()||document.getElementById('lg-group-select').value||'默认分组';
-    var expectedTool=document.getElementById('lg-expected-tool').value||'freeChat';
-    return {
-        mode:mode,
-        module:'vehicle_query',
-        count:count,
-        objective:promptText.split('\n').map(function(v){return v.trim();}).filter(Boolean)[0]||'按生成用例 Prompt 覆盖测试目标',
-        boundaryTags:boundaries,
-        turnCount:turnCount,
-        baseCaseIds:baseCaseIds,
-        groupName:groupName,
-        generationPrompt:promptText,
-        allowedTools:[expectedTool],
-        caseIdPrefix:document.getElementById('lg-prefix').value.trim(),
-        actor:'llm-generator-ui'
-    };
-}
 function showLlmResult(text,ok,html){
-    var box=document.getElementById(_llmPreviewRenderTarget||'lg-result');
-    if(!box) box=document.getElementById('lg-result');
+    var box=document.getElementById(_llmPreviewRenderTarget||'pg-result');
+    if(!box) box=document.getElementById('pg-result');
     box.style.display='block';
     if(html){
         box.innerHTML=text;
@@ -1799,18 +1899,33 @@ function removeLlmPreviewItem(idx){
     showLlmResult(renderLlmPreview(),true,true);
 }
 function renderLlmPreview(){
+    function turnVal(turn,key){
+        if(!turn) return '-';
+        if(key==='replyContains'){
+            var v1=csvListText(turn.replyContains);
+            return v1||'-';
+        }
+        if(key==='replyNotContains'){
+            var v2=csvListText(turn.replyNotContains);
+            return v2||'-';
+        }
+        var v=turn[key];
+        if(v===undefined||v===null||v==='') return '-';
+        return String(v);
+    }
     var preview=_llmPreviewCases||[];
     var total=preview.length;
+    var visiblePreview=preview.slice(0,Math.min(_llmPreviewVisibleLimit,total));
     var h='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">'+
         '<div><b>预览入库字段</b><div style="margin-top:4px;font-size:12px;color:var(--c-text3)">点击每行 × 可移除不想入库的用例；字段按 CSV 入库列展示。</div></div>'+
-        '<span class="tag tag-done">'+total+' 条候选</span>'+
+        '<span class="tag tag-done">显示 '+visiblePreview.length+' / '+total+' 条候选</span>'+
         '</div>';
     if(_llmPreviewWarning){
         h+='<div style="font-size:12px;color:var(--c-amber);margin-bottom:8px">'+esc(_llmPreviewWarning)+'</div>';
     }
-    var tableMaxHeight=_llmPreviewRenderTarget==='pg-result'?'62vh':'440px';
-    h+='<div style="max-height:'+tableMaxHeight+';overflow:auto;border:1px solid var(--c-border);border-radius:8px;background:#fff">'+
-        '<table style="width:100%;min-width:980px;font-size:12px;border-collapse:collapse">'+
+    var tableMaxHeight=_llmPreviewRenderTarget==='pg-result'?'420px':'360px';
+    h+='<div class="gen-preview-scroll" style="max-height:'+tableMaxHeight+';max-width:100%">'+
+        '<table style="font-size:12px">'+
         '<thead><tr style="background:#f8fafc">'+
         '<th style="width:48px;padding:8px;border-bottom:1px solid var(--c-border)">删除</th>'+
         '<th style="padding:8px;border-bottom:1px solid var(--c-border)">enable</th>'+
@@ -1818,16 +1933,32 @@ function renderLlmPreview(){
         '<th style="padding:8px;border-bottom:1px solid var(--c-border)">name</th>'+
         '<th style="padding:8px;border-bottom:1px solid var(--c-border)">user_id</th>'+
         '<th style="padding:8px;border-bottom:1px solid var(--c-border)">group_name</th>'+
-        '<th style="padding:8px;border-bottom:1px solid var(--c-border);min-width:280px">input1 / expected_tool_1 / input2 / expected_tool_2 / input3 / expected_tool_3</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">input1</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">expected_tool_1</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">expected_args_1</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">reply_contains_1</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">reply_not_contains_1</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">judge_prompt_1</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">judge_threshold_1</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">input2</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">expected_tool_2</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">expected_args_2</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">reply_contains_2</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">reply_not_contains_2</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">judge_prompt_2</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">judge_threshold_2</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">input3</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">expected_tool_3</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">expected_args_3</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">reply_contains_3</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">reply_not_contains_3</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">judge_prompt_3</th>'+
+        '<th style="padding:8px;border-bottom:1px solid var(--c-border)">judge_threshold_3</th>'+
         '</tr></thead><tbody>';
-    preview.forEach(function(c,idx){
-        var turns=(c.turns||[]).slice(0,3);
-        var turnHtml=turns.map(function(t,i){
-            return '<div style="padding:2px 0">'+
-                '<span class="mono" style="color:var(--c-text2)">T'+(i+1)+':</span> '+esc(t&&t.userInput||'')+
-                '<br><span class="mono" style="color:var(--c-accent)">→ '+esc(t&&t.expectedTool||'')+'</span>'+ 
-                '</div>';
-        }).join('');
+    visiblePreview.forEach(function(c,idx){
+        var t1=(c.turns||[])[0]||null;
+        var t2=(c.turns||[])[1]||null;
+        var t3=(c.turns||[])[2]||null;
         h+='<tr>'+
             '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border);text-align:center">'+
                 '<button class="btn btn-ghost btn-sm" style="color:var(--c-red);padding:0 6px" onclick="removeLlmPreviewItem('+idx+')">×</button>'+
@@ -1837,7 +1968,27 @@ function renderLlmPreview(){
             '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(c.name||'')+'</td>'+
             '<td class="mono" style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(c.userId||'')+'</td>'+
             '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(c.groupName||'默认分组')+'</td>'+
-            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+turnHtml+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t1,'userInput'))+'</td>'+
+            '<td class="mono" style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t1,'expectedTool'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t1,'expectedArgs'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t1,'replyContains'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t1,'replyNotContains'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t1,'judgePrompt'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t1,'judgeThreshold'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t2,'userInput'))+'</td>'+
+            '<td class="mono" style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t2,'expectedTool'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t2,'expectedArgs'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t2,'replyContains'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t2,'replyNotContains'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t2,'judgePrompt'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t2,'judgeThreshold'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t3,'userInput'))+'</td>'+
+            '<td class="mono" style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t3,'expectedTool'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t3,'expectedArgs'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t3,'replyContains'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t3,'replyNotContains'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t3,'judgePrompt'))+'</td>'+
+            '<td style="padding:6px 8px;border-bottom:1px solid var(--c-border)">'+esc(turnVal(t3,'judgeThreshold'))+'</td>'+
             '</tr>';
     });
     h+='</tbody></table></div>';
@@ -1849,69 +2000,57 @@ function renderLlmPreview(){
     }
     return h;
 }
-function previewLlmCases(){
-    var payload=buildLlmPayload();
-    fetch(BASE+'/api/case-service/generate-preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
-        .then(function(r){return r.json();})
-        .then(function(d){
-            if(d.code!=='10000'){showLlmResult('预览失败: '+(d.message||''),false);return;}
-            var data=d.data||{};
-            _llmPreviewCases=data.preview||[];
-            _llmPreviewWarning=data.warning||'';
-            _llmPreviewVisibleLimit=Math.min(10,Math.max(1,_llmPreviewCases.length));
-            if(!_llmPreviewCases.length){
-                showLlmResult('未生成可预览内容，请调整条件后重试。',false,false);
-                return;
-            }
-            showLlmResult(renderLlmPreview(),true,true);
-        })
-        .catch(function(){showLlmResult('预览请求失败',false);});
-}
-function submitLlmCases(){
-    var request;
-    if(_llmPreviewCases.length){
-        request=fetch(BASE+'/api/case-service/upload-preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cases:_llmPreviewCases})});
-    }else{
-        var payload=buildLlmPayload();
-        request=fetch(BASE+'/api/case-service/generate-upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    }
-    request
-        .then(function(r){return r.json();})
-        .then(function(d){
-            if(d.code!=='10000'){showLlmResult('生成失败: '+(d.message||''),false);return;}
-            var data=d.data||{};
-            var msg='已自动解析并上传 '+(data.inserted||0)+' 条到用例库（默认非回归）';
-            if(data.warning) msg+='\n提示: '+data.warning;
-            showLlmResult(msg,true);
-            toast('LLM生成完成: '+(data.inserted||0)+' 条已加入用例库','ok');
-            _llmPreviewCases=[];
-            _llmPreviewWarning='';
-            loadCases();
-        })
-        .catch(function(){showLlmResult('生成请求失败',false);});
-}
 function buildToolOptions(selected){
     var opts='<option value="">-- 选择工具 --</option>';
     _allToolNames.forEach(function(t){opts+='<option value="'+ea(t)+'"'+(t===selected?' selected':'')+'>'+esc(t)+'</option>';});
     return opts;
 }
-function addTurn(inp,tool){
+function csvListText(v){
+    if(Array.isArray(v)) return v.join('|');
+    return v||'';
+}
+function addTurn(inp,tool,meta){
+    meta=meta||{};
+    if(inp&&typeof inp==='object'){
+        meta=inp;
+        tool=meta.expectedTool;
+        inp=meta.userInput;
+    }
     var ct=document.getElementById('turns-ct'), idx=ct.querySelectorAll('.turn-r').length+1, d=document.createElement('div');
     d.className='turn-r';
     d.innerHTML='<span class="turn-n">'+idx+'</span>'+
         '<input class="fi t-inp" placeholder="用户输入" value="'+ea(inp||'')+'">'+
         '<select class="fi tool-fi">'+buildToolOptions(tool||'')+'</select>'+
-        '<button class="btn btn-ghost btn-sm" style="color:var(--c-red)" onclick="rmTurn(this)">x</button>';
+        '<button class="btn btn-ghost btn-sm" style="color:var(--c-red)" onclick="rmTurn(this)">x</button>'+
+        '<div class="turn-assert-grid">'+
+            '<input class="fi t-args" title="expected_args_'+idx+'：期望工具参数，可填 JSON 或关键字段说明" placeholder="expected_args_'+idx+'" value="'+ea(meta.expectedArgs||'')+'">'+
+            '<input class="fi t-reply-contains" title="reply_contains_'+idx+'：回复必须包含，多个用 | 分隔" placeholder="reply_contains_'+idx+'" value="'+ea(csvListText(meta.replyContains))+'">'+
+            '<input class="fi t-reply-not-contains" title="reply_not_contains_'+idx+'：回复不能包含，多个用 | 分隔" placeholder="reply_not_contains_'+idx+'" value="'+ea(csvListText(meta.replyNotContains))+'">'+
+            '<input class="fi t-judge-threshold" title="judge_threshold_'+idx+'：LLM judge 阈值，如 0.8 或 80" placeholder="judge_threshold_'+idx+'" value="'+ea(meta.judgeThreshold||'')+'">'+
+            '<textarea class="fi t-judge-prompt" title="judge_prompt_'+idx+'：自定义 judge prompt" placeholder="judge_prompt_'+idx+'" rows="2" style="grid-column:1 / -1;resize:vertical">'+esc(meta.judgePrompt||'')+'</textarea>'+
+        '</div>';
     ct.appendChild(d);
 }
 function rmTurn(b){ b.closest('.turn-r').remove(); document.querySelectorAll('#turns-ct .turn-r').forEach(function(r,i){r.querySelector('.turn-n').textContent=i+1;}); }
 function editCase(id){ fetch(BASE+'/api/cases/'+id).then(r=>r.json()).then(d=>{if(d.code==='10000')openCaseModal(d.data);else toast('加载失败','err');}); }
 function delCase(id,cid){ if(!confirm('删除用例 '+cid+' ?'))return; fetch(BASE+'/api/cases/'+id,{method:'DELETE'}).then(r=>r.json()).then(d=>{if(d.code==='10000'){toast('已删除','ok');loadCases();}else toast('删除失败','err');}); }
+function splitAssertList(v){
+    return String(v||'').split(/[|,，\n]/).map(function(x){return x.trim();}).filter(Boolean);
+}
 function saveCase(){
     var id=document.getElementById('ce-id').value, turns=[];
     document.querySelectorAll('#turns-ct .turn-r').forEach(function(r,i){
         var inp=r.querySelector('.t-inp').value.trim();
-        if(inp) turns.push({turnIndex:i+1,userInput:inp,expectedTool:r.querySelector('.tool-fi').value.trim()});
+        if(inp) turns.push({
+            turnIndex:i+1,
+            userInput:inp,
+            expectedTool:r.querySelector('.tool-fi').value.trim(),
+            expectedArgs:r.querySelector('.t-args').value.trim(),
+            replyContains:splitAssertList(r.querySelector('.t-reply-contains').value),
+            replyNotContains:splitAssertList(r.querySelector('.t-reply-not-contains').value),
+            judgePrompt:r.querySelector('.t-judge-prompt').value.trim(),
+            judgeThreshold:r.querySelector('.t-judge-threshold').value.trim()
+        });
     });
     if(!turns.length){toast('至少一轮对话','err');return;}
     var doc={caseId:document.getElementById('ce-caseId').value.trim(),name:document.getElementById('ce-name').value.trim(),
@@ -1929,11 +2068,11 @@ function saveCase(){
 }
 function downloadCsvTemplate(){
     var rows=[
-        ['enable','case_id','name','user_id','group_name','source','regression','eval_dimensions','input1','expected_tool_1','input2','expected_tool_2','input3','expected_tool_3'],
-        ['# 是否启用(true/false)','用例唯一标识','用例名称','用户ID(数字 或 权限类型: FULL/OPEN_DOOR_ONLY/OPERATIONAL_ONLY/DENIED)','分组名称(默认:默认分组)','来源(manual/llm)','是否回归集(true/false)','评测维度(用|分隔, 如 intent|tool|params|responseQuality)','第1轮用户输入','第1轮期望工具名','第2轮用户输入','第2轮期望工具名','第3轮用户输入','第3轮期望工具名'],
-        ['true','t1_door_001','开门基本流程','FULL','开门场景','manual','true','intent|tool|params|responseQuality','帮我开一下车门','open_door','好的，开A001的','','',''],
-        ['true','t2_query_001','查询电量','FULL','默认分组','llm','false','intent|tool|responseQuality','查一下车辆电量','vehicle_query_intent','','','',''],
-        ['false','t5_multi_001','多轮对话','OPERATIONAL_ONLY','默认分组','manual','false','intent|tool|params|responseQuality','附近有什么车','vehicle_query_intent','第一辆电量多少','vehicle_query_intent','帮我开门','open_door']
+        ['enable','case_id','name','user_id','group_name','input1','expected_tool_1','expected_args_1','reply_contains_1','reply_not_contains_1','judge_prompt_1','judge_threshold_1','input2','expected_tool_2','expected_args_2','reply_contains_2','reply_not_contains_2','judge_prompt_2','judge_threshold_2','input3','expected_tool_3','expected_args_3','reply_contains_3','reply_not_contains_3','judge_prompt_3','judge_threshold_3'],
+        ['# 是否启用(true/false)','用例唯一标识','用例名称','用户ID(数字 或 权限类型: FULL/OPEN_DOOR_ONLY/OPERATIONAL_ONLY/DENIED)','分组名称(默认:默认分组)','第1轮用户输入','第1轮期望工具名','第1轮期望参数(JSON或说明)','第1轮回复必须包含(|分隔)','第1轮回复不能包含(|分隔)','第1轮 Judge Prompt','第1轮 Judge 阈值','第2轮用户输入','第2轮期望工具名','第2轮期望参数','第2轮回复必须包含','第2轮回复不能包含','第2轮 Judge Prompt','第2轮 Judge 阈值','第3轮用户输入','第3轮期望工具名','第3轮期望参数','第3轮回复必须包含','第3轮回复不能包含','第3轮 Judge Prompt','第3轮 Judge 阈值'],
+        ['true','t1_door_001','开门基本流程','FULL','开门场景','帮我开一下车门','open_door','{"action":"openDoor"}','已为你开门|成功','','检查回复是否说明开门结果','0.8','','','','','','','','','','','','','',''],
+        ['true','t2_query_001','查询电量','FULL','默认分组','查一下车辆电量','vehicle_selective_query','{"field":"battery"}','电量','','检查回复是否围绕车辆电量回答','0.8','','','','','','','','','','','','','',''],
+        ['false','t5_multi_001','多轮对话','OPERATIONAL_ONLY','默认分组','附近有什么车','vehicle_selective_query','','附近','','','0.7','第一辆电量多少','vehicle_selective_query','','电量','','','0.7','帮我开门','open_door','{"action":"openDoor"}','','不能执行','','0.7']
     ];
     var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
     var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
@@ -2210,6 +2349,7 @@ function pollRun(id){
 /* ══════ Run Detail ══════ */
 var _currentRun=null;
 var _rdFilter='all';
+var _rdPerfFilter={ttft:'',llm:'',tool:'',db:'',token:'',cost:''};
 var _rdReadMode=false;
 var _compareMode=false,_compareBaseRun=null,_compareCaseList=[],_compareIdx=0;
 function viewRun(id){
@@ -2301,6 +2441,34 @@ function buildCaseDiagnosis(r){
         '</div>';
     return h;
 }
+function setRdPerfFilter(key,value){
+    if(!_rdPerfFilter) _rdPerfFilter={ttft:'',llm:'',tool:'',db:'',token:'',cost:''};
+    _rdPerfFilter[key]=(value||'').trim();
+    renderRD(_currentRun);
+}
+function clearRdPerfFilter(){
+    _rdPerfFilter={ttft:'',llm:'',tool:'',db:'',token:'',cost:''};
+    renderRD(_currentRun);
+}
+function metricPass(value,threshold){
+    if(threshold===undefined||threshold===null||threshold==='') return true;
+    var t=Number(threshold);
+    if(!isFinite(t)) return true;
+    var v=Number(value||0);
+    if(!isFinite(v)) v=0;
+    return v>=t;
+}
+function passRdPerfFilter(r){
+    var m=r.metrics||{};
+    var lb=m.latencyBreakdown||{};
+    var tu=m.tokenUsage||{};
+    return metricPass(m.firstTokenMs,_rdPerfFilter.ttft)
+        && metricPass(lb.llmMs,_rdPerfFilter.llm)
+        && metricPass(lb.toolMs,_rdPerfFilter.tool)
+        && metricPass(lb.dbMs,_rdPerfFilter.db)
+        && metricPass(tu.totalTokens,_rdPerfFilter.token)
+        && metricPass(m.costUsd,_rdPerfFilter.cost);
+}
 function renderRD(run){
     _debugData=[];
     document.getElementById('rd-title').textContent=run.name;
@@ -2309,16 +2477,9 @@ function renderRD(run){
     var llmLowCount=res.filter(function(r){return (r.llmJudge&&r.llmJudge.score<70);}).length;
     var selectedCount=Object.keys(_runSelectedCaseIds||{}).length;
     var rate=res.length>0?Math.round(pass/res.length*100):0;
-    var routeOk=res.filter(function(r){
-        var c=(r.contractChecks||[]).find(function(x){return x.key==='route';});
-        return c?c.pass:r.pass;
-    }).length;
-    var middleBad=res.filter(function(r){
-        return (r.contractChecks||[]).some(function(c){return c.key!=='route'&&c.applies!==false&&!c.pass;});
-    }).length;
-    var noSkill=res.filter(function(r){
-        return !(r.turns||[]).some(function(t){return !!t.skillResultJson;});
-    }).length;
+    var firstTokenAvg=(run.metrics&&run.metrics.firstTokenAvgMs)||0;
+    var totalTokens=((run.metrics&&run.metrics.tokenUsage&&run.metrics.tokenUsage.totalTokens)||0);
+    var totalCost=Number((run.metrics&&run.metrics.costUsd)||0).toFixed(4);
 
     var h='<div class="kpi-strip" style="margin-bottom:20px">'+
         '<div class="kpi"><b>'+res.length+'</b><span>总数</span></div>'+
@@ -2327,6 +2488,9 @@ function renderRD(run){
         '<div class="kpi"><b style="color:var(--c-amber)">'+flaggedCount+'</b><span>已标问题</span></div>'+
         '<div class="kpi"><b>'+rate+'%</b><span>准确率</span></div>'+
         '<div class="kpi"><b class="mono" style="font-size:16px">'+fd(run.durationMs)+'</b><span>耗时</span></div>'+
+        '<div class="kpi"><b class="mono" style="font-size:16px">'+firstTokenAvg+'ms</b><span>首字延迟均值</span></div>'+
+        '<div class="kpi"><b>'+totalTokens+'</b><span>总 Token</span></div>'+
+        '<div class="kpi"><b>$'+totalCost+'</b><span>总成本</span></div>'+
         '</div>';
 
     h+='<div class="card" style="padding:14px;margin-bottom:16px"><div class="read-meta" style="margin-top:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px;font-size:12px">'+
@@ -2351,25 +2515,6 @@ function renderRD(run){
             '</div></div>';
     }
 
-    if(run.funnel&&run.funnel.length){
-        h+='<div class="card" style="padding:14px;margin-bottom:16px">'+
-            '<div style="font-size:13px;font-weight:700;margin-bottom:10px">Run 总览</div>'+
-            '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">'+
-            '<div style="border:1px solid #f0f1f3;border-radius:8px;padding:12px;background:#fafbfc"><div style="font-size:11px;color:var(--c-text3)">整体通过</div><div style="font-size:24px;font-weight:800;color:var(--c-green);margin-top:6px">'+pass+'/'+res.length+'</div></div>'+
-            '<div style="border:1px solid #f0f1f3;border-radius:8px;padding:12px;background:#fafbfc"><div style="font-size:11px;color:var(--c-text3)">路由选对</div><div style="font-size:24px;font-weight:800;color:var(--c-accent);margin-top:6px">'+routeOk+'/'+res.length+'</div><div class="mono" style="font-size:10px;color:var(--c-text3);margin-top:4px">expectedTool / actualTool</div></div>'+
-            '<div style="border:1px solid #f0f1f3;border-radius:8px;padding:12px;background:#fafbfc"><div style="font-size:11px;color:var(--c-text3)">中间链路异常</div><div style="font-size:24px;font-weight:800;color:'+(middleBad?'var(--c-red)':'var(--c-green)')+';margin-top:6px">'+middleBad+'</div></div>'+
-            '<div style="border:1px solid #f0f1f3;border-radius:8px;padding:12px;background:#fafbfc"><div style="font-size:11px;color:var(--c-text3)">无 SkillResult 链路</div><div style="font-size:24px;font-weight:800;color:var(--c-text2);margin-top:6px">'+noSkill+'</div></div>'+
-            '</div></div>';
-    }
-
-    if(run.metrics){
-        h+='<div class="kpi-strip" style="margin-bottom:16px">'+
-            '<div class="kpi"><b class="mono" style="font-size:16px">'+(run.metrics.firstTokenAvgMs||0)+'ms</b><span>首字延迟均值</span></div>'+
-            '<div class="kpi"><b>'+((run.metrics.tokenUsage&&run.metrics.tokenUsage.totalTokens)||0)+'</b><span>总 Token</span></div>'+
-            '<div class="kpi"><b>$'+Number(run.metrics.costUsd||0).toFixed(4)+'</b><span>总成本</span></div>'+
-            '</div>';
-    }
-
     if(run.promptOverrides&&Object.keys(run.promptOverrides).length>0){
         h+='<div class="card" style="padding:14px;margin-bottom:16px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">自定义 Prompt（此次运行生效）</div>';
         Object.keys(run.promptOverrides).forEach(function(key){
@@ -2391,12 +2536,25 @@ function renderRD(run){
         '<button class="btn btn-sm '+ (_rdReadMode?'btn-p':'btn-flat')+'" onclick="_rdReadMode=!_rdReadMode;renderRD(_currentRun)" style="padding:2px 10px;font-size:12px">'+(_rdReadMode?'阅读模式中':'阅读模式')+'</button>'+
         '<span class="mono" style="margin-left:6px;color:var(--c-text3)">已勾选 '+selectedCount+' 条</span>'+
         '</span></div>';
+    h+='<div class="card" style="padding:10px 12px;margin-bottom:10px;background:#fafbfc">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
+        '<div style="font-size:12px;color:var(--c-text2)">性能筛选（显示 >= 阈值）</div>'+
+        '<button class="btn btn-flat btn-sm" onclick="clearRdPerfFilter()">清空阈值</button>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:8px;margin-top:8px">'+
+        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="首字 ms" value="'+esc(_rdPerfFilter.ttft)+'" onchange="setRdPerfFilter(\'ttft\',this.value)">'+
+        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="LLM ms" value="'+esc(_rdPerfFilter.llm)+'" onchange="setRdPerfFilter(\'llm\',this.value)">'+
+        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="Tool ms" value="'+esc(_rdPerfFilter.tool)+'" onchange="setRdPerfFilter(\'tool\',this.value)">'+
+        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="DB ms" value="'+esc(_rdPerfFilter.db)+'" onchange="setRdPerfFilter(\'db\',this.value)">'+
+        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="Token" value="'+esc(_rdPerfFilter.token)+'" onchange="setRdPerfFilter(\'token\',this.value)">'+
+        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="Cost USD" value="'+esc(_rdPerfFilter.cost)+'" onchange="setRdPerfFilter(\'cost\',this.value)">'+
+        '</div></div>';
     var filtered=res.filter(function(r){
-        if(_rdFilter==='pass') return r.pass;
-        if(_rdFilter==='fail') return !r.pass;
-        if(_rdFilter==='flagged') return !!r.reviewFlagged;
-        if(_rdFilter==='llm-low') return !!(r.llmJudge&&r.llmJudge.score<70);
-        return true;
+        if(_rdFilter==='pass'&&!r.pass) return false;
+        if(_rdFilter==='fail'&&r.pass) return false;
+        if(_rdFilter==='flagged'&&!r.reviewFlagged) return false;
+        if(_rdFilter==='llm-low'&&!(r.llmJudge&&r.llmJudge.score<70)) return false;
+        return passRdPerfFilter(r);
     });
     filtered.forEach(function(r,idx){
         var cls=r.pass?'tag-done':'tag-fail', label=r.pass?'PASS':'FAIL';
@@ -2421,13 +2579,15 @@ function renderRD(run){
         var selected=!!_runSelectedCaseIds[r.caseId];
         var cmts=r.comments||[];
         var tier=uidTier(r.userId);
+        var headArrCls=_rdReadMode?'arr open':'arr';
+        var bodyOpenCls=_rdReadMode?'rc-body open':'rc-body';
 
         // collapsed head
         var flagAct=r.reviewFlagged
             ?'<button class="btn btn-flat btn-sm" style="border-color:var(--c-amber);color:var(--c-amber)" onclick="toggleCaseReviewFlag(\''+run.id+'\',\''+caseKey+'\',false)">取消有问题</button>'
             :'<button class="btn btn-flat btn-sm" onclick="toggleCaseReviewFlag(\''+run.id+'\',\''+caseKey+'\',true)">标为有问题</button>';
         h+='<div class="rc-row'+(r.reviewFlagged?' rc-row-flagged':'')+'"><div class="rc-head" onclick="toggleRC(this)">'+
-            '<span class="arr">&#9654;</span>'+
+            '<span class="'+headArrCls+'">&#9654;</span>'+
             '<span class="tag '+cls+'">'+label+'</span>'+
             llmTag+
             '<label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--c-text2)" onclick="event.stopPropagation()"><input type="checkbox" '+(selected?'checked':'')+' onchange="toggleRunCaseSelect(\''+caseKey+'\',this.checked)">勾选</label>'+
@@ -2445,7 +2605,7 @@ function renderRD(run){
             '</div>';
 
         // expanded body
-        h+='<div class="rc-body"><div class="turn-detail">';
+        h+='<div class="'+bodyOpenCls+'"><div class="turn-detail">';
         h+=buildCaseDiagnosis(r);
         if(r.contractChecks&&r.contractChecks.length){
             var ccRoute=(r.contractChecks||[]).find(function(x){return x.key==='route';})||{};
@@ -2615,6 +2775,36 @@ function renderRD(run){
 
         var turns=r.turns||[];
         if(turns.length){
+            function pickTurnVal(obj, keys){
+                if(!obj) return undefined;
+                for(var i=0;i<keys.length;i++){
+                    var k=keys[i];
+                    if(obj[k]!==undefined&&obj[k]!==null&&obj[k]!=='') return obj[k];
+                }
+                return undefined;
+            }
+            function passFailCell(v){
+                if(v===undefined||v===null||v==='') return '-';
+                if(typeof v==='string'){
+                    var s=v.trim().toLowerCase();
+                    if(!s) return '-';
+                    if(s==='pass'||s==='ok'||s==='true'||s==='1') return '<span class="match">PASS</span>';
+                    if(s==='fail'||s==='miss'||s==='false'||s==='0') return '<span class="mismatch">FAIL</span>';
+                    return esc(v);
+                }
+                if(v===true||v===1) return '<span class="match">PASS</span>';
+                if(v===false||v===0) return '<span class="mismatch">FAIL</span>';
+                return esc(String(v));
+            }
+            function judgeCell(turn,result){
+                var score=pickTurnVal(turn,['judgeScore','llmJudgeScore','judge_score']);
+                if(score===undefined||score===null||score==='') score=result&&result.llmJudge?result.llmJudge.score:undefined;
+                if(score===undefined||score===null||score==='') return '-';
+                var n=Number(score);
+                if(!isFinite(n)) return esc(String(score));
+                var pct=n<=1?Math.round(n*100):Math.round(n);
+                return '<span class="mono">'+pct+'</span>';
+            }
             h+='<details open style="border:1px solid var(--c-border);border-radius:8px;margin-bottom:10px;background:#fff;overflow:hidden">'+
                 '<summary style="cursor:pointer;padding:10px 12px;font-size:13px;font-weight:800;color:var(--c-text)">逐轮明细 <span class="tag" style="background:#f3f4f6;color:var(--c-text2);margin-left:6px">'+turns.length+'</span></summary>'+
                 '<div class="td-wrap"><table><thead><tr>'+
@@ -2624,6 +2814,9 @@ function renderRD(run){
                 '<th>期望工具</th>'+
                 '<th>实际工具</th>'+
                 '<th>匹配</th>'+
+                '<th>参数断言</th>'+
+                '<th>回复断言</th>'+
+                '<th>LLM评判</th>'+
                 '<th>SkillResult</th>'+
                 '<th>Hints</th>'+
                 '</tr></thead><tbody>';
@@ -2631,13 +2824,19 @@ function renderRD(run){
                 var trCls=(!t.toolOk&&t.expectedTool)?'t-fail':'';
                 var dbIdx=_debugData.length;
                 _debugData.push({skill:t.skillResultJson||'',hints:t.hintsJson||'',label:'第 '+t.turnIndex+' 轮'});
+                var toolMatch=pickTurnVal(t,['toolMatchPass','toolAssertPass','toolOk','toolMatchOk']);
+                var argsMatch=pickTurnVal(t,['argsAssertPass','argsOk','paramAssertPass','paramsAssertPass']);
+                var replyMatch=pickTurnVal(t,['replyAssertPass','replyOk','replyAssertOk','responseAssertPass']);
                 h+='<tr class="'+trCls+'">'+
                     '<td style="text-align:center;font-weight:600">'+t.turnIndex+'</td>'+
                     '<td><div class="td-text">'+esc(t.userInput||'')+'</div></td>'+
                     '<td><div class="td-text">'+esc(t.llmReplyText||'')+'</div></td>'+
-                    '<td class="mono">'+esc(t.expectedTool||'')+'</td>'+
-                    '<td class="mono">'+esc(t.actualTool||'')+'</td>'+
-                    '<td style="text-align:center">'+(t.expectedTool?'<span class="'+(t.toolOk?'match':'mismatch')+'">'+(t.toolOk?'OK':'MISS')+'</span>':'')+'</td>'+
+                    '<td class="mono">'+esc(t.expectedTool||'-')+'</td>'+
+                    '<td class="mono">'+esc(t.actualTool||'-')+'</td>'+
+                    '<td style="text-align:center">'+(toolMatch===undefined?'-':(String(toolMatch).toLowerCase()==='false'||toolMatch===false||toolMatch===0?'<span class="mismatch">MISS</span>':'<span class="match">OK</span>'))+'</td>'+
+                    '<td style="text-align:center">'+passFailCell(argsMatch)+'</td>'+
+                    '<td style="text-align:center">'+passFailCell(replyMatch)+'</td>'+
+                    '<td style="text-align:center">'+judgeCell(t,r)+'</td>'+
                     '<td>'+(t.skillResultJson?'<div class="td-json" style="cursor:pointer" title="点击弹窗查看" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">'+esc(fmtJson(t.skillResultJson))+'</div>':'')+'</td>'+
                     '<td>'+(t.hintsJson?'<div class="td-json" style="cursor:pointer" title="点击弹窗查看" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">'+esc(fmtJson(t.hintsJson))+'</div>':'')+'</td>'+
                     '</tr>';
@@ -2671,6 +2870,100 @@ function renderRD(run){
     h+='</div>';
 
     document.getElementById('rd-body').innerHTML=h;
+}
+function renderOriginalRunResultTable(run){
+    var res=run.results||[];
+    function pickDefined(obj, keys){
+        if(!obj) return undefined;
+        for(var i=0;i<keys.length;i++){
+            var k=keys[i];
+            if(obj[k]!==undefined&&obj[k]!==null) return obj[k];
+        }
+        return undefined;
+    }
+    function passStateTag(v){
+        if(v===undefined||v===null||v==='') return '<span class="tag tag-off">-</span>';
+        if(typeof v==='string'){
+            var s=v.trim().toLowerCase();
+            if(!s) return '<span class="tag tag-off">-</span>';
+            if(s==='pass'||s==='ok'||s==='true'||s==='1') return '<span class="tag tag-done">PASS</span>';
+            if(s==='fail'||s==='miss'||s==='false'||s==='0') return '<span class="tag tag-fail">FAIL</span>';
+            return '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">'+esc(v)+'</span>';
+        }
+        if(v===true||v===1) return '<span class="tag tag-done">PASS</span>';
+        if(v===false||v===0) return '<span class="tag tag-fail">FAIL</span>';
+        return '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">'+esc(String(v))+'</span>';
+    }
+    function llmJudgeCell(turn,result){
+        var score=pickDefined(turn,['judgeScore','llmJudgeScore','judge_score']);
+        if(score===undefined||score===null||score==='') score=result&&result.llmJudge?result.llmJudge.score:undefined;
+        if(score===undefined||score===null||score==='') return '<span class="tag tag-off">-</span>';
+        var n=Number(score);
+        if(!isFinite(n)) return '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">'+esc(String(score))+'</span>';
+        var pct=n<=1?Math.round(n*100):Math.round(n);
+        var c='var(--c-green)',bg='var(--c-green-bg)';
+        if(pct<70){c='var(--c-red)';bg='var(--c-red-bg)';}
+        else if(pct<85){c='var(--c-amber)';bg='var(--c-amber-bg)';}
+        return '<span class="tag" style="background:'+bg+';color:'+c+'">'+pct+'</span>';
+    }
+    function rowTurnPassTag(turn){
+        var turnPass=pickDefined(turn,['turnPass','pass','turnResult','turnStatus']);
+        if(turnPass!==undefined&&turnPass!==null&&turnPass!=='') return passStateTag(turnPass);
+        var dimPassValues=[];
+        var toolState=pickDefined(turn,['toolMatchPass','toolAssertPass','toolOk','toolMatchOk']);
+        var argsState=pickDefined(turn,['argsAssertPass','argsOk','paramAssertPass','paramsAssertPass']);
+        var replyState=pickDefined(turn,['replyAssertPass','replyOk','responseAssertPass']);
+        var judgeState=pickDefined(turn,['judgePass','llmJudgePass','judgeOk']);
+        [toolState,argsState,replyState,judgeState].forEach(function(v){
+            if(v===undefined||v===null||v==='') return;
+            if(typeof v==='string'){
+                var s=v.trim().toLowerCase();
+                if(s==='pass'||s==='ok'||s==='true'||s==='1') dimPassValues.push(true);
+                else if(s==='fail'||s==='miss'||s==='false'||s==='0') dimPassValues.push(false);
+            }else if(v===true||v===1) dimPassValues.push(true);
+            else if(v===false||v===0) dimPassValues.push(false);
+        });
+        if(!dimPassValues.length) return '<span class="tag tag-off">-</span>';
+        return dimPassValues.every(function(v){return v;})?'<span class="tag tag-done">PASS</span>':'<span class="tag tag-fail">FAIL</span>';
+    }
+    var rows=[];
+    res.forEach(function(r){
+        var turns=r.turns&&r.turns.length?r.turns:[{}];
+        turns.forEach(function(t){
+            rows.push({r:r,t:t});
+        });
+    });
+    if(!rows.length) return '';
+    var h='<div class="card" style="margin-bottom:16px">'+
+        '<div style="padding:12px 14px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;justify-content:space-between;gap:10px">'+
+        '<div><strong style="font-size:13px">原始结果表</strong><div style="font-size:12px;color:var(--c-text3);margin-top:3px">按原页面字段优先展示，下面仍可展开看诊断和 JSON。</div></div>'+
+        '<span class="tag tag-off">'+rows.length+' rows</span></div>'+
+        '<div class="tbl-wrap"><table style="min-width:1180px"><thead><tr>'+
+        '<th>caseId</th><th>caseName</th><th>case</th><th>turn</th><th>userInput</th><th>expectedTool</th><th>actualTool</th><th>工具匹配</th><th>参数断言</th><th>回复断言</th><th>LLM评判</th><th>Turn结论</th><th>failReason</th>'+
+        '</tr></thead><tbody>';
+    rows.forEach(function(row){
+        var r=row.r,t=row.t||{};
+        var toolState=pickDefined(t,['toolMatchPass','toolAssertPass','toolOk','toolMatchOk']);
+        var argsState=pickDefined(t,['argsAssertPass','argsOk','paramAssertPass','paramsAssertPass']);
+        var replyState=pickDefined(t,['replyAssertPass','replyOk','replyAssertOk','responseAssertPass']);
+        h+='<tr>'+
+            '<td class="mono">'+esc(r.caseId||'')+'</td>'+
+            '<td>'+esc(r.caseName||'')+'</td>'+
+            '<td>'+(r.pass?'<span class="tag tag-done">PASS</span>':'<span class="tag tag-fail">FAIL</span>')+'</td>'+
+            '<td class="mono">'+esc(t.turnIndex||'')+'</td>'+
+            '<td><div class="td-text" style="max-width:260px">'+esc(t.userInput||'')+'</div></td>'+
+            '<td class="mono">'+esc(t.expectedTool||'')+'</td>'+
+            '<td class="mono">'+esc(t.actualTool||'')+'</td>'+
+            '<td>'+passStateTag(toolState)+'</td>'+
+            '<td>'+passStateTag(argsState)+'</td>'+
+            '<td>'+passStateTag(replyState)+'</td>'+
+            '<td>'+llmJudgeCell(t,r)+'</td>'+
+            '<td>'+rowTurnPassTag(t)+'</td>'+
+            '<td><div class="td-text" style="max-width:240px">'+esc(r.failReason||'')+'</div></td>'+
+            '</tr>';
+    });
+    h+='</tbody></table></div></div>';
+    return h;
 }
 function toggleCaseReviewFlag(runId, caseId, flagged){
     fetch(BASE+'/api/runs/'+runId+'/cases/'+encodeURIComponent(caseId)+'/review-flag',{

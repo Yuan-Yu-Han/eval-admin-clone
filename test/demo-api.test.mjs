@@ -6,7 +6,21 @@ import { after, before, test } from 'node:test';
 const PORT = 5199;
 const BASE = `http://localhost:${PORT}/admin/eval/api`;
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const ACCESS_CODE = 'eval';
+const OPS_ACCESS_CODE = 'ops';
+const VEHICLE_ACCESS_CODE = 'vehicle';
+let authToken = '';
 let server;
+const rawFetch = globalThis.fetch.bind(globalThis);
+
+globalThis.fetch = (input, options = {}) => {
+  const url = String(input);
+  if (!authToken || !url.startsWith(BASE) || url.endsWith('/env') || url.includes('/auth/login')) {
+    return rawFetch(input, options);
+  }
+  const headers = { ...(options.headers || {}), Authorization: `Bearer ${authToken}` };
+  return rawFetch(input, { ...options, headers });
+};
 
 function waitForServer() {
   return new Promise((resolve, reject) => {
@@ -28,7 +42,16 @@ function waitForServer() {
 before(async () => {
   server = spawn(process.execPath, ['server.js'], {
     cwd: ROOT,
-    env: { ...process.env, PORT: String(PORT) },
+    env: {
+      ...process.env,
+      PORT: String(PORT),
+      EVAL_DEMO_ACCESS_CODE: ACCESS_CODE,
+      EVAL_DEMO_PROJECT_CODES: JSON.stringify([
+        { code: ACCESS_CODE, projectId: 'all', projectName: '管理员视角', role: 'admin' },
+        { code: OPS_ACCESS_CODE, projectId: 'ops-eval', projectName: '运营数据评测', role: 'member' },
+        { code: VEHICLE_ACCESS_CODE, projectId: 'vehicle-eval', projectName: '车辆控制评测', role: 'member' }
+      ])
+    },
     stdio: ['ignore', 'ignore', 'pipe']
   });
   server.stderr.on('data', (chunk) => {
@@ -41,8 +64,192 @@ after(() => {
   if (server) server.kill();
 });
 
+async function apiFetch(path, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  return fetch(`${BASE}${path}`, { ...options, headers });
+}
+
+test('access code protects eval admin APIs while allowing login', async () => {
+  const blocked = await fetch(`${BASE}/cases`);
+  assert.equal(blocked.status, 401);
+  const blockedJson = await blocked.json();
+  assert.equal(blockedJson.code, '401');
+
+  const rejectedLogin = await fetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessCode: 'wrong-code' })
+  });
+  assert.equal(rejectedLogin.status, 401);
+
+  const login = await fetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessCode: ACCESS_CODE })
+  });
+  assert.equal(login.status, 200);
+  const loginJson = await login.json();
+  assert.equal(loginJson.code, '10000');
+  assert.equal(typeof loginJson.data.token, 'string');
+  assert.ok(loginJson.data.token.length > 20);
+  authToken = loginJson.data.token;
+
+  const allowed = await apiFetch('/cases');
+  assert.equal(allowed.status, 200);
+  const allowedJson = await allowed.json();
+  assert.equal(allowedJson.code, '10000');
+  assert.ok(Array.isArray(allowedJson.data));
+});
+
+async function loginForProject(accessCode) {
+  const login = await rawFetch(`${BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessCode })
+  });
+  assert.equal(login.status, 200);
+  return login.json();
+}
+
+async function authedJson(path, token) {
+  const res = await rawFetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(res.status, 200);
+  return res.json();
+}
+
+test('project access codes isolate cases and runs by project space', async () => {
+  const opsLogin = await loginForProject(OPS_ACCESS_CODE);
+  const vehicleLogin = await loginForProject(VEHICLE_ACCESS_CODE);
+
+  assert.equal(opsLogin.data.projectId, 'ops-eval');
+  assert.equal(opsLogin.data.projectName, '运营数据评测');
+  assert.equal(vehicleLogin.data.projectId, 'vehicle-eval');
+
+  const opsCases = await authedJson('/cases', opsLogin.data.token);
+  const vehicleCases = await authedJson('/cases', vehicleLogin.data.token);
+  assert.ok(opsCases.data.length > 0);
+  assert.ok(vehicleCases.data.length > 0);
+  assert.ok(opsCases.data.every((item) => item.projectId === 'ops-eval'));
+  assert.ok(vehicleCases.data.every((item) => item.projectId === 'vehicle-eval'));
+  assert.notDeepEqual(
+    opsCases.data.map((item) => item.caseId).sort(),
+    vehicleCases.data.map((item) => item.caseId).sort()
+  );
+
+  const opsRuns = await authedJson('/runs', opsLogin.data.token);
+  const vehicleRuns = await authedJson('/runs', vehicleLogin.data.token);
+  assert.ok(opsRuns.data.every((item) => item.projectId === 'ops-eval'));
+  assert.ok(vehicleRuns.data.every((item) => item.projectId === 'vehicle-eval'));
+});
+
+test('case generation schema is project-scoped and assembled with editable business objective', async () => {
+  const opsLogin = await loginForProject(OPS_ACCESS_CODE);
+  const vehicleLogin = await loginForProject(VEHICLE_ACCESS_CODE);
+
+  const opsSchema = await authedJson('/case-service/schema', opsLogin.data.token);
+  const vehicleSchema = await authedJson('/case-service/schema', vehicleLogin.data.token);
+  assert.equal(opsSchema.data.projectId, 'ops-eval');
+  assert.equal(vehicleSchema.data.projectId, 'vehicle-eval');
+  assert.deepEqual(opsSchema.data.requiredFields, vehicleSchema.data.requiredFields);
+  assert.deepEqual(opsSchema.data.turnFields, ['userInput', 'expectedTool']);
+  assert.deepEqual(opsSchema.data.importColumns.slice(0, 12), [
+    'enable',
+    'case_id',
+    'name',
+    'user_id',
+    'group_name',
+    'input1',
+    'expected_tool_1',
+    'expected_args_1',
+    'reply_contains_1',
+    'reply_not_contains_1',
+    'judge_prompt_1',
+    'judge_threshold_1'
+  ]);
+  assert.ok(opsSchema.data.importColumns.includes('expected_args_3'));
+  assert.ok(opsSchema.data.importColumns.includes('judge_threshold_3'));
+  assert.match(opsSchema.data.schemaNotes.join('\n'), /字段结构全项目统一/);
+
+  const businessObjective = '重点覆盖异常时间窗、城市追问和无数据返回，不要改 JSON 字段结构。';
+  const genJson = await rawFetch(`${BASE}/case-service/generate-preview`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${opsLogin.data.token}`
+    },
+    body: JSON.stringify({
+      mode: 'generate',
+      module: 'operation_data',
+      count: 1,
+      turnCount: 2,
+      groupName: '运营数据查询',
+      businessObjective,
+      allowedTools: ['vehicle_operation_data_query'],
+      caseIdPrefix: 'ops_schema'
+    })
+  }).then((res) => res.json());
+
+  const prompt = genJson.data.preview[0].generationPrompt;
+  assert.match(prompt, /平台固定结构约束/);
+  assert.match(prompt, /项目 Schema/);
+  assert.match(prompt, /业务覆盖目标/);
+  assert.match(prompt, /异常时间窗/);
+  assert.match(prompt, /caseId/);
+  assert.match(prompt, /vehicle_operation_data_query/);
+});
+
+test('case CSV export and generated preview align to source admin flat assertion columns', async () => {
+  const casesJson = await apiFetch('/cases').then((res) => res.json());
+  const firstCase = casesJson.data[0];
+  assert.equal(Object.hasOwn(firstCase.turns[0], 'expectedArgs'), true);
+  assert.equal(Object.hasOwn(firstCase.turns[0], 'replyContains'), true);
+  assert.equal(Object.hasOwn(firstCase.turns[0], 'replyNotContains'), true);
+  assert.equal(Object.hasOwn(firstCase.turns[0], 'judgePrompt'), true);
+  assert.equal(Object.hasOwn(firstCase.turns[0], 'judgeThreshold'), true);
+
+  const exportText = await apiFetch('/cases/export').then((res) => res.text());
+  const header = exportText.replace(/^\uFEFF/, '').split('\n')[0].replaceAll('"', '').split(',');
+  assert.deepEqual(header.slice(0, 12), [
+    'enable',
+    'case_id',
+    'name',
+    'user_id',
+    'group_name',
+    'input1',
+    'expected_tool_1',
+    'expected_args_1',
+    'reply_contains_1',
+    'reply_not_contains_1',
+    'judge_prompt_1',
+    'judge_threshold_1'
+  ]);
+  assert.equal(header.at(-1), 'judge_threshold_3');
+
+  const genJson = await fetch(`${BASE}/case-service/generate-preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mode: 'generate',
+      module: 'operation_data',
+      count: 1,
+      turnCount: 2,
+      groupName: '断言字段验证',
+      allowedTools: ['vehicle_operation_data_query'],
+      businessObjective: '生成时必须保留原页面 CSV 断言字段。'
+    })
+  }).then((res) => res.json());
+
+  assert.equal(genJson.code, '10000');
+  assert.equal(Object.hasOwn(genJson.data.preview[0].turns[0], 'expectedArgs'), true);
+  assert.equal(Object.hasOwn(genJson.data.preview[0].turns[0], 'replyContains'), true);
+  assert.equal(Object.hasOwn(genJson.data.preview[0].turns[0], 'replyNotContains'), true);
+  assert.equal(Object.hasOwn(genJson.data.preview[0].turns[0], 'judgePrompt'), true);
+  assert.equal(Object.hasOwn(genJson.data.preview[0].turns[0], 'judgeThreshold'), true);
+});
+
 test('cases and runs expose enhanced fields for case management and result analysis', async () => {
-  const casesRes = await fetch(`${BASE}/cases`);
+  const casesRes = await apiFetch('/cases');
   const casesJson = await casesRes.json();
   const firstCase = casesJson.data[0];
 
@@ -51,7 +258,7 @@ test('cases and runs expose enhanced fields for case management and result analy
   assert.equal(Object.hasOwn(firstCase, 'evalDimensions'), true);
   assert.equal(Array.isArray(firstCase.evalDimensions), true);
 
-  const runRes = await fetch(`${BASE}/runs`, {
+  const runRes = await apiFetch('/runs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -192,6 +399,15 @@ test('local page includes original comparison and guide controls', async () => {
   ]) {
     assert.equal(html.includes(text), true, `clone should include original text: ${text}`);
   }
+});
+
+test('local page includes an internal access-code gate for demo sharing', async () => {
+  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+
+  assert.equal(html.includes('id="auth-overlay"'), true);
+  assert.equal(html.includes('id="auth-access-code"'), true);
+  assert.equal(html.includes('function loginWithAccessCode'), true);
+  assert.equal(html.includes('evalAdminAccessToken'), true);
 });
 
 test('guide button sits in topbar and prompt behavior matches original source', async () => {
@@ -365,7 +581,8 @@ test('local page includes run version setup, filtering, and funnel explanation c
     'Agent 版本筛选',
     'Agent 版本',
     '目标分组',
-    '生成用例 Prompt',
+    '业务覆盖目标',
+    '输出字段结构',
     'Run 总览',
     '无 SkillResult 链路',
     '回复质量评分',
@@ -569,40 +786,56 @@ test('runs page exposes a complete create-run entry point', async () => {
   }
 });
 
-test('LLM generation page copy uses one prefilled prompt and expected function fields', async () => {
+test('Generate Cases page is the only generation entry point', async () => {
   const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
 
   for (const text of [
     '目标分组',
     '选择已有分组',
     '自定义分组',
-    '生成用例 Prompt',
-    '请生成一批可直接入库的评测用例',
+    '业务覆盖目标',
+    '输出字段结构',
     'expectedTool',
     'expectedTools',
     '期望函数字段',
     '本次生成只使用一个 expectedTool',
     'return_app_native_router',
-    'Case ID 前缀'
+    'Case ID 前缀',
+    '车辆控制专项',
+    '远程开门',
+    '鸣笛闪灯',
+    '空调',
+    '无权限',
+    '刚才那辆车',
+    '人工复核'
   ]) {
-    assert.equal(html.includes(text), true, `LLM generation modal should clarify: ${text}`);
+    assert.equal(html.includes(text), true, `Generate Cases page should clarify: ${text}`);
   }
 
+  assert.equal(html.includes('Generate Cases'), false);
+  assert.equal(html.includes('在这里集中完成策略配置、预览筛选和入库。'), false);
+  assert.equal(html.includes('扩写基础用例'), false);
+  assert.equal(html.includes('id="pg-base"'), false);
+  assert.equal(html.includes('当前勾选用例 ID'), true);
+  assert.equal(html.includes('id="pg-selected-base"'), true);
+  assert.equal(html.includes('使用旧版弹窗'), false);
+  assert.equal(html.includes('老弹窗仅用于兼容历史操作习惯'), false);
+  assert.equal(html.includes('LLM生成'), false);
+  assert.equal(html.includes('id="ol-llm-gen"'), false);
+  assert.equal(html.includes('openLlmGenModal'), false);
+  assert.equal(html.includes('closeLlmGenModal'), false);
+  assert.equal(html.includes('previewLlmCases'), false);
+  assert.equal(html.includes('submitLlmCases'), false);
   assert.equal(html.includes('工具预设'), false);
   assert.equal(html.includes('按预设推荐'), false);
   assert.equal(html.includes('全部工具'), false);
   assert.equal(html.includes('每个函数生成数量'), false);
-  assert.equal(html.includes('lg-tool-count'), false);
+  assert.equal(html.includes('id="lg-'), false);
   assert.equal(html.includes('生成 Prompt</label><select'), false);
   assert.equal(html.includes('能力域'), false);
-  assert.equal(html.includes('id="lg-objective"'), false);
-  assert.equal(html.includes('id="lg-group-custom"'), false);
-  assert.equal(html.includes('id="lg-boundary"'), false);
   assert.equal(html.includes('生成约束/覆盖点'), false);
   assert.equal(html.includes('边界标签'), false);
   assert.equal(html.includes('测试目标</label>'), false);
-  assert.equal(html.includes("document.getElementById('lg-prefix').value='llm-demo'"), true);
-  assert.equal(html.includes("document.getElementById('lg-custom-group').value=''"), true);
 });
 
 test('LLM preview explains generated cases as runnable structured fields', async () => {
@@ -625,6 +858,7 @@ test('LLM preview explains generated cases as runnable structured fields', async
   ]) {
     assert.equal(html.includes(text), true, `preview should expose boss-readable field: ${text}`);
   }
+  assert.match(html, /_llmPreviewVisibleLimit\s*=\s*Math\.min\(10/);
   assert.equal(html.includes('入库后可直接运行：每条都映射到'), false);
   assert.equal(html.includes('allowedTools: <span'), false);
   assert.equal(html.includes('evalDimensions: <span'), false);
