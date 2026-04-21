@@ -692,7 +692,9 @@ test('Generate page separates batch locks, CSV template fields, content instruct
     '<span class="gen-step-num">4</span>生成预览与编辑',
     '按 CSV 字段预览，确认后加入用例库。',
     '固定为右侧工具',
-    'LLM 在 allowedTools 中选择'
+    'LLM 在 allowedTools 中选择',
+    '导入列预览',
+    'id="pg-import-columns-preview"'
   ]) {
     assert.equal(html.includes(text), false, `Generate page should avoid noisy explanation text: ${text}`);
   }

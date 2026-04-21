@@ -801,14 +801,13 @@
                                 <label class="field-option"><input type="checkbox" value="judgeThreshold" checked onchange="refreshSchemaControls()">judge_threshold</label>
                             </div>
                         </div>
-                        <div class="fg">
-                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
-                                <label class="fl" style="margin-bottom:0">字段契约 Prompt（可编辑）/ 高级字段规则</label>
+                        <details class="schema-note" style="margin:0 0 14px">
+                            <summary style="cursor:pointer;font-weight:700;color:var(--c-text)">字段契约 Prompt（可编辑）/ 高级字段规则</summary>
+                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:10px 0 6px">
                                 <button class="btn btn-ghost btn-sm" type="button" onclick="resetSchemaPrompt()">重置字段契约</button>
                             </div>
                             <textarea class="fi" id="pg-schema-prompt" rows="5" oninput="_schemaPromptTouched=true"></textarea>
-                        </div>
-                        <div class="fg"><label class="fl">导入列预览</label><div class="csv-preview-line" id="pg-import-columns-preview">enable, case_id, name, user_id, group_name, input1, expected_tool_1...</div></div>
+                        </details>
                         <details class="schema-note" style="margin:0">
                             <summary style="cursor:pointer;font-weight:700;color:var(--c-text)">模板字段说明</summary>
                             <div id="pg-template-doc" style="margin-top:10px"></div>
@@ -1374,6 +1373,7 @@
 var BASE = '/admin/eval';
 var AUTH_TOKEN_KEY = 'evalAdminAccessToken';
 var PROJECT_NAME_KEY = 'evalAdminProjectName';
+var RUN_MOCK_CONFIG_KEY = 'evalRunMockConfigId';
 var _rawFetch = window.fetch.bind(window);
 var allCases = [], allRuns = [], polls = {};
 var _debugData = [];
@@ -1988,9 +1988,6 @@ function syncAllowedToolsFromExpected(){
     }
 }
 function refreshSchemaControls(){
-    var columns=CSV_TEMPLATE_COLUMNS.slice();
-    var preview=document.getElementById('pg-import-columns-preview');
-    if(preview) preview.textContent=columns.join(', ');
     renderTemplateDoc();
     var schemaPrompt=document.getElementById('pg-schema-prompt');
     if(schemaPrompt&&(!_schemaPromptTouched||!schemaPrompt.value)) schemaPrompt.value=defaultSchemaPrompt();
@@ -2581,6 +2578,8 @@ function showRunConfirm(ids,hint,name){
         var runName=document.getElementById('rc-name').value.trim()||name;
         var concurrency=parseInt(document.getElementById('rc-concurrency').value)||1;
         var mockCfgId=document.getElementById('rc-mock-config').value;
+        _curConfigId=mockCfgId||_curConfigId;
+        try{ if(mockCfgId) localStorage.setItem(RUN_MOCK_CONFIG_KEY,mockCfgId); }catch(e){}
         var agentVersion=document.getElementById('rc-agent-version').value;
         closeRunConfirm();
         var overrides=draftCount>0?Object.assign({},_promptDrafts):undefined;
@@ -2754,6 +2753,7 @@ function pollRun(id){
 var _currentRun=null;
 var _rdFilter='all';
 var _rdPerfFilter={ttft:'',llm:'',tool:'',db:'',token:'',cost:''};
+var _rdLlmScoreFilter={min:'',max:'69'};
 var _rdReadMode=false;
 var _compareMode=false,_compareBaseRun=null,_compareCaseList=[],_compareIdx=0;
 function viewRun(id){
@@ -2873,12 +2873,47 @@ function passRdPerfFilter(r){
         && metricPass(tu.totalTokens,_rdPerfFilter.token)
         && metricPass(m.costUsd,_rdPerfFilter.cost);
 }
+function getRdLlmScore(r){
+    if(!r) return null;
+    if(r.llmJudge&&isFinite(Number(r.llmJudge.score))){
+        return Math.max(0,Math.min(100,Math.round(Number(r.llmJudge.score))));
+    }
+    if(Array.isArray(r.stageChecks)){
+        var q=(r.stageChecks||[]).find(function(item){return item.key==='responseQuality';});
+        if(q&&isFinite(Number(q.score))) return Math.max(0,Math.min(100,Math.round(Number(q.score))));
+    }
+    return null;
+}
+function passRdLlmRange(score){
+    if(score===null||score===undefined) return false;
+    var minRaw=_rdLlmScoreFilter.min;
+    var maxRaw=_rdLlmScoreFilter.max;
+    var hasMin=minRaw!==''&&isFinite(Number(minRaw));
+    var hasMax=maxRaw!==''&&isFinite(Number(maxRaw));
+    var min=hasMin?Number(minRaw):0;
+    var max=hasMax?Number(maxRaw):100;
+    if(min>max){
+        var tmp=min; min=max; max=tmp;
+    }
+    return score>=min&&score<=max;
+}
+function setRdLlmScoreFilter(key,value){
+    if(!_rdLlmScoreFilter) _rdLlmScoreFilter={min:'',max:'69'};
+    var v=(value||'').trim();
+    if(v!==''){
+        var n=Number(v);
+        if(!isFinite(n)) v='';
+        else v=String(Math.max(0,Math.min(100,Math.round(n))));
+    }
+    _rdLlmScoreFilter[key]=v;
+    renderRD(_currentRun);
+}
 function renderRD(run){
     _debugData=[];
     document.getElementById('rd-title').textContent=run.name;
     var res=run.results||[], pass=res.filter(r=>r.pass).length, fail=res.length-pass;
     var flaggedCount=res.filter(function(r){return !!r.reviewFlagged;}).length;
-    var llmLowCount=res.filter(function(r){return (r.llmJudge&&r.llmJudge.score<70);}).length;
+    var llmRangeCount=res.filter(function(r){return passRdLlmRange(getRdLlmScore(r));}).length;
     var selectedCount=Object.keys(_runSelectedCaseIds||{}).length;
     var rate=res.length>0?Math.round(pass/res.length*100):0;
     var firstTokenAvg=(run.metrics&&run.metrics.firstTokenAvgMs)||0;
@@ -2936,7 +2971,9 @@ function renderRD(run){
         '<button class="btn btn-sm '+ (_rdFilter==='pass'?'btn-p':'btn-flat')+'" onclick="_rdFilter=\'pass\';renderRD(_currentRun)" style="padding:2px 10px;font-size:12px">PASS</button>'+
         '<button class="btn btn-sm '+ (_rdFilter==='fail'?'btn-p':'btn-flat')+'" onclick="_rdFilter=\'fail\';renderRD(_currentRun)" style="padding:2px 10px;font-size:12px">FAIL</button>'+
         '<button class="btn btn-sm '+ (_rdFilter==='flagged'?'btn-p':'btn-flat')+'" onclick="_rdFilter=\'flagged\';renderRD(_currentRun)" style="padding:2px 10px;font-size:12px;border-color:var(--c-amber);color:var(--c-amber)">有问题 ('+flaggedCount+')</button>'+
-        '<button class="btn btn-sm '+ (_rdFilter==='llm-low'?'btn-p':'btn-flat')+'" onclick="_rdFilter=\'llm-low\';renderRD(_currentRun)" style="padding:2px 10px;font-size:12px">LLM低分 ('+llmLowCount+')</button>'+
+        '<button class="btn btn-sm '+ (_rdFilter==='llm-low'?'btn-p':'btn-flat')+'" onclick="_rdFilter=\'llm-low\';renderRD(_currentRun)" style="padding:2px 10px;font-size:12px">LLM分段 ('+llmRangeCount+')</button>'+
+        '<input class="fi" style="width:76px;font-size:12px;padding:2px 6px" placeholder="LLM最小" value="'+esc(_rdLlmScoreFilter.min)+'" onchange="setRdLlmScoreFilter(\'min\',this.value)">'+
+        '<input class="fi" style="width:76px;font-size:12px;padding:2px 6px" placeholder="LLM最大" value="'+esc(_rdLlmScoreFilter.max)+'" onchange="setRdLlmScoreFilter(\'max\',this.value)">'+
         '<button class="btn btn-sm '+ (_rdReadMode?'btn-p':'btn-flat')+'" onclick="_rdReadMode=!_rdReadMode;renderRD(_currentRun)" style="padding:2px 10px;font-size:12px">'+(_rdReadMode?'阅读模式中':'阅读模式')+'</button>'+
         '<span class="mono" style="margin-left:6px;color:var(--c-text3)">已勾选 '+selectedCount+' 条</span>'+
         '</span></div>';
@@ -2957,7 +2994,7 @@ function renderRD(run){
         if(_rdFilter==='pass'&&!r.pass) return false;
         if(_rdFilter==='fail'&&r.pass) return false;
         if(_rdFilter==='flagged'&&!r.reviewFlagged) return false;
-        if(_rdFilter==='llm-low'&&!(r.llmJudge&&r.llmJudge.score<70)) return false;
+        if(_rdFilter==='llm-low'&&!passRdLlmRange(getRdLlmScore(r))) return false;
         return passRdPerfFilter(r);
     });
     filtered.forEach(function(r,idx){
