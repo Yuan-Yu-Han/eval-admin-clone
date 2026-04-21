@@ -532,6 +532,62 @@
         }
         .funnel-note b { color:var(--c-text2); }
 
+        .run-overview-grid {
+            display:grid;
+            grid-template-columns:220px 1fr 1fr;
+            gap:12px;
+        }
+        .run-overview-card {
+            border:1px solid #eef0f4;
+            border-radius:10px;
+            background:#fff;
+            padding:12px;
+        }
+        .run-overview-title {
+            font-size:12px;
+            color:var(--c-text3);
+            margin-bottom:8px;
+        }
+        .run-overview-total {
+            border:1px solid #e7ebf3;
+            border-radius:10px;
+            padding:12px;
+            background:linear-gradient(180deg,#fafbff 0%,#f7f8fc 100%);
+        }
+        .run-overview-total-rate {
+            font-size:30px;
+            font-weight:800;
+            line-height:1;
+        }
+        .run-overview-total-meta {
+            font-size:12px;
+            color:var(--c-text3);
+            margin-top:6px;
+        }
+        .run-rate-list { display:grid; gap:10px; }
+        .run-rate-row { display:grid; gap:6px; }
+        .run-rate-head {
+            display:grid;
+            grid-template-columns:minmax(0,1fr) auto;
+            gap:8px;
+            align-items:baseline;
+        }
+        .run-rate-name { font-size:13px; font-weight:700; color:var(--c-text); }
+        .run-rate-meta { font-size:11px; color:var(--c-text3); }
+        .run-rate-value { font-size:12px; font-weight:700; color:var(--c-text2); }
+        .run-rate-track {
+            height:6px;
+            border-radius:999px;
+            background:#edf1f7;
+            overflow:hidden;
+        }
+        .run-rate-fill {
+            display:block;
+            height:100%;
+            border-radius:999px;
+            background:linear-gradient(90deg,#22c55e 0%,#16a34a 100%);
+        }
+
         /* ── Generate workspace ── */
         .gen-workbench {
             display:grid;
@@ -645,6 +701,7 @@
         @media(max-width:1220px) {
             .gen-workbench { grid-template-rows:auto minmax(460px,1fr); }
             .gen-preview-panel { min-height:460px; }
+            .run-overview-grid { grid-template-columns:1fr; }
         }
     </style>
 </head>
@@ -2908,6 +2965,101 @@ function setRdLlmScoreFilter(key,value){
     _rdLlmScoreFilter[key]=v;
     renderRD(_currentRun);
 }
+function inferRunModule(result){
+    var turns=result&&result.turns?result.turns:[];
+    var tools=turns.map(function(t){return (t.expectedTool||'').trim();}).filter(Boolean);
+    var uniq={};
+    tools.forEach(function(t){uniq[t]=true;});
+    var toolList=Object.keys(uniq);
+    function toolCat(t){
+        if(t==='vehicle_operation_data_query') return '运营数据查询';
+        if(t==='vehicle_selective_query') return '车辆信息查询';
+        if(t==='vehicle_control'||t==='open_door'||t==='return_app_native_router') return '车辆控制';
+        if(t==='RAG'||t==='freeChat') return '客服QA';
+        return '其他';
+    }
+    var catSet={};
+    toolList.forEach(function(t){catSet[toolCat(t)]=true;});
+    var cats=Object.keys(catSet);
+    if(cats.length>1) return '跨模块多轮';
+    if(cats.length===1) return cats[0];
+    var name=((result&&result.caseName)||'')+'';
+    if(name.indexOf('运营')>=0) return '运营数据查询';
+    if(name.indexOf('车控')>=0||name.indexOf('开门')>=0||name.indexOf('车辆控制')>=0) return '车辆控制';
+    if(name.indexOf('车辆信息')>=0||name.indexOf('车辆查询')>=0) return '车辆信息查询';
+    if(name.indexOf('客服')>=0||name.indexOf('QA')>=0||name.indexOf('知识库')>=0) return '客服QA';
+    return '其他';
+}
+function buildRunTopOverview(res){
+    var total=res.length||0;
+    var pass=res.filter(function(r){return !!r.pass;}).length;
+    var totalRate=total?Math.round(pass*100/total):0;
+
+    var moduleStats={};
+    res.forEach(function(r){
+        var m=inferRunModule(r);
+        if(!moduleStats[m]) moduleStats[m]={pass:0,total:0};
+        moduleStats[m].total+=1;
+        if(r.pass) moduleStats[m].pass+=1;
+    });
+    var moduleRows=Object.keys(moduleStats).sort(function(a,b){return moduleStats[b].total-moduleStats[a].total;}).map(function(name){
+        var s=moduleStats[name];
+        var rate=s.total?Math.round(s.pass*100/s.total):0;
+        var fillColor=rate>=80?'#16a34a':(rate>=60?'#d97706':'#dc2626');
+        return '<div class="run-rate-row">'+
+            '<div class="run-rate-head">'+
+                '<div><div class="run-rate-name">'+esc(name)+'</div><div class="run-rate-meta">'+s.pass+'/'+s.total+'通过</div></div>'+
+                '<div class="run-rate-value">'+rate+'%</div>'+
+            '</div>'+
+            '<div class="run-rate-track"><span class="run-rate-fill" style="width:'+rate+'%;background:'+fillColor+'"></span></div>'+
+            '</div>';
+    }).join('');
+
+    var stageMeta=[
+        {key:'route',label:'意图识别'},
+        {key:'input',label:'参数提取'},
+        {key:'skillResult',label:'业务能力'},
+        {key:'render',label:'回复质量'}
+    ];
+    var stageStats={};
+    stageMeta.forEach(function(m){stageStats[m.key]={pass:0,total:0,label:m.label};});
+    res.forEach(function(r){
+        var checks=r.contractChecks||[];
+        stageMeta.forEach(function(m){
+            var cc=checks.find(function(x){return x.key===m.key;});
+            if(!cc||cc.applies===false) return;
+            stageStats[m.key].total+=1;
+            if(cc.pass) stageStats[m.key].pass+=1;
+        });
+    });
+    var stageRows=stageMeta.map(function(m){
+        var s=stageStats[m.key];
+        var rate=s.total?Math.round(s.pass*100/s.total):0;
+        var fillColor=rate>=80?'#16a34a':(rate>=60?'#d97706':'#dc2626');
+        return '<div class="run-rate-row">'+
+            '<div class="run-rate-head">'+
+                '<div><div class="run-rate-name">'+esc(s.label)+'</div><div class="run-rate-meta">'+s.pass+'/'+s.total+'</div></div>'+
+                '<div class="run-rate-value">'+rate+'%</div>'+
+            '</div>'+
+            '<div class="run-rate-track"><span class="run-rate-fill" style="width:'+rate+'%;background:'+fillColor+'"></span></div>'+
+            '</div>';
+    }).join('');
+
+    return '<div class="card" style="padding:14px;margin-bottom:16px">'+
+        '<div class="run-overview-grid">'+
+        '<div class="run-overview-total">'+
+            '<div class="run-overview-title">总通过率</div>'+
+            '<div class="run-overview-total-rate" style="color:'+(totalRate>=80?'var(--c-green)':(totalRate>=60?'var(--c-amber)':'var(--c-red)'))+'">'+totalRate+'%</div>'+
+            '<div class="run-overview-total-meta">'+pass+'/'+total+'</div>'+
+        '</div>'+
+        '<div class="run-overview-card">'+
+            '<div class="run-overview-title">按模块通过率</div><div class="run-rate-list">'+moduleRows+'</div>'+
+        '</div>'+
+        '<div class="run-overview-card">'+
+            '<div class="run-overview-title">按链路环节通过率</div><div class="run-rate-list">'+stageRows+'</div>'+
+        '</div>'+
+        '</div></div>';
+}
 function renderRD(run){
     _debugData=[];
     document.getElementById('rd-title').textContent=run.name;
@@ -2931,6 +3083,8 @@ function renderRD(run){
         '<div class="kpi"><b>'+totalTokens+'</b><span>总 Token</span></div>'+
         '<div class="kpi"><b>$'+totalCost+'</b><span>总成本</span></div>'+
         '</div>';
+
+    h+=buildRunTopOverview(res);
 
     h+='<div class="card" style="padding:14px;margin-bottom:16px"><div class="read-meta" style="margin-top:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px;font-size:12px">'+
         '<div><span style="color:var(--c-text3);margin-right:6px">runId</span><span class="mono">'+esc(run.runId||'-')+'</span></div>'+
@@ -3153,9 +3307,11 @@ function renderRD(run){
                     list.map(function(path){
                         var val=fieldValue(path);
                         var miss=(val===undefined||val===null||val==='');
+                        var isOptionalExpectedTrace=String(path||'').indexOf('case.expectedTrace.')===0;
+                        var showVal=miss?(isOptionalExpectedTrace?'(未配置，可选)':'(空)'):formatValue(val);
                         return '<div style="display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:8px;align-items:start;padding:7px 0;border-top:1px dashed #eef0f4">'+
                             '<div style="font-size:11px;color:var(--c-text3);word-break:break-word">'+esc(fieldLabel(path))+'</div>'+
-                            '<div class="mono" style="font-size:11px;color:'+(miss?'var(--c-red)':'var(--c-text2)')+';white-space:pre-wrap;word-break:break-word">'+esc(formatValue(val))+'</div>'+
+                            '<div class="mono" style="font-size:11px;color:'+(miss?'var(--c-red)':'var(--c-text2)')+';white-space:pre-wrap;word-break:break-word">'+esc(showVal)+'</div>'+
                             '</div>';
                     }).join('')+
                     '</div>';
