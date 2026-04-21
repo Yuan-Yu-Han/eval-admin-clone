@@ -1761,7 +1761,7 @@ function scopedRuns(ctx) {
 
 function scopedMockConfigs(ctx) {
   if (isAdminProject(ctx)) return mockConfigs;
-  return mockConfigs.filter((item) => item.projectId === ctx.projectId);
+  return mockConfigs.filter((item) => inProject(item, ctx));
 }
 
 function toolsForProject(ctx) {

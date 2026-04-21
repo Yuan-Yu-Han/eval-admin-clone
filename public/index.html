@@ -153,12 +153,11 @@
         /* ── Turns editor ── */
         .turns-box { border:1px solid var(--c-border); border-radius:var(--radius); padding:14px; margin-top:8px; }
         .turns-box h4 { font-size:13px; font-weight:600; color:var(--c-text2); margin-bottom:10px; display:flex; align-items:center; gap:10px; }
-        .turn-r { display:flex; gap:8px; align-items:center; margin-bottom:8px; padding:8px; background:#fafbfc; border-radius:6px; }
+        .turn-r { display:flex; gap:8px; align-items:center; margin-bottom:8px; padding:8px; background:#fafbfc; border-radius:6px; flex-wrap:wrap; }
         .turn-n { font-size:12px; font-weight:700; color:var(--c-accent); min-width:24px; text-align:center; }
         .turn-r .fi { flex:1; margin:0; padding:6px 10px; font-size:13px; }
         .turn-r .tool-fi { max-width:180px; }
-        .turn-assert-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; flex-basis:100%; margin-left:32px; }
-        .turn-assert-grid .fi { width:100%; min-width:0; }
+        .turn-r .reply-fi { flex-basis:calc(50% - 20px); min-width:180px; font-size:12px; color:var(--c-text2); }
 
         /* ── Detail / results ── */
         .section { margin-bottom:24px; }
@@ -1026,12 +1025,12 @@
         <div class="dlg-body">
             <input type="hidden" id="ce-id">
             <div class="fr">
-                <div class="fg"><label class="fl" title="case_id：用例唯一标识，对应导入表的 case_id">Case ID</label><input class="fi" id="ce-caseId" placeholder="t1_door_001"></div>
-                <div class="fg"><label class="fl" title="name：用例名称，对应导入表的 name">名称</label><input class="fi" id="ce-name" placeholder="用例描述"></div>
+                <div class="fg"><label class="fl">Case ID</label><input class="fi" id="ce-caseId" placeholder="t1_door_001"></div>
+                <div class="fg"><label class="fl">名称</label><input class="fi" id="ce-name" placeholder="用例描述"></div>
             </div>
             <div class="fr">
                 <div class="fg">
-                    <label class="fl" title="辅助生成 user_id：选择权限档位后自动生成对应范围的 user_id">权限类型</label>
+                    <label class="fl">权限类型</label>
                     <select class="fi" id="ce-tier" onchange="autoGenUid()">
                         <option value="FULL">FULL（全权限）</option>
                         <option value="OPEN_DOOR_ONLY">OPEN_DOOR_ONLY（仅开门）</option>
@@ -1039,15 +1038,15 @@
                         <option value="DENIED">DENIED（无权限）</option>
                     </select>
                 </div>
-                <div class="fg"><label class="fl" title="user_id：执行用例时使用的用户 ID，对应导入表的 user_id">User ID（自动生成）</label><input class="fi" id="ce-uid" readonly style="background:#f5f6fa;color:var(--c-text2)"></div>
+                <div class="fg"><label class="fl">User ID（自动生成）</label><input class="fi" id="ce-uid" readonly style="background:#f5f6fa;color:var(--c-text2)"></div>
             </div>
             <div class="fr">
-                <div class="fg"><label class="fl" title="group_name：用例所属分组，对应导入表的 group_name">分组</label><div style="display:flex;gap:6px"><select class="fi" id="ce-group" style="flex:1"></select><button class="btn btn-flat btn-sm" type="button" onclick="createNewGroup()">+ 新建</button></div></div>
-                <div class="fg"><label class="fl" title="标签：可选备注，不属于导入表核心字段，用于人工筛选和说明">标签（可选）</label><input class="fi" id="ce-tags" placeholder="开门,车控"></div>
+                <div class="fg"><label class="fl">分组</label><div style="display:flex;gap:6px"><select class="fi" id="ce-group" style="flex:1"></select><button class="btn btn-flat btn-sm" type="button" onclick="createNewGroup()">+ 新建</button></div></div>
+                <div class="fg"><label class="fl">标签</label><input class="fi" id="ce-tags" placeholder="开门,车控"></div>
             </div>
-            <div class="fg"><label class="fcheck" title="enable：是否启用该用例，关闭后不会进入运行范围"><input type="checkbox" id="ce-on" checked> 启用</label></div>
+            <div class="fg"><label class="fcheck"><input type="checkbox" id="ce-on" checked> 启用</label></div>
             <div class="turns-box">
-                <h4 title="input1 / expected_tool_1 / expected_args_1 / reply_contains_1 / reply_not_contains_1 / judge_prompt_1 / judge_threshold_1：第 1 轮用户输入、期望工具和断言字段">多轮对话 <span style="display:none" title="input1 / expected_tool_1：第 1 轮用户输入和期望函数字段"></span><button class="btn btn-p btn-sm" onclick="addTurn()">+ 轮次</button></h4>
+                <h4>多轮对话 <button class="btn btn-p btn-sm" onclick="addTurn()">+ 轮次</button></h4>
                 <div id="turns-ct"></div>
             </div>
         </div>
@@ -1892,7 +1891,12 @@ function openCaseModal(doc){
         else if(uid>=900110000&&uid<=900114999) document.getElementById('ce-tier').value='OPERATIONAL_ONLY';
         else if(uid>=900105000&&uid<=900109999) document.getElementById('ce-tier').value='OPEN_DOOR_ONLY';
         else document.getElementById('ce-tier').value='FULL';
-        if(doc.turns) doc.turns.forEach(function(t){addTurn(t.userInput,t.expectedTool);});
+        if(doc.turns) doc.turns.forEach(function(t){
+            var eargs=t.expectedArgs?JSON.stringify(t.expectedArgs):'';
+            var rc=(t.replyContains||[]).join(';'), rnc=(t.replyNotContains||[]).join(';');
+            var jt=t.judgePassThreshold!=null?t.judgePassThreshold:(t.judgeThreshold!=null?t.judgeThreshold:'');
+            addTurn(t.userInput,t.expectedTool,eargs,rc,rnc,t.judgePrompt||'',jt);
+        });
     } else {
         // 新建时自动生成 userId
         autoGenUid();
@@ -2405,26 +2409,18 @@ function csvListText(v){
     if(Array.isArray(v)) return v.join('|');
     return v||'';
 }
-function addTurn(inp,tool,meta){
-    meta=meta||{};
-    if(inp&&typeof inp==='object'){
-        meta=inp;
-        tool=meta.expectedTool;
-        inp=meta.userInput;
-    }
+function addTurn(inp,tool,eargs,rc,rnc,jp,jt){
     var ct=document.getElementById('turns-ct'), idx=ct.querySelectorAll('.turn-r').length+1, d=document.createElement('div');
     d.className='turn-r';
     d.innerHTML='<span class="turn-n">'+idx+'</span>'+
         '<input class="fi t-inp" placeholder="用户输入" value="'+ea(inp||'')+'">'+
         '<select class="fi tool-fi">'+buildToolOptions(tool||'')+'</select>'+
         '<button class="btn btn-ghost btn-sm" style="color:var(--c-red)" onclick="rmTurn(this)">x</button>'+
-        '<div class="turn-assert-grid">'+
-            '<input class="fi t-args" title="expected_args_'+idx+'：期望工具参数，可填 JSON 或关键字段说明" placeholder="expected_args_'+idx+'" value="'+ea(meta.expectedArgs||'')+'">'+
-            '<input class="fi t-reply-contains" title="reply_contains_'+idx+'：回复必须包含，多个用 | 分隔" placeholder="reply_contains_'+idx+'" value="'+ea(csvListText(meta.replyContains))+'">'+
-            '<input class="fi t-reply-not-contains" title="reply_not_contains_'+idx+'：回复不能包含，多个用 | 分隔" placeholder="reply_not_contains_'+idx+'" value="'+ea(csvListText(meta.replyNotContains))+'">'+
-            '<input class="fi t-judge-threshold" title="judge_threshold_'+idx+'：LLM judge 阈值，如 0.8 或 80" placeholder="judge_threshold_'+idx+'" value="'+ea(meta.judgeThreshold||'')+'">'+
-            '<textarea class="fi t-judge-prompt" title="judge_prompt_'+idx+'：自定义 judge prompt" placeholder="judge_prompt_'+idx+'" rows="2" style="grid-column:1 / -1;resize:vertical">'+esc(meta.judgePrompt||'')+'</textarea>'+
-        '</div>';
+        '<input class="fi reply-fi eargs-fi" placeholder="期望参数(JSON)" value="'+ea(eargs||'')+'">'+
+        '<input class="fi reply-fi rc-fi" placeholder="回复须含(分号分隔)" value="'+ea(rc||'')+'">'+
+        '<input class="fi reply-fi rnc-fi" placeholder="回复禁含(分号分隔)" value="'+ea(rnc||'')+'">'+
+        '<textarea class="fi reply-fi jp-fi" placeholder="LLM评判prompt(留空则不启用)" rows="2">'+esc(jp||'')+'</textarea>'+
+        '<input class="fi reply-fi jt-fi" placeholder="评判及格线(0-1 默认0.7)" style="width:180px" value="'+ea(jt!=null&&jt!==''?jt:'')+'">';
     ct.appendChild(d);
 }
 function rmTurn(b){ b.closest('.turn-r').remove(); document.querySelectorAll('#turns-ct .turn-r').forEach(function(r,i){r.querySelector('.turn-n').textContent=i+1;}); }
@@ -2437,16 +2433,28 @@ function saveCase(){
     var id=document.getElementById('ce-id').value, turns=[];
     document.querySelectorAll('#turns-ct .turn-r').forEach(function(r,i){
         var inp=r.querySelector('.t-inp').value.trim();
-        if(inp) turns.push({
-            turnIndex:i+1,
-            userInput:inp,
-            expectedTool:r.querySelector('.tool-fi').value.trim(),
-            expectedArgs:r.querySelector('.t-args').value.trim(),
-            replyContains:splitAssertList(r.querySelector('.t-reply-contains').value),
-            replyNotContains:splitAssertList(r.querySelector('.t-reply-not-contains').value),
-            judgePrompt:r.querySelector('.t-judge-prompt').value.trim(),
-            judgeThreshold:r.querySelector('.t-judge-threshold').value.trim()
-        });
+        if(inp){
+            var rc=r.querySelector('.rc-fi').value.trim(), rnc=r.querySelector('.rnc-fi').value.trim();
+            var eargsRaw=r.querySelector('.eargs-fi').value.trim(), eargs=null;
+            if(eargsRaw){try{eargs=JSON.parse(eargsRaw);}catch(e){toast('第'+(i+1)+'轮期望参数 JSON 格式错误','err');return;}}
+            var jpRaw=r.querySelector('.jp-fi').value.trim(), jtRaw=r.querySelector('.jt-fi').value.trim();
+            var turnObj={turnIndex:i+1,userInput:inp,expectedTool:r.querySelector('.tool-fi').value.trim(),
+                expectedArgs:eargs,
+                replyContains:rc?rc.split(';').map(function(s){return s.trim();}).filter(Boolean):[],
+                replyNotContains:rnc?rnc.split(';').map(function(s){return s.trim();}).filter(Boolean):[]};
+            if(jpRaw) turnObj.judgePrompt=jpRaw;
+            if(jtRaw){
+                var jv=parseFloat(jtRaw);
+                if(!isNaN(jv)&&jv>=0&&jv<=1){
+                    turnObj.judgeThreshold=jv;
+                    turnObj.judgePassThreshold=jv;
+                }else{
+                    toast('第'+(i+1)+'轮评判及格线须为0-1','err');
+                    return;
+                }
+            }
+            turns.push(turnObj);
+        }
     });
     if(!turns.length){toast('至少一轮对话','err');return;}
     var doc={caseId:document.getElementById('ce-caseId').value.trim(),name:document.getElementById('ce-name').value.trim(),

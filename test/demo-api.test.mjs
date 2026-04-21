@@ -141,6 +141,11 @@ test('project access codes isolate cases and runs by project space', async () =>
   const vehicleRuns = await authedJson('/runs', vehicleLogin.data.token);
   assert.ok(opsRuns.data.every((item) => item.projectId === 'ops-eval'));
   assert.ok(vehicleRuns.data.every((item) => item.projectId === 'vehicle-eval'));
+
+  const opsMockConfigs = await authedJson('/mock-configs', opsLogin.data.token);
+  const vehicleMockConfigs = await authedJson('/mock-configs', vehicleLogin.data.token);
+  assert.ok(opsMockConfigs.data.some((item) => item.configId === 'mock_default'));
+  assert.ok(vehicleMockConfigs.data.some((item) => item.configId === 'mock_default'));
 });
 
 test('case generation schema is project-scoped and assembled with editable business objective', async () => {
@@ -963,21 +968,30 @@ test('LLM preview explains generated cases as runnable structured fields', async
   assert.equal(html.includes('evalDimensions: <span'), false);
 });
 
-test('manual case modal follows import columns and explains optional tags on hover', async () => {
+test('manual case modal stays aligned with source new-case dialog', async () => {
   const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
 
   for (const text of [
-    'title="enable：是否启用该用例，关闭后不会进入运行范围"',
-    'title="case_id：用例唯一标识，对应导入表的 case_id"',
-    'title="name：用例名称，对应导入表的 name"',
-    'title="user_id：执行用例时使用的用户 ID，对应导入表的 user_id"',
-    'title="group_name：用例所属分组，对应导入表的 group_name"',
-    'title="input1 / expected_tool_1：第 1 轮用户输入和期望函数字段"',
-    'title="标签：可选备注，不属于导入表核心字段，用于人工筛选和说明"'
+    '<label class="fl">Case ID</label>',
+    '<label class="fl">名称</label>',
+    '<label class="fl">权限类型</label>',
+    '<label class="fl">User ID（自动生成）</label>',
+    '<label class="fl">分组</label>',
+    '<label class="fl">标签</label>',
+    '<h4>多轮对话 <button class="btn btn-p btn-sm" onclick="addTurn()">+ 轮次</button></h4>',
+    'placeholder="期望参数(JSON)"',
+    'placeholder="回复须含(分号分隔)"',
+    'placeholder="回复禁含(分号分隔)"',
+    'placeholder="LLM评判prompt(留空则不启用)"',
+    'placeholder="评判及格线(0-1 默认0.7)"',
+    '.turn-r .reply-fi'
   ]) {
-    assert.equal(html.includes(text), true, `case modal should expose tooltip: ${text}`);
+    assert.equal(html.includes(text), true, `case modal should match source dialog: ${text}`);
   }
 
+  assert.equal(html.includes('title="case_id：用例唯一标识，对应导入表的 case_id"'), false);
+  assert.equal(html.includes('标签（可选）'), false);
+  assert.equal(html.includes('turn-assert-grid'), false);
   assert.equal(html.includes('id="ce-source"'), false);
   assert.equal(html.includes('id="ce-dims"'), false);
   assert.equal(html.includes('id="ce-regression"'), false);
