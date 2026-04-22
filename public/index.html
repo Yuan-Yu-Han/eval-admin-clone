@@ -2033,6 +2033,29 @@ function expectedArgText(value){
     if(typeof value==='string') return value;
     try{return JSON.stringify(value);}catch(e){return String(value);}
 }
+function expectedArgPlainText(value){
+    if(value===undefined||value===null) return '';
+    if(typeof value==='string'){
+        var parsed=parseExpectedArg(value);
+        if(parsed&&typeof parsed==='object') return expectedArgPlainText(parsed);
+        return value;
+    }
+    if(Array.isArray(value)) return value.map(function(item){return expectedArgPlainText(item);}).filter(Boolean).join('|');
+    if(typeof value==='object'){
+        var parts=[];
+        Object.keys(value).forEach(function(key){
+            var v=value[key];
+            if(v===undefined||v===null||v==='') return;
+            if(Array.isArray(v)) parts.push(key+'='+v.map(function(item){return expectedArgPlainText(item);}).filter(Boolean).join('|'));
+            else if(typeof v==='object'){
+                var nested=expectedArgPlainText(v);
+                if(nested) parts.push(key+'.'+nested.replace(/, /g, ', '+key+'.'));
+            }else parts.push(key+'='+String(v));
+        });
+        return parts.join(', ');
+    }
+    return String(value);
+}
 function caseInputs(c){
     var inputs=[c.input1,c.input2,c.input3].map(function(v){return String(v||'').trim();});
     if(inputs.some(Boolean)) return inputs;
@@ -2376,7 +2399,7 @@ function getCellValueByKey(c,key){
         var slots=collectCaseEvalSlots(c);
         var slot=slots.find(function(item){return item.index===slotIdx;})||{};
         if(ev[1]==='eval_type') return canonicalEvalType(slot.evalType||c[key]||'');
-        if(ev[1]==='expected_arg') return slot.expectedArg||c[key]||'';
+        if(ev[1]==='expected_arg') return expectedArgPlainText(slot.expectedArg||c[key]||'');
         if(ev[1]==='judge_prompt_id') return slot.judgePromptId||c[key]||'';
     }
     // Legacy turn fields kept only so older preview responses still render.
@@ -4139,72 +4162,55 @@ function renderRD(run){
 
         var turns=r.turns||[];
         if(turns.length){
-            function pickTurnVal(obj, keys){
-                if(!obj) return undefined;
-                for(var i=0;i<keys.length;i++){
-                    var k=keys[i];
-                    if(obj[k]!==undefined&&obj[k]!==null&&obj[k]!=='') return obj[k];
-                }
-                return undefined;
+            function evalCaseCell(check){
+                var st=check.applies===false?'<span class="tag tag-off">未配置</span>':(check.pass?'<span class="tag tag-done">PASS</span>':'<span class="tag tag-fail">FAIL</span>');
+                return '<div style="display:grid;gap:6px;min-width:180px">'+
+                    '<div>'+st+'</div>'+
+                    '<div style="font-size:12px;color:var(--c-text2);line-height:1.45;white-space:pre-wrap;word-break:break-word">'+esc(check.summary||'')+'</div>'+
+                    (check.expected?'<div class="mono" style="font-size:11px;color:var(--c-text3);max-height:70px;overflow:auto;white-space:pre-wrap;word-break:break-word">'+esc(check.expected)+'</div>':'')+
+                    '</div>';
             }
-            function passFailCell(v){
-                if(v===undefined||v===null||v==='') return '-';
-                if(typeof v==='string'){
-                    var s=v.trim().toLowerCase();
-                    if(!s) return '-';
-                    if(s==='pass'||s==='ok'||s==='true'||s==='1') return '<span class="match">PASS</span>';
-                    if(s==='fail'||s==='miss'||s==='false'||s==='0') return '<span class="mismatch">FAIL</span>';
-                    return esc(v);
-                }
-                if(v===true||v===1) return '<span class="match">PASS</span>';
-                if(v===false||v===0) return '<span class="mismatch">FAIL</span>';
-                return esc(String(v));
+            function fullInputText(resultTurns){
+                return resultTurns.map(function(t,i){
+                    return (resultTurns.length>1?('第 '+(t.turnIndex||i+1)+' 段：'):'')+(t.userInput||'');
+                }).join('\n');
             }
-            function judgeCell(turn,result){
-                var score=pickTurnVal(turn,['judgeScore','llmJudgeScore','judge_score']);
-                if(score===undefined||score===null||score==='') score=result&&result.llmJudge?result.llmJudge.score:undefined;
-                if(score===undefined||score===null||score==='') return '-';
-                var n=Number(score);
-                if(!isFinite(n)) return esc(String(score));
-                var pct=n<=1?Math.round(n*100):Math.round(n);
-                return '<span class="mono">'+pct+'</span>';
+            function fullReplyText(resultTurns){
+                var replies=resultTurns.map(function(t,i){
+                    if(!t.llmReplyText) return '';
+                    return (resultTurns.length>1?('第 '+(t.turnIndex||i+1)+' 段：'):'')+t.llmReplyText;
+                }).filter(Boolean);
+                return replies.join('\n')||finalReplyText(r);
             }
+            var checks=resultEvalChecks(r);
+            var checkMap={};
+            checks.forEach(function(item){checkMap[item.key]=item;});
+            var dbIdx=_debugData.length;
+            _debugData.push({
+                skill:turns.map(function(t){return t.skillResultJson||'';}).filter(Boolean).join('\n\n'),
+                hints:turns.map(function(t){return t.hintsJson||'';}).filter(Boolean).join('\n\n'),
+                label:(r.caseName||r.caseId||'Case')+' 调试信息'
+            });
             h+='<details open style="border:1px solid var(--c-border);border-radius:8px;margin-bottom:10px;background:#fff;overflow:hidden">'+
-                '<summary style="cursor:pointer;padding:10px 12px;font-size:13px;font-weight:800;color:var(--c-text)">逐轮明细 <span class="tag" style="background:#f3f4f6;color:var(--c-text2);margin-left:6px">'+turns.length+'</span></summary>'+
+                '<summary style="cursor:pointer;padding:10px 12px;font-size:13px;font-weight:800;color:var(--c-text)">评测明细 <span class="tag" style="background:#f3f4f6;color:var(--c-text2);margin-left:6px">'+turns.length+' 段输入</span></summary>'+
                 '<div class="td-wrap"><table><thead><tr>'+
-                '<th>Turn</th>'+
                 '<th>用户输入</th>'+
                 '<th>LLM 回复</th>'+
-                '<th>期望工具</th>'+
-                '<th>实际工具</th>'+
-                '<th>匹配</th>'+
-                '<th>参数断言</th>'+
-                '<th>回复断言</th>'+
-                '<th>LLM评判</th>'+
+                '<th>结构匹配</th>'+
+                '<th>文本匹配</th>'+
+                '<th>语义评测</th>'+
                 '<th>SkillResult</th>'+
                 '<th>Hints</th>'+
                 '</tr></thead><tbody>';
-            turns.forEach(function(t){
-                var trCls=(!t.toolOk&&t.expectedTool)?'t-fail':'';
-                var dbIdx=_debugData.length;
-                _debugData.push({skill:t.skillResultJson||'',hints:t.hintsJson||'',label:'第 '+t.turnIndex+' 轮'});
-                var toolMatch=pickTurnVal(t,['toolMatchPass','toolAssertPass','toolOk','toolMatchOk']);
-                var argsMatch=pickTurnVal(t,['argsAssertPass','argsOk','paramAssertPass','paramsAssertPass']);
-                var replyMatch=pickTurnVal(t,['replyAssertPass','replyOk','replyAssertOk','responseAssertPass']);
-                h+='<tr class="'+trCls+'">'+
-                    '<td style="text-align:center;font-weight:600">'+t.turnIndex+'</td>'+
-                    '<td><div class="td-text">'+esc(t.userInput||'')+'</div></td>'+
-                    '<td><div class="td-text">'+esc(t.llmReplyText||'')+'</div></td>'+
-                    '<td class="mono">'+esc(t.expectedTool||'-')+'</td>'+
-                    '<td class="mono">'+esc(t.actualTool||'-')+'</td>'+
-                    '<td style="text-align:center">'+(toolMatch===undefined?'-':(String(toolMatch).toLowerCase()==='false'||toolMatch===false||toolMatch===0?'<span class="mismatch">MISS</span>':'<span class="match">OK</span>'))+'</td>'+
-                    '<td style="text-align:center">'+passFailCell(argsMatch)+'</td>'+
-                    '<td style="text-align:center">'+passFailCell(replyMatch)+'</td>'+
-                    '<td style="text-align:center">'+judgeCell(t,r)+'</td>'+
-                    '<td>'+(t.skillResultJson?'<div class="td-json" style="cursor:pointer" title="点击弹窗查看" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">'+esc(fmtJson(t.skillResultJson))+'</div>':'')+'</td>'+
-                    '<td>'+(t.hintsJson?'<div class="td-json" style="cursor:pointer" title="点击弹窗查看" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">'+esc(fmtJson(t.hintsJson))+'</div>':'')+'</td>'+
-                    '</tr>';
-            });
+            h+='<tr>'+
+                '<td><div class="td-text" style="max-width:360px;white-space:pre-wrap">'+esc(fullInputText(turns))+'</div></td>'+
+                '<td><div class="td-text" style="max-width:320px;white-space:pre-wrap">'+esc(fullReplyText(turns))+'</div></td>'+
+                '<td>'+evalCaseCell(checkMap.structure_match||{applies:false,summary:'未配置该评测点'})+'</td>'+
+                '<td>'+evalCaseCell(checkMap.text_match||{applies:false,summary:'未配置该评测点'})+'</td>'+
+                '<td>'+evalCaseCell(checkMap.llm_judge||{applies:false,summary:'未配置该评测点'})+'</td>'+
+                '<td>'+(_debugData[dbIdx].skill?'<div class="td-json" style="cursor:pointer" title="点击弹窗查看" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">'+esc(fmtJson(_debugData[dbIdx].skill))+'</div>':'-')+'</td>'+
+                '<td>'+(_debugData[dbIdx].hints?'<div class="td-json" style="cursor:pointer" title="点击弹窗查看" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">'+esc(fmtJson(_debugData[dbIdx].hints))+'</div>':'-')+'</td>'+
+                '</tr>';
             h+='</tbody></table></div></details>';
         } else {
             h+='<div class="empty">无轮次数据</div>';
