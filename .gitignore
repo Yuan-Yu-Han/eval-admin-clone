@@ -3,3 +3,10 @@ node_modules/
 .DS_Store
 npm-debug.log*
 .vercel
+dist/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

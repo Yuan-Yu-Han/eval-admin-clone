@@ -5,10 +5,20 @@
   "description": "One-to-one local demo for the /admin/eval page with mock APIs.",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "build": "node -e \"console.log('static frontend: public/index.html (no bundle step)')\"",
+    "dev": "npm run dev:api",
+    "dev:api": "node server.js",
+    "start": "npm run start:api",
+    "start:api": "node server.js",
     "test": "node --test --test-concurrency=1"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.59.1"
   }
 }

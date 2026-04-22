@@ -19,6 +19,7 @@ test('project exposes a Vercel serverless adapter without breaking local server 
   const vercelConfig = JSON.parse(vercelConfigSource);
   assert.deepEqual(vercelConfig.rewrites, [
     { source: '/admin/eval/api/:path*', destination: '/api/server' },
+    { source: '/admin/eval/assets/:path*', destination: '/api/server' },
     { source: '/admin/eval', destination: '/api/server' },
     { source: '/', destination: '/api/server' }
   ]);

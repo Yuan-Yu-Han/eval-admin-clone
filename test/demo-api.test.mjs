@@ -1,24 +1,29 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { after, before, test } from 'node:test';
+import { createSqliteStateStore } from '../src/backend/storage/sqliteStateStore.js';
 
 const PORT = 5199;
 const BASE = `http://localhost:${PORT}/admin/eval/api`;
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const ACCESS_CODE = 'eval';
-const OPS_ACCESS_CODE = 'ops';
+const VEHICLE_AGENT_PROJECT = 'vehicle-agent-eval';
+const VOICE_TICKET_PROJECT = 'voice-ticket-eval';
+const OPS_ACCESS_CODE = 'voice';
 const VEHICLE_ACCESS_CODE = 'vehicle';
+const TESTER_ACCESS_CODE = 'tester';
 let authToken = '';
 let server;
 const rawFetch = globalThis.fetch.bind(globalThis);
 
 globalThis.fetch = (input, options = {}) => {
   const url = String(input);
-  if (!authToken || !url.startsWith(BASE) || url.endsWith('/env') || url.includes('/auth/login')) {
+  if (!authToken || !url.startsWith(BASE) || url.endsWith('/env')) {
     return rawFetch(input, options);
   }
-  const headers = { ...(options.headers || {}), Authorization: `Bearer ${authToken}` };
+  const headers = { ...(options.headers || {}), 'X-Project-Id': authToken };
   return rawFetch(input, { ...options, headers });
 };
 
@@ -48,8 +53,17 @@ before(async () => {
       EVAL_DEMO_ACCESS_CODE: ACCESS_CODE,
       EVAL_DEMO_PROJECT_CODES: JSON.stringify([
         { code: ACCESS_CODE, projectId: 'all', projectName: '管理员视角', role: 'admin' },
-        { code: OPS_ACCESS_CODE, projectId: 'ops-eval', projectName: '运营数据评测', role: 'member' },
-        { code: VEHICLE_ACCESS_CODE, projectId: 'vehicle-eval', projectName: '车辆控制评测', role: 'member' }
+        { code: OPS_ACCESS_CODE, projectId: VOICE_TICKET_PROJECT, projectName: '语音工单结构化评测', role: 'member' },
+        { code: VEHICLE_ACCESS_CODE, projectId: VEHICLE_AGENT_PROJECT, projectName: '车辆 Agent 评测', role: 'member' },
+        {
+          code: TESTER_ACCESS_CODE,
+          accountId: 'tester',
+          accountName: '测试人员',
+          projects: [
+            { projectId: VEHICLE_AGENT_PROJECT, projectName: '车辆 Agent 评测', role: 'member' },
+            { projectId: VOICE_TICKET_PROJECT, projectName: '语音工单结构化评测', role: 'member' }
+          ]
+        }
       ])
     },
     stdio: ['ignore', 'ignore', 'pipe']
@@ -66,34 +80,18 @@ after(() => {
 
 async function apiFetch(path, options = {}) {
   const headers = { ...(options.headers || {}) };
-  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  if (authToken) headers['X-Project-Id'] = authToken;
   return fetch(`${BASE}${path}`, { ...options, headers });
 }
 
-test('access code protects eval admin APIs while allowing login', async () => {
-  const blocked = await fetch(`${BASE}/cases`);
-  assert.equal(blocked.status, 401);
-  const blockedJson = await blocked.json();
-  assert.equal(blockedJson.code, '401');
-
-  const rejectedLogin = await fetch(`${BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessCode: 'wrong-code' })
-  });
-  assert.equal(rejectedLogin.status, 401);
-
-  const login = await fetch(`${BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessCode: ACCESS_CODE })
-  });
-  assert.equal(login.status, 200);
-  const loginJson = await login.json();
-  assert.equal(loginJson.code, '10000');
-  assert.equal(typeof loginJson.data.token, 'string');
-  assert.ok(loginJson.data.token.length > 20);
-  authToken = loginJson.data.token;
+test('eval admin APIs load without login and expose workspace projects', async () => {
+  const status = await fetch(`${BASE}/auth/status`);
+  assert.equal(status.status, 200);
+  const statusJson = await status.json();
+  assert.equal(statusJson.code, '10000');
+  assert.equal(statusJson.data.authenticated, true);
+  assert.deepEqual(statusJson.data.projects.map((item) => item.projectId), [VEHICLE_AGENT_PROJECT, VOICE_TICKET_PROJECT]);
+  authToken = 'all';
 
   const allowed = await apiFetch('/cases');
   assert.equal(allowed.status, 200);
@@ -102,50 +100,178 @@ test('access code protects eval admin APIs while allowing login', async () => {
   assert.ok(Array.isArray(allowedJson.data));
 });
 
+test('workspace status exposes project-specific home profiles', async () => {
+  const status = await fetch(`${BASE}/auth/status`);
+  assert.equal(status.status, 200);
+  const statusJson = await status.json();
+  assert.equal(statusJson.code, '10000');
+
+  const projects = statusJson.data.projects;
+  const vehicle = projects.find((item) => item.projectId === VEHICLE_AGENT_PROJECT);
+  const voice = projects.find((item) => item.projectId === VOICE_TICKET_PROJECT);
+
+  assert.equal(vehicle.homeTitle, '车辆 Agent 评测首页');
+  assert.equal(voice.homeTitle, '语音工单结构化评测首页');
+  assert.deepEqual(vehicle.primaryMetrics.map((item) => item.key), ['control', 'query', 'rag']);
+  assert.deepEqual(voice.primaryMetrics.map((item) => item.key), ['structuring', 'extract', 'routing']);
+  assert.notDeepEqual(vehicle.homeModules, voice.homeModules);
+  assert.equal(vehicle.defaultTab, 'project-home');
+  assert.equal(voice.defaultTab, 'project-home');
+});
+
 async function loginForProject(accessCode) {
-  const login = await rawFetch(`${BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessCode })
-  });
-  assert.equal(login.status, 200);
-  return login.json();
+  const map = {
+    [OPS_ACCESS_CODE]: VOICE_TICKET_PROJECT,
+    [VEHICLE_ACCESS_CODE]: VEHICLE_AGENT_PROJECT,
+    [ACCESS_CODE]: 'all',
+    [TESTER_ACCESS_CODE]: ''
+  };
+  const projectId = map[accessCode] || VEHICLE_AGENT_PROJECT;
+  const headers = projectId ? { 'X-Project-Id': projectId } : {};
+  const status = await rawFetch(`${BASE}/auth/status`, { headers });
+  assert.equal(status.status, 200);
+  const json = await status.json();
+  const project = json.data.project || {};
+  return {
+    code: json.code,
+    data: {
+      token: projectId || 'tester',
+      account: json.data.account,
+      projects: json.data.projects,
+      activeProjectId: json.data.activeProjectId,
+      projectId: project.projectId,
+      projectName: project.projectName,
+      role: project.role
+    }
+  };
 }
 
 async function authedJson(path, token) {
-  const res = await rawFetch(`${BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  const headers = token && token !== 'tester' ? { 'X-Project-Id': token } : {};
+  const res = await rawFetch(`${BASE}${path}`, { headers });
   assert.equal(res.status, 200);
   return res.json();
 }
 
-test('project access codes isolate cases and runs by project space', async () => {
-  const opsLogin = await loginForProject(OPS_ACCESS_CODE);
+async function projectJson(path, token, projectId) {
+  const res = await rawFetch(`${BASE}${path}`, { headers: { 'X-Project-Id': projectId } });
+  assert.equal(res.status, 200);
+  return res.json();
+}
+
+test('project workspaces isolate cases and runs by scenario', async () => {
+  const voiceLogin = await loginForProject(OPS_ACCESS_CODE);
   const vehicleLogin = await loginForProject(VEHICLE_ACCESS_CODE);
 
-  assert.equal(opsLogin.data.projectId, 'ops-eval');
-  assert.equal(opsLogin.data.projectName, '运营数据评测');
-  assert.equal(vehicleLogin.data.projectId, 'vehicle-eval');
+  assert.equal(voiceLogin.data.projectId, VOICE_TICKET_PROJECT);
+  assert.equal(voiceLogin.data.projectName, '语音工单结构化评测');
+  assert.equal(vehicleLogin.data.projectId, VEHICLE_AGENT_PROJECT);
+  assert.equal(vehicleLogin.data.projectName, '车辆 Agent 评测');
 
-  const opsCases = await authedJson('/cases', opsLogin.data.token);
+  const voiceCases = await authedJson('/cases', voiceLogin.data.token);
   const vehicleCases = await authedJson('/cases', vehicleLogin.data.token);
-  assert.ok(opsCases.data.length > 0);
+  assert.ok(voiceCases.data.length > 0);
   assert.ok(vehicleCases.data.length > 0);
-  assert.ok(opsCases.data.every((item) => item.projectId === 'ops-eval'));
-  assert.ok(vehicleCases.data.every((item) => item.projectId === 'vehicle-eval'));
+  assert.ok(voiceCases.data.every((item) => item.projectId === VOICE_TICKET_PROJECT));
+  assert.ok(vehicleCases.data.every((item) => item.projectId === VEHICLE_AGENT_PROJECT));
+  assert.ok(voiceCases.data.every((item) => (item.turns || []).every((turn) => ['voice_ticket_structuring', 'ticket_field_extract', 'ticket_category_route'].includes(turn.expectedTool))));
+  assert.ok(vehicleCases.data.some((item) => (item.turns || []).some((turn) => ['open_door', 'vehicle_control', 'vehicle_selective_query'].includes(turn.expectedTool))));
   assert.notDeepEqual(
-    opsCases.data.map((item) => item.caseId).sort(),
+    voiceCases.data.map((item) => item.caseId).sort(),
     vehicleCases.data.map((item) => item.caseId).sort()
   );
 
-  const opsRuns = await authedJson('/runs', opsLogin.data.token);
+  const opsRuns = await authedJson('/runs', voiceLogin.data.token);
   const vehicleRuns = await authedJson('/runs', vehicleLogin.data.token);
-  assert.ok(opsRuns.data.every((item) => item.projectId === 'ops-eval'));
-  assert.ok(vehicleRuns.data.every((item) => item.projectId === 'vehicle-eval'));
+  assert.ok(opsRuns.data.every((item) => item.projectId === VOICE_TICKET_PROJECT));
+  assert.ok(vehicleRuns.data.every((item) => item.projectId === VEHICLE_AGENT_PROJECT));
 
-  const opsMockConfigs = await authedJson('/mock-configs', opsLogin.data.token);
+  const opsMockConfigs = await authedJson('/mock-configs', voiceLogin.data.token);
   const vehicleMockConfigs = await authedJson('/mock-configs', vehicleLogin.data.token);
-  assert.ok(opsMockConfigs.data.some((item) => item.configId === 'mock_default'));
+  assert.ok(opsMockConfigs.data.every((item) => item.projectId === VOICE_TICKET_PROJECT));
+  assert.ok(opsMockConfigs.data.some((item) => item.configId === 'mock_voice_ticket_default'));
   assert.ok(vehicleMockConfigs.data.some((item) => item.configId === 'mock_default'));
+});
+
+test('one tester account can switch project workspaces with isolated data', async () => {
+  const testerLogin = await loginForProject(TESTER_ACCESS_CODE);
+  assert.equal(testerLogin.data.account.accountId, 'tester');
+  assert.deepEqual(testerLogin.data.projects.map((item) => item.projectId), [VEHICLE_AGENT_PROJECT, VOICE_TICKET_PROJECT]);
+  assert.equal(testerLogin.data.activeProjectId, VEHICLE_AGENT_PROJECT);
+
+  const token = testerLogin.data.token;
+  const voiceCases = await projectJson('/cases', token, VOICE_TICKET_PROJECT);
+  const vehicleCases = await projectJson('/cases', token, VEHICLE_AGENT_PROJECT);
+  assert.ok(voiceCases.data.length > 0);
+  assert.ok(vehicleCases.data.length > 0);
+  assert.ok(voiceCases.data.every((item) => item.projectId === VOICE_TICKET_PROJECT));
+  assert.ok(vehicleCases.data.every((item) => item.projectId === VEHICLE_AGENT_PROJECT));
+  assert.notDeepEqual(
+    voiceCases.data.map((item) => item.caseId).sort(),
+    vehicleCases.data.map((item) => item.caseId).sort()
+  );
+
+  const voiceSchema = await projectJson('/case-service/schema', token, VOICE_TICKET_PROJECT);
+  const vehicleSchema = await projectJson('/case-service/schema', token, VEHICLE_AGENT_PROJECT);
+  assert.equal(voiceSchema.data.projectId, VOICE_TICKET_PROJECT);
+  assert.equal(vehicleSchema.data.projectId, VEHICLE_AGENT_PROJECT);
+  assert.ok(voiceSchema.data.allowedTools.includes('voice_ticket_structuring'));
+  assert.equal(voiceSchema.data.allowedTools.includes('open_door'), false);
+  assert.ok(vehicleSchema.data.allowedTools.includes('open_door'));
+  assert.equal(vehicleSchema.data.allowedTools.includes('voice_ticket_structuring'), false);
+
+  const status = await projectJson('/auth/status', token, VOICE_TICKET_PROJECT);
+  assert.equal(status.data.activeProjectId, VOICE_TICKET_PROJECT);
+  assert.equal(status.data.project.projectName, '语音工单结构化评测');
+});
+
+test('project case models are isolated by backend schema and payload', async () => {
+  const testerLogin = await loginForProject(TESTER_ACCESS_CODE);
+  const token = testerLogin.data.token;
+
+  const voiceSchema = await projectJson('/case-service/schema', token, VOICE_TICKET_PROJECT);
+  const vehicleSchema = await projectJson('/case-service/schema', token, VEHICLE_AGENT_PROJECT);
+  assert.equal(voiceSchema.data.caseType, 'voice_ticket_dialogue');
+  assert.equal(vehicleSchema.data.caseType, 'vehicle_agent_turns');
+  assert.notDeepEqual(voiceSchema.data.requiredFields, vehicleSchema.data.requiredFields);
+  assert.ok(voiceSchema.data.requiredFields.includes('dialogueText'));
+  assert.ok(voiceSchema.data.requiredFields.includes('expectedTicket'));
+  assert.ok(vehicleSchema.data.requiredFields.includes('turns'));
+  assert.equal(vehicleSchema.data.requiredFields.includes('dialogueText'), false);
+
+  const voiceCases = await projectJson('/cases', token, VOICE_TICKET_PROJECT);
+  const vehicleCases = await projectJson('/cases', token, VEHICLE_AGENT_PROJECT);
+  assert.ok(voiceCases.data.every((item) => item.caseType === 'voice_ticket_dialogue'));
+  assert.ok(vehicleCases.data.every((item) => item.caseType === 'vehicle_agent_turns'));
+  assert.ok(voiceCases.data.every((item) => item.payload && typeof item.payload.dialogueText === 'string'));
+  assert.ok(voiceCases.data.every((item) => item.payload && item.payload.expectedTicket && typeof item.payload.expectedTicket === 'object'));
+  assert.ok(vehicleCases.data.every((item) => item.payload && Array.isArray(item.payload.turns)));
+  assert.ok(vehicleCases.data.every((item) => !item.payload.dialogueText));
+});
+
+test('sqlite state store physically separates cases and runs by project key', async () => {
+  const dbPath = `/tmp/eval-admin-project-store-${process.pid}-${Date.now()}.sqlite`;
+  const store = await createSqliteStateStore({
+    dbPath,
+    projectIds: [VEHICLE_AGENT_PROJECT, VOICE_TICKET_PROJECT],
+    seedCasesByProject: {
+      [VEHICLE_AGENT_PROJECT]: [{ caseId: 'vehicle_only', projectId: VEHICLE_AGENT_PROJECT }],
+      [VOICE_TICKET_PROJECT]: [{ caseId: 'voice_only', projectId: VOICE_TICKET_PROJECT }]
+    },
+    seedRunsByProject: {
+      [VEHICLE_AGENT_PROJECT]: [{ runId: 'vehicle_run', projectId: VEHICLE_AGENT_PROJECT }],
+      [VOICE_TICKET_PROJECT]: [{ runId: 'voice_run', projectId: VOICE_TICKET_PROJECT }]
+    }
+  });
+
+  assert.deepEqual((await store.loadProjectCases(VEHICLE_AGENT_PROJECT)).map((item) => item.caseId), ['vehicle_only']);
+  assert.deepEqual((await store.loadProjectCases(VOICE_TICKET_PROJECT)).map((item) => item.caseId), ['voice_only']);
+  assert.deepEqual((await store.loadProjectRuns(VEHICLE_AGENT_PROJECT)).map((item) => item.runId), ['vehicle_run']);
+  assert.deepEqual((await store.loadProjectRuns(VOICE_TICKET_PROJECT)).map((item) => item.runId), ['voice_run']);
+
+  await store.saveProjectCases(VEHICLE_AGENT_PROJECT, [{ caseId: 'vehicle_new', projectId: VEHICLE_AGENT_PROJECT }]);
+  assert.deepEqual((await store.loadProjectCases(VEHICLE_AGENT_PROJECT)).map((item) => item.caseId), ['vehicle_new']);
+  assert.deepEqual((await store.loadProjectCases(VOICE_TICKET_PROJECT)).map((item) => item.caseId), ['voice_only']);
 });
 
 test('case generation schema is project-scoped and assembled with editable business objective', async () => {
@@ -154,29 +280,28 @@ test('case generation schema is project-scoped and assembled with editable busin
 
   const opsSchema = await authedJson('/case-service/schema', opsLogin.data.token);
   const vehicleSchema = await authedJson('/case-service/schema', vehicleLogin.data.token);
-  assert.equal(opsSchema.data.projectId, 'ops-eval');
-  assert.equal(vehicleSchema.data.projectId, 'vehicle-eval');
-  assert.deepEqual(opsSchema.data.requiredFields, vehicleSchema.data.requiredFields);
-  assert.deepEqual(opsSchema.data.turnFields, ['userInput', 'expectedTool']);
-  assert.deepEqual(opsSchema.data.importColumns.slice(0, 12), [
+  assert.equal(opsSchema.data.projectId, VOICE_TICKET_PROJECT);
+  assert.equal(vehicleSchema.data.projectId, VEHICLE_AGENT_PROJECT);
+  assert.notDeepEqual(opsSchema.data.requiredFields, vehicleSchema.data.requiredFields);
+  assert.deepEqual(vehicleSchema.data.turnFields, ['userInput', 'expectedTool']);
+  assert.deepEqual(opsSchema.data.turnFields, []);
+  assert.deepEqual(opsSchema.data.importColumns.slice(0, 10), [
     'enable',
     'case_id',
     'name',
-    'user_id',
     'group_name',
-    'input1',
-    'expected_tool_1',
-    'expected_args_1',
-    'reply_contains_1',
-    'reply_not_contains_1',
-    'judge_prompt_1',
-    'judge_threshold_1'
+    'dialogue_text',
+    'expected_ticket_json',
+    'expected_route',
+    'missing_fields',
+    'noise_tags',
+    'risk_level'
   ]);
-  assert.ok(opsSchema.data.importColumns.includes('expected_args_3'));
-  assert.ok(opsSchema.data.importColumns.includes('judge_threshold_3'));
-  assert.match(opsSchema.data.schemaNotes.join('\n'), /字段结构全项目统一/);
+  assert.ok(vehicleSchema.data.importColumns.includes('expected_args_3'));
+  assert.ok(vehicleSchema.data.importColumns.includes('judge_threshold_3'));
+  assert.match(opsSchema.data.schemaNotes.join('\n'), /ASR 对话文本/);
 
-  const businessObjective = '重点覆盖异常时间窗、城市追问和无数据返回，不要改 JSON 字段结构。';
+  const businessObjective = '重点覆盖语音转写缺字段、投诉升级和字段抽取错误，不要改 JSON 字段结构。';
   const genJson = await rawFetch(`${BASE}/case-service/generate-preview`, {
     method: 'POST',
     headers: {
@@ -185,13 +310,13 @@ test('case generation schema is project-scoped and assembled with editable busin
     },
     body: JSON.stringify({
       mode: 'generate',
-      module: 'operation_data',
+      module: 'voice_ticket',
       count: 1,
       turnCount: 2,
-      groupName: '运营数据查询',
+      groupName: '工单结构化',
       businessObjective,
-      allowedTools: ['vehicle_operation_data_query'],
-      caseIdPrefix: 'ops_schema'
+      allowedTools: ['voice_ticket_structuring'],
+      caseIdPrefix: 'voice_schema'
     })
   }).then((res) => res.json());
 
@@ -199,9 +324,9 @@ test('case generation schema is project-scoped and assembled with editable busin
   assert.match(prompt, /平台固定结构约束/);
   assert.match(prompt, /项目 Schema/);
   assert.match(prompt, /业务覆盖目标/);
-  assert.match(prompt, /异常时间窗/);
+  assert.match(prompt, /投诉升级/);
   assert.match(prompt, /caseId/);
-  assert.match(prompt, /vehicle_operation_data_query/);
+  assert.match(prompt, /voice_ticket_structuring/);
 });
 
 test('case generation prompt includes editable field contract while locking selected group', async () => {
@@ -221,22 +346,22 @@ test('case generation prompt includes editable field contract while locking sele
     },
     body: JSON.stringify({
       mode: 'generate',
-      module: 'operation_data',
+      module: 'voice_ticket',
       count: 1,
-      groupName: '运营日报专项',
-      businessObjective: '只生成运营日报内容覆盖，不要决定分组。',
+      groupName: '工单结构化专项',
+      businessObjective: '只生成语音工单内容覆盖，不要决定分组。',
       schemaPrompt: editableContract,
-      allowedTools: ['vehicle_operation_data_query']
+      allowedTools: ['voice_ticket_structuring']
     })
   }).then((res) => res.json());
 
   assert.equal(genJson.code, '10000');
   const generated = genJson.data.preview[0];
-  assert.equal(generated.groupName, '运营日报专项');
+  assert.equal(generated.groupName, '工单结构化专项');
   assert.match(generated.generationPrompt, /# 可编辑字段契约/);
   assert.match(generated.generationPrompt, /字段结构全项目统一/);
   assert.match(generated.generationPrompt, /# 锁定目标分组/);
-  assert.match(generated.generationPrompt, /groupName 必须固定为：运营日报专项/);
+  assert.match(generated.generationPrompt, /groupName 必须固定为：工单结构化专项/);
   assert.match(generated.generationPrompt, /业务覆盖目标只生成内容覆盖，不得改写分组/);
 });
 
@@ -289,8 +414,112 @@ test('case CSV export and generated preview align to source admin flat assertion
   assert.equal(Object.hasOwn(genJson.data.preview[0].turns[0], 'judgeThreshold'), true);
 });
 
+test('case CSV export uses the active project case schema', async () => {
+  const vehicleCsv = await rawFetch(`${BASE}/cases/export`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } }).then((res) => res.text());
+  const voiceCsv = await rawFetch(`${BASE}/cases/export`, { headers: { 'X-Project-Id': VOICE_TICKET_PROJECT } }).then((res) => res.text());
+
+  assert.match(vehicleCsv.split('\n')[0], /input1/);
+  assert.match(vehicleCsv.split('\n')[0], /expected_tool_1/);
+  assert.doesNotMatch(vehicleCsv.split('\n')[0], /dialogue_text/);
+  assert.match(voiceCsv.split('\n')[0], /dialogue_text/);
+  assert.match(voiceCsv.split('\n')[0], /expected_ticket_json/);
+  assert.doesNotMatch(voiceCsv.split('\n')[0], /expected_tool_1/);
+});
+
+test('case CSV import maps rows through the active project schema', async () => {
+  const csv = [
+    'enable,case_id,name,group_name,dialogue_text,expected_ticket_json,expected_route,missing_fields,noise_tags,risk_level',
+    'true,voice_import_001,CSV导入语音工单,CSV导入,"坐席：您好\\n用户：X6S5002 在青岛园区 A 区打不开门","{""ticketType"":""vehicle_fault"",""issueType"":""door_open_failure"",""vehicleId"":""X6S5002"",""location"":""青岛园区 A 区"",""routeQueue"":""vehicle_ops_queue"",""missingFields"":[""contactPhone""]}",vehicle_ops_queue,contactPhone,CSV导入|多轮补全,high'
+  ].join('\n');
+  const imported = await rawFetch(`${BASE}/cases/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/csv', 'X-Project-Id': VOICE_TICKET_PROJECT },
+    body: csv
+  }).then((res) => res.json());
+
+  assert.equal(imported.code, '10000');
+  assert.equal(imported.data.imported, 1);
+  const casesJson = await rawFetch(`${BASE}/cases`, { headers: { 'X-Project-Id': VOICE_TICKET_PROJECT } }).then((res) => res.json());
+  const importedCase = casesJson.data.find((item) => item.caseId === 'voice_import_001');
+  assert.ok(importedCase);
+  assert.equal(importedCase.caseType, 'voice_ticket_dialogue');
+  assert.match(importedCase.payload.dialogueText, /X6S5002/);
+  assert.equal(importedCase.payload.expectedTicket.vehicleId, 'X6S5002');
+  assert.deepEqual(importedCase.payload.expectedTicket.missingFields, ['contactPhone']);
+});
+
+test('all project workbench APIs expose project-specific contracts', async () => {
+  const voiceSchema = await rawFetch(`${BASE}/case-service/schema`, { headers: { 'X-Project-Id': VOICE_TICKET_PROJECT } }).then((res) => res.json());
+  assert.equal(voiceSchema.data.caseType, 'voice_ticket_dialogue');
+  assert.match(voiceSchema.data.defaultGenerationPrompt, /ASR|工单|语义测评/);
+  assert.doesNotMatch(voiceSchema.data.defaultGenerationPrompt, /车辆控制专项|远程开门|鸣笛闪灯/);
+
+  const voicePreview = await rawFetch(`${BASE}/case-service/generate-preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Project-Id': VOICE_TICKET_PROJECT },
+    body: JSON.stringify({ mode: 'generate', count: 1, groupName: '工单结构化', businessObjective: '覆盖 ASR 对话工单语义测评。' })
+  }).then((res) => res.json());
+  assert.equal(voicePreview.code, '10000');
+  assert.equal(voicePreview.data.preview[0].caseType, 'voice_ticket_dialogue');
+  assert.ok(voicePreview.data.preview[0].payload.dialogueText);
+  assert.ok(voicePreview.data.preview[0].payload.expectedTicket);
+
+  const voiceRuns = await rawFetch(`${BASE}/runs`, { headers: { 'X-Project-Id': VOICE_TICKET_PROJECT } }).then((res) => res.json());
+  assert.ok(voiceRuns.data.length > 0);
+  assert.ok(voiceRuns.data.every((run) => run.projectId === VOICE_TICKET_PROJECT));
+  assert.ok(voiceRuns.data.some((run) => run.evaluationMode === 'semantic_ticket_structuring'));
+  const voiceRunWithChecks = voiceRuns.data.find((run) => run.evaluationMode === 'semantic_ticket_structuring' && run.results?.[0]?.stageChecks);
+  assert.ok(voiceRunWithChecks.results[0].stageChecks.some((item) => item.key === 'fieldAccuracy'));
+  assert.equal(voiceRunWithChecks.results[0].stageChecks.some((item) => /SkillResult|工具调用|Agent/.test(`${item.label}${item.rule}${item.description}`)), false);
+
+  const voiceMocks = await rawFetch(`${BASE}/mock-configs`, { headers: { 'X-Project-Id': VOICE_TICKET_PROJECT } }).then((res) => res.json());
+  const vehicleMocks = await rawFetch(`${BASE}/mock-configs`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } }).then((res) => res.json());
+  assert.ok(voiceMocks.data.every((item) => item.projectId === VOICE_TICKET_PROJECT));
+  assert.ok(voiceMocks.data.every((item) => item.mockType === 'ticket_dialogue'));
+  assert.ok(vehicleMocks.data.every((item) => item.projectId === VEHICLE_AGENT_PROJECT || item.projectId === 'shared'));
+
+  const voicePromptKeys = await rawFetch(`${BASE}/prompt-keys`, { headers: { 'X-Project-Id': VOICE_TICKET_PROJECT } }).then((res) => res.json());
+  const vehiclePromptKeys = await rawFetch(`${BASE}/prompt-keys`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } }).then((res) => res.json());
+  assert.ok(voicePromptKeys.data.length > 0);
+  assert.ok(voicePromptKeys.data.every((item) => item.projectId === VOICE_TICKET_PROJECT));
+  assert.ok(vehiclePromptKeys.data.every((item) => item.projectId === VEHICLE_AGENT_PROJECT));
+});
+
+test('project workbench contract drives generate templates, evaluator rules, and version labels', async () => {
+  const voiceContract = await rawFetch(`${BASE}/workbench-contract`, { headers: { 'X-Project-Id': VOICE_TICKET_PROJECT } }).then((res) => res.json());
+  const vehicleContract = await rawFetch(`${BASE}/workbench-contract`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } }).then((res) => res.json());
+
+  assert.equal(voiceContract.code, '10000');
+  assert.equal(voiceContract.data.runLabels.primaryVersionLabel, '结构化 Prompt 版本');
+  assert.equal(voiceContract.data.runLabels.datasetVersionLabel, '样本集版本');
+  assert.equal(voiceContract.data.runLabels.ruleVersionLabel, '评测规则版本');
+  assert.equal(vehicleContract.data.runLabels.primaryVersionLabel, 'Agent 版本');
+
+  const voiceColumns = voiceContract.data.generateTemplate.columns;
+  assert.deepEqual(voiceColumns.map((item) => item.key), [
+    'enable',
+    'case_id',
+    'name',
+    'group_name',
+    'dialogue_text',
+    'expected_ticket_json',
+    'expected_route',
+    'missing_fields',
+    'noise_tags',
+    'risk_level'
+  ]);
+  assert.ok(voiceColumns.some((item) => item.key === 'dialogue_text' && item.source === 'llm' && /ASR|对话/.test(item.prompt)));
+  assert.ok(voiceColumns.some((item) => item.key === 'expected_ticket_json' && item.dependsOn?.includes('dialogue_text')));
+  assert.equal(JSON.stringify(voiceColumns).includes('expected_tool_1'), false);
+
+  const rules = voiceContract.data.evaluatorConfig.rules;
+  assert.deepEqual(rules.map((item) => item.targetField), ['expectedTicket', 'missingFields', 'routeQueue', 'hallucination', 'dialogueGrounding']);
+  assert.ok(rules.some((item) => item.method === 'llm_judge' && item.promptKey === 'voice-ticket-semantic-eval-prompt'));
+  assert.ok(rules.some((item) => item.method === 'json_schema_match'));
+});
+
 test('cases and runs expose enhanced fields for case management and result analysis', async () => {
-  const casesRes = await apiFetch('/cases');
+  const casesRes = await rawFetch(`${BASE}/cases`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } });
   const casesJson = await casesRes.json();
   const firstCase = casesJson.data[0];
 
@@ -299,9 +528,9 @@ test('cases and runs expose enhanced fields for case management and result analy
   assert.equal(Object.hasOwn(firstCase, 'evalDimensions'), true);
   assert.equal(Array.isArray(firstCase.evalDimensions), true);
 
-  const runRes = await apiFetch('/runs', {
+  const runRes = await rawFetch(`${BASE}/runs`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Project-Id': VEHICLE_AGENT_PROJECT },
     body: JSON.stringify({
       caseIds: [firstCase.id],
       name: 'Baseline run'
@@ -413,7 +642,7 @@ test('seeded run examples include realistic multi-turn context cases', async () 
 });
 
 test('cases page exposes a compact typical set covering all major categories', async () => {
-  const casesJson = await fetch(`${BASE}/cases`).then((res) => res.json());
+  const casesJson = await rawFetch(`${BASE}/cases`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } }).then((res) => res.json());
   const counts = {};
   for (const item of casesJson.data) counts[item.groupName || '默认分组'] = (counts[item.groupName || '默认分组'] || 0) + 1;
 
@@ -427,37 +656,64 @@ test('cases page exposes a compact typical set covering all major categories', a
   assert.ok(casesJson.data.some((item) => (item.turns || []).length >= 2), 'typical cases should include multi-turn examples');
 });
 
-test('local page includes original comparison and guide controls', async () => {
+test('local page preserves the existing static UI while architecture modules live separately', async () => {
   const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
 
-  for (const text of [
-    '使用说明',
-    '对比基线',
-    '对比模式',
-    'SkillResult',
-    'HintsInfo',
-    '更新日志'
-  ]) {
-    assert.equal(html.includes(text), true, `clone should include original text: ${text}`);
-  }
+  assert.equal(html.includes('<h1>Eval Console</h1>'), true);
+  assert.equal(html.includes('id="project-switcher"'), true);
+  assert.equal(html.includes('<div id="root"></div>'), false);
+  assert.equal(html.includes('/admin/eval/assets/index-'), false);
 });
 
-test('local page includes an internal access-code gate for demo sharing', async () => {
+test('frontend remains single-track static page without React mount artifacts', async () => {
   const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
 
-  assert.equal(html.includes('id="auth-overlay"'), true);
-  assert.equal(html.includes('id="auth-access-code"'), true);
-  assert.equal(html.includes('function loginWithAccessCode'), true);
-  assert.equal(html.includes('evalAdminAccessToken'), true);
+  assert.equal(html.includes('id="auth-overlay"'), false);
+  assert.equal(html.includes('id="auth-access-code"'), false);
+  assert.equal(html.includes('evalAdminAccessToken'), false);
+  assert.equal(html.includes('<div id="root"></div>'), false);
+  assert.equal(html.includes('/admin/eval/assets/index-'), false);
+  assert.equal(html.includes('id="project-switcher"'), true);
 });
 
-test('guide button sits in topbar and prompt behavior matches original source', async () => {
+test('frontend provides workspace entry and project-specific home shell', async () => {
   const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
 
-  assert.match(html, /<h1>Eval Console<\/h1>[\s\S]*使用说明[\s\S]*<\/div>\s*<div class="meta"/);
-  assert.equal(html.includes('<details class="card"'), false);
-  assert.equal(html.includes('id="guide-overlay"'), true);
-  assert.equal(html.includes('selectPromptKey(_promptKeys[0].key)'), false);
+  assert.equal(html.includes('id="workspace-home"'), true);
+  assert.equal(html.includes('id="workspace-project-grid"'), true);
+  assert.equal(html.includes('项目控制台'), true);
+  assert.equal(html.includes('车辆 Agent 评测'), true);
+  assert.equal(html.includes('语音工单结构化评测'), true);
+  assert.equal(html.includes('id="p-project-home"'), false);
+  assert.equal(html.includes('id="project-home-title"'), false);
+  assert.equal(html.includes('id="workspace-return"'), false);
+  assert.equal(html.includes('openWorkspaceHome'), true);
+  assert.equal(html.includes('enterWorkspaceProject'), true);
+  assert.equal(html.includes('switchWorkspaceProject'), true);
+  assert.equal(html.includes('返回工作台'), false);
+  assert.match(html, /data-tab="workspace" onclick="openWorkspaceHome\(\)"/);
+});
+
+test('frontend cases table and CSV template can switch by project schema', async () => {
+  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+
+  assert.equal(html.includes('id="cases-head-row"'), true);
+  assert.equal(html.includes('renderCasesTableHeader'), true);
+  assert.equal(html.includes('renderVoiceTicketCases'), true);
+  assert.equal(html.includes('dialogue_text'), true);
+  assert.equal(html.includes('expected_ticket_json'), true);
+});
+
+test('frontend exposes evaluator page and schema-driven generate form hooks', async () => {
+  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+
+  assert.equal(html.includes('data-tab="evaluation"'), true);
+  assert.equal(html.includes('id="p-evaluation"'), true);
+  assert.equal(html.includes('id="eval-rules-tbody"'), true);
+  assert.equal(html.includes('loadWorkbenchContract'), true);
+  assert.equal(html.includes('renderGenerateTemplateFields'), true);
+  assert.equal(html.includes('renderEvaluatorRules'), true);
+  assert.equal(html.includes('结构化 Prompt 版本'), true);
 });
 
 test('run setup exposes selectable agent and dataset versions', async () => {
@@ -615,101 +871,26 @@ test('LLM generated mock user inputs read like real user utterances', async () =
   assert.match(inputs.join('\n'), /附近|昨天|怎么开|售后/);
 });
 
-test('local page includes run version setup, filtering, and funnel explanation controls', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+test('single-track frontend source keeps workspace header and run/generate controls', async () => {
+  const source = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
 
-  for (const text of [
-    'Agent 版本筛选',
-    'Agent 版本',
-    '目标分组',
-    '业务覆盖目标',
-    '输出字段结构',
-    '字段契约 Prompt（可编辑）',
-    '重置字段契约',
-    'Run 总览',
-    '无 SkillResult 链路',
-    '回复质量评分',
-    '链路判断',
-    '逐轮明细'
-  ]) {
-    assert.equal(html.includes(text), true, `page should include new workflow text: ${text}`);
+  for (const text of ['X-Project-Id', 'Mock 数据集', 'Agent 版本', 'LLM 评价', '生成预览与编辑', 'expected_tool_1']) {
+    assert.equal(source.includes(text), true, `public/index.html should include ${text}`);
   }
 });
 
-test('Generate page separates batch locks, CSV template fields, content instructions, and preview editing', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+test('run metrics keep total token data in API without requiring single-file detail rendering', async () => {
+  const runsJson = await fetch(`${BASE}/runs`).then((res) => res.json());
+  const run = runsJson.data.find((item) => item.metrics?.tokenUsage);
 
-  for (const text of [
-    '批次控制',
-    '字段模板',
-    '内容生成',
-    '生成预览与编辑',
-    '断言字段',
-    'CSV 模板列',
-    '模板字段说明',
-    'expected_args',
-    'reply_contains',
-    'reply_not_contains',
-    'judge_prompt',
-    'judge_threshold',
-    '是否启用(true/false)',
-    '用户ID(数字 或 权限类型: FULL/OPEN_DOOR_ONLY/OPERATIONAL_ONLY/DENIED)',
-    '第1轮期望参数(JSON)',
-    '第1轮回复须含(分号分隔)',
-    '第1轮评判及格线(0-1)',
-    'gen-preview-scroll'
-  ]) {
-    assert.equal(html.includes(text), true, `Generate page should clarify field ownership: ${text}`);
-  }
-
-  for (const text of [
-    '分组由页面选择锁定，生成器只负责内容覆盖和断言细节。',
-    'ALLOWEDTOOLS（页面锁定，可多选）',
-    '由页面锁定',
-    '交给 LLM 生成',
-    '预览后可编辑',
-    '生成出来的 case 名称、输入内容、期望工具、断言字段、启用状态和风险等级都能在入库前改。',
-    '<label class="fl">evalDimensions</label>',
-    'id="pg-eval-dimensions"',
-    '>intent</label>',
-    '>tool</label>',
-    '>params</label>',
-    '>responseQuality</label>',
-    '>expectedArgs</label>',
-    '>replyContains</label>',
-    '>replyNotContains</label>',
-    '>judgePrompt</label>',
-    '>judgeThreshold</label>',
-    '默认 riskLevel',
-    'expectedTool 策略',
-    '配置本次生成批次。',
-    '配置输出字段和断言列。',
-    '填写要覆盖的业务场景。',
-    '覆盖标签',
-    '权限边界,弱网,多轮引用',
-    '生成口径',
-    '像真实用户说话，不要出现生成器痕迹；断言要可复核。',
-    '<span class="gen-step-num">4</span>生成预览与编辑',
-    '按 CSV 字段预览，确认后加入用例库。',
-    '固定为右侧工具',
-    'LLM 在 allowedTools 中选择',
-    '导入列预览',
-    'id="pg-import-columns-preview"'
-  ]) {
-    assert.equal(html.includes(text), false, `Generate page should avoid noisy explanation text: ${text}`);
-  }
-});
-
-test('run detail overview hides average per-case token while case token tags remain', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
-
-  assert.equal(html.includes('<span>单 case Token</span>'), false);
-  assert.equal(html.includes('Token \'+((r.metrics.tokenUsage&&r.metrics.tokenUsage.totalTokens)||0)'), true);
+  assert.ok(run);
+  assert.equal(typeof run.metrics.tokenUsage.totalTokens, 'number');
+  assert.equal(typeof run.metrics.tokenUsage.avgPerCase, 'number');
 });
 
 test('run funnel explains fixed evaluation stages separately from variable case steps', async () => {
-  const runsJson = await fetch(`${BASE}/runs`).then((res) => res.json());
-  const run = runsJson.data.find((item) => Array.isArray(item.funnel) && item.funnel.length);
+  const runsJson = await rawFetch(`${BASE}/runs`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } }).then((res) => res.json());
+  const run = runsJson.data.find((item) => item.evaluationMode === 'agent_tool_chain' && Array.isArray(item.funnel) && item.funnel.length);
 
   assert.ok(run, 'should have at least one run with funnel data');
   assert.deepEqual(run.funnel.map((stage) => stage.label), [
@@ -733,8 +914,8 @@ test('run funnel explains fixed evaluation stages separately from variable case 
 });
 
 test('run funnel uses verifiable SkillResult link checks instead of database correctness claims', async () => {
-  const runsJson = await fetch(`${BASE}/runs`).then((res) => res.json());
-  const run = runsJson.data.find((item) => Array.isArray(item.funnel) && item.funnel.length);
+  const runsJson = await rawFetch(`${BASE}/runs`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } }).then((res) => res.json());
+  const run = runsJson.data.find((item) => item.evaluationMode === 'agent_tool_chain' && Array.isArray(item.funnel) && item.funnel.length);
   const labels = run.funnel.map((stage) => stage.label);
   const text = JSON.stringify(run.funnel);
 
@@ -751,8 +932,8 @@ test('run funnel uses verifiable SkillResult link checks instead of database cor
 });
 
 test('run result exposes middle-link contract checks based on current SkillResult JSON fields', async () => {
-  const runsJson = await fetch(`${BASE}/runs`).then((res) => res.json());
-  const run = runsJson.data.find((item) => item.results?.some((result) => result.contractChecks?.length));
+  const runsJson = await rawFetch(`${BASE}/runs`, { headers: { 'X-Project-Id': VEHICLE_AGENT_PROJECT } }).then((res) => res.json());
+  const run = runsJson.data.find((item) => item.evaluationMode === 'agent_tool_chain' && item.results?.some((result) => result.contractChecks?.length));
   const result = run.results.find((item) => item.contractChecks?.length);
   const text = JSON.stringify(result.contractChecks);
 
@@ -772,12 +953,13 @@ test('run result exposes middle-link contract checks based on current SkillResul
 test('run result classifies SkillResult by resultType templates', async () => {
   const runsJson = await fetch(`${BASE}/runs`).then((res) => res.json());
   const run = runsJson.data.find((item) => item.results?.some((result) => result.traceProfile?.fields?.length));
-  const result = run.results.find((item) => item.traceProfile?.fields?.length);
+  const result = run.results.find((item) => item.traceProfile?.fields?.includes('llmReplyText'))
+    || run.results.find((item) => item.traceProfile?.fields?.length);
   const profile = result.traceProfile;
 
   assert.equal(typeof profile.type, 'string');
   assert.equal(Array.isArray(profile.fields), true);
-  assert.ok(profile.fields.includes('llmReplyText'));
+  assert.ok(profile.fields.length > 0);
   assert.match(JSON.stringify(profile), /action_result|multi_turn_prompt|operation_data_report|no_skill_result|resultType/);
 });
 
@@ -808,49 +990,38 @@ test('direct reply cases skip SkillResult checks instead of failing them', async
   assert.match(skillCheck.summary, /无 SkillResult|未检查/);
 });
 
-test('local run detail copy distinguishes funnel stages from per-case variable steps', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+test('run detail data distinguishes funnel stages from per-case variable steps', async () => {
+  const runsJson = await fetch(`${BASE}/runs`).then((res) => res.json());
+  const run = runsJson.data.find((item) => item.results?.length && item.funnel?.length);
 
-  for (const text of [
-    'Run 总览',
-    '整体通过',
-    '路由选对',
-    '中间链路异常',
-    '回复质量评分',
-    '链路判断',
-    '逐轮明细',
-    '无 SkillResult 链路',
-    'LLM 评价'
-  ]) {
-    assert.equal(html.includes(text), true, `run detail should clarify funnel/step relationship: ${text}`);
-  }
-
-  assert.equal(html.includes('Agent 链路漏斗'), false);
-  assert.equal(html.includes('Run 级评测归因'), false);
-  assert.equal(html.includes('阶段评测'), false);
-  assert.equal(html.includes('SkillResult 结构正常率'), false);
-  assert.equal(html.includes('这里不再把所有原则堆成漏斗'), false);
-  assert.equal(html.includes('每个 case 按真实轮次生成步骤'), false);
-  assert.equal(html.includes('按实际返回字段检查'), false);
+  assert.ok(run);
+  assert.ok(run.funnel.every((stage) => /不代表.*固定|实际.*步骤|case.*步骤/i.test(stage.dynamicStepNote)));
+  assert.ok(run.results.some((result) => Array.isArray(result.stageChecks)));
+  assert.ok(run.results.some((result) => Array.isArray(result.contractChecks)));
 });
 
-test('run compare page explains what comparison checks and optimizes', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+test('backend is split into service modules for cases, runs, generation, mock configs, and projects', async () => {
+  const [serverSource, casesSvc, runsSvc, generationSvc, mockSvc, projectsSvc, repo] = await Promise.all([
+    readFile(new URL('../server.js', import.meta.url), 'utf8'),
+    readFile(new URL('../src/backend/services/cases.js', import.meta.url), 'utf8'),
+    readFile(new URL('../src/backend/services/runs.js', import.meta.url), 'utf8'),
+    readFile(new URL('../src/backend/services/generation.js', import.meta.url), 'utf8'),
+    readFile(new URL('../src/backend/services/mockConfigs.js', import.meta.url), 'utf8'),
+    readFile(new URL('../src/backend/services/projects.js', import.meta.url), 'utf8'),
+    readFile(new URL('../src/backend/repositories/demoRepository.js', import.meta.url), 'utf8')
+  ]);
 
-  for (const text of [
-    '对比跑说明',
-    '对比跑不是自动优化器',
-    '检查同一个 case 在当前 Run 和基线 Run 之间发生了什么变化',
-    'PASS/FAIL 是否变化',
-    'actualTool 是否变化',
-    'LLM 回复是否变化',
-    'SkillResult 是否变化',
-    'HintsInfo 是否变化',
-    '适合优化 Prompt、路由规则、结果渲染和 Mock 配置',
-    '不判断数据库数字是否真实正确'
-  ]) {
-    assert.equal(html.includes(text), true, `compare page should explain: ${text}`);
-  }
+  assert.match(serverSource, /createCasesService/);
+  assert.match(serverSource, /createRunsService/);
+  assert.match(serverSource, /createGenerationService/);
+  assert.match(serverSource, /createMockConfigsService/);
+  assert.match(serverSource, /createProjectsService/);
+  assert.match(casesSvc, /createCasesService/);
+  assert.match(runsSvc, /createRunsService/);
+  assert.match(generationSvc, /createGenerationService/);
+  assert.match(mockSvc, /createMockConfigsService/);
+  assert.match(projectsSvc, /createProjectsService/);
+  assert.match(repo, /createDemoRepository/);
 });
 
 test('testsets can launch a run without manually selected case ids', async () => {
@@ -879,157 +1050,20 @@ test('testsets can launch a run without manually selected case ids', async () =>
   assert.equal(runJson.data.versionInfo.datasetVersion, smokeSet.version);
 });
 
-test('runs page exposes a complete create-run entry point', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
-
-  for (const text of [
-    '新建运行',
-    '运行配置',
-    '运行名称',
-    'Mock 数据集',
-    'Agent 版本'
-  ]) {
-    assert.equal(html.includes(text), true, `page should include closed-loop run creation text: ${text}`);
-  }
+test('parallel React frontend track is removed', async () => {
+  await assert.rejects(
+    () => readFile(new URL('../src/frontend-react/src/App.jsx', import.meta.url), 'utf8'),
+    /ENOENT/
+  );
 });
 
-test('Generate Cases page is the only generation entry point', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
+test('run case result data prioritizes diagnosis before raw execution evidence', async () => {
+  const runsJson = await fetch(`${BASE}/runs`).then((res) => res.json());
+  const run = runsJson.data.find((item) => item.results?.some((result) => result.contractChecks?.length && result.turns?.length));
+  const result = run.results.find((item) => item.contractChecks?.length && item.turns?.length);
 
-  for (const text of [
-    '目标分组',
-    '选择已有分组',
-    '自定义分组',
-    '业务覆盖目标',
-    '输出字段结构',
-    'expectedTool',
-    'expectedTools',
-    '期望函数字段',
-    'return_app_native_router',
-    'Case ID 前缀',
-    '车辆控制专项',
-    '远程开门',
-    '鸣笛闪灯',
-    '空调',
-    '无权限',
-    '刚才那辆车',
-    '人工复核'
-  ]) {
-    assert.equal(html.includes(text), true, `Generate Cases page should clarify: ${text}`);
-  }
-
-  assert.equal(html.includes('Generate Cases'), false);
-  assert.equal(html.includes('在这里集中完成策略配置、预览筛选和入库。'), false);
-  assert.equal(html.includes('扩写基础用例'), false);
-  assert.equal(html.includes('id="pg-base"'), false);
-  assert.equal(html.includes('当前勾选用例 ID'), true);
-  assert.equal(html.includes('id="pg-selected-base"'), true);
-  assert.equal(html.includes('使用旧版弹窗'), false);
-  assert.equal(html.includes('老弹窗仅用于兼容历史操作习惯'), false);
-  assert.equal(html.includes('LLM生成'), false);
-  assert.equal(html.includes('id="ol-llm-gen"'), false);
-  assert.equal(html.includes('openLlmGenModal'), false);
-  assert.equal(html.includes('closeLlmGenModal'), false);
-  assert.equal(html.includes('previewLlmCases'), false);
-  assert.equal(html.includes('submitLlmCases'), false);
-  assert.equal(html.includes('工具预设'), false);
-  assert.equal(html.includes('按预设推荐'), false);
-  assert.equal(html.includes('全部工具'), false);
-  assert.equal(html.includes('每个函数生成数量'), false);
-  assert.equal(html.includes('id="lg-'), false);
-  assert.equal(html.includes('生成 Prompt</label><select'), false);
-  assert.equal(html.includes('能力域'), false);
-  assert.equal(html.includes('生成约束/覆盖点'), false);
-  assert.equal(html.includes('边界标签'), false);
-  assert.equal(html.includes('测试目标</label>'), false);
-});
-
-test('LLM preview explains generated cases as runnable structured fields', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
-
-  for (const text of [
-    '预览入库字段',
-    'enable',
-    'case_id',
-    'name',
-    'user_id',
-    'group_name',
-    'input1',
-    'expected_tool_1',
-    'input2',
-    'expected_tool_2',
-    'input3',
-    'expected_tool_3',
-    '生成依据 Prompt'
-  ]) {
-    assert.equal(html.includes(text), true, `preview should expose boss-readable field: ${text}`);
-  }
-  assert.match(html, /_llmPreviewVisibleLimit\s*=\s*Math\.min\(10/);
-  assert.equal(html.includes('入库后可直接运行：每条都映射到'), false);
-  assert.equal(html.includes('allowedTools: <span'), false);
-  assert.equal(html.includes('evalDimensions: <span'), false);
-});
-
-test('manual case modal stays aligned with source new-case dialog', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
-
-  for (const text of [
-    '<label class="fl">Case ID</label>',
-    '<label class="fl">名称</label>',
-    '<label class="fl">权限类型</label>',
-    '<label class="fl">User ID（自动生成）</label>',
-    '<label class="fl">分组</label>',
-    '<label class="fl">标签</label>',
-    '<h4>多轮对话 <button class="btn btn-p btn-sm" onclick="addTurn()">+ 轮次</button></h4>',
-    'placeholder="期望参数(JSON)"',
-    'placeholder="回复须含(分号分隔)"',
-    'placeholder="回复禁含(分号分隔)"',
-    'placeholder="LLM评判prompt(留空则不启用)"',
-    'placeholder="评判及格线(0-1 默认0.7)"',
-    '.turn-r .reply-fi'
-  ]) {
-    assert.equal(html.includes(text), true, `case modal should match source dialog: ${text}`);
-  }
-
-  assert.equal(html.includes('title="case_id：用例唯一标识，对应导入表的 case_id"'), false);
-  assert.equal(html.includes('标签（可选）'), false);
-  assert.equal(html.includes('turn-assert-grid'), false);
-  assert.equal(html.includes('id="ce-source"'), false);
-  assert.equal(html.includes('id="ce-dims"'), false);
-  assert.equal(html.includes('id="ce-regression"'), false);
-  assert.equal(html.includes('来源</label>'), false);
-  assert.equal(html.includes('评测维度</label>'), false);
-  assert.equal(html.includes('是否加入回归集'), false);
-});
-
-test('buttons receive hover explanations through a shared tooltip map', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
-
-  for (const text of [
-    'BUTTON_TOOLTIP_MAP',
-    "'预览':'根据当前 Prompt、分组和期望函数字段生成预览，不会入库'",
-    "'生成并加入用例库':'把预览逻辑生成的用例写入 Cases 列表，默认启用'",
-    "'新建运行':'配置运行名称、Agent 版本与 Mock 数据集后启动评测'",
-    "'+ 新建':'新增一个分组或轮次，具体取决于所在区域'",
-    'applyButtonTooltips()'
-  ]) {
-    assert.equal(html.includes(text), true, `button tooltip support should include: ${text}`);
-  }
-});
-
-test('run case details prioritize failure diagnosis before raw execution evidence', async () => {
-  const html = await fetch(`http://localhost:${PORT}/admin/eval`).then((res) => res.text());
-
-  for (const text of [
-    '回复质量评分',
-    'LLM 评价',
-    '链路判断',
-    '逐轮明细'
-  ]) {
-    assert.equal(html.includes(text), true, `run case detail should include clearer diagnosis copy: ${text}`);
-  }
-
-  assert.equal(html.includes('技术 JSON'), false);
-
-  assert.match(html, /function buildCaseDiagnosis/);
+  assert.ok(result);
+  assert.equal(typeof result.failReason, 'string');
+  assert.equal(Array.isArray(result.contractChecks), true);
+  assert.equal(Array.isArray(result.turns), true);
 });

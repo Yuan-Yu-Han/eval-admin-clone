@@ -158,6 +158,25 @@
         .turn-r .fi { flex:1; margin:0; padding:6px 10px; font-size:13px; }
         .turn-r .tool-fi { max-width:180px; }
         .turn-r .reply-fi { flex-basis:calc(50% - 20px); min-width:180px; font-size:12px; color:var(--c-text2); }
+        .case-schema-box { border:1px solid var(--c-border); border-radius:var(--radius); padding:14px; margin-top:8px; background:#fff; }
+        .case-schema-box h4 { font-size:13px; font-weight:700; color:var(--c-text2); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+        .case-input-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+        .eval-card { border:1px solid var(--c-border); border-radius:8px; padding:12px; margin-bottom:10px; background:#fafbfc; }
+        .eval-card:last-child { margin-bottom:0; }
+        .eval-card-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+        .eval-card-num { width:24px; height:24px; border-radius:50%; background:var(--c-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; }
+        .eval-grid { display:grid; grid-template-columns:180px minmax(0,1fr) 220px; gap:10px; align-items:start; }
+        .eval-arg-ta { min-height:74px; font-family:'SF Mono',SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.45; resize:vertical; }
+        .eval-summary { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+        .eval-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:999px; background:#eef2ff; color:var(--c-accent); font-size:11px; font-weight:700; white-space:nowrap; }
+        .eval-chip.muted { background:#f3f4f6; color:var(--c-text3); }
+        .case-title-stack { display:grid; gap:4px; }
+        .case-name-main { font-weight:700; color:var(--c-text); }
+        .case-subline { font-size:12px; color:var(--c-text3); line-height:1.4; }
+        .case-input-preview { white-space:pre-wrap; word-break:break-word; line-height:1.55; max-width:460px; }
+        @media (max-width:900px) {
+            .case-input-grid, .eval-grid { grid-template-columns:1fr; }
+        }
 
         /* ── Detail / results ── */
         .section { margin-bottom:24px; }
@@ -457,6 +476,22 @@
         .template-scroll table { min-width:2200px; font-size:11px; }
         .template-scroll th, .template-scroll td { padding:7px 8px; vertical-align:top; }
         .template-scroll td { color:var(--c-text2); line-height:1.45; }
+        /* Column schema card grid */
+        .col-schema-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:5px; }
+        .col-schema-card { border:1px solid var(--c-border); border-radius:7px; background:#fff; padding:7px 9px; }
+        .col-schema-card.optional { opacity:.6; }
+        .col-schema-card-key { font-family:'SF Mono',SFMono-Regular,Menlo,monospace; font-size:10px; color:var(--c-text3); margin-bottom:2px; }
+        .col-schema-card-title { font-size:12px; font-weight:700; color:var(--c-text); margin-bottom:5px; }
+        .col-schema-card-badges { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:3px; }
+        .col-prompt-tip { font-size:10px; color:var(--c-accent); font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        /* Source badges */
+        .src-badge { display:inline-block; padding:1px 5px; border-radius:3px; font-size:10px; font-weight:700; }
+        .src-auto { background:#f1f5f9; color:#64748b; }
+        .src-fixed { background:#eff6ff; color:#2563eb; }
+        .src-batch { background:#f5f3ff; color:#7c3aed; }
+        .src-llm { background:#f0fdf4; color:#16a34a; }
+        .src-manual { background:#fff7ed; color:#d97706; }
+        .type-badge { display:inline-block; padding:1px 5px; border-radius:3px; font-size:10px; background:#f8fafc; color:var(--c-text3); border:1px solid var(--c-border); }
         .csv-preview-line {
             white-space:nowrap; overflow-x:auto; padding:8px 10px; border:1px solid var(--c-border); border-radius:8px;
             background:#fff; color:var(--c-text2); font-size:11px; font-family:'SF Mono',SFMono-Regular,Menlo,monospace;
@@ -685,6 +720,67 @@
         .preview-cell[disabled] { color:var(--c-text3); background:#f8fafc; }
         .gen-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:12px; }
 
+        .workspace-head {
+            display:flex;
+            align-items:flex-end;
+            justify-content:space-between;
+            gap:20px;
+            margin-bottom:20px;
+            flex-wrap:wrap;
+        }
+        .workspace-title { font-size:22px; font-weight:800; }
+        .workspace-sub { margin-top:6px; color:var(--c-text2); font-size:13px; }
+        .workspace-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+            gap:16px;
+            margin-bottom:24px;
+        }
+        .project-card {
+            border:1px solid var(--c-border);
+            border-radius:8px;
+            background:var(--c-surface);
+            padding:18px;
+            box-shadow:var(--shadow-sm);
+            cursor:pointer;
+            transition:border .15s, transform .15s, box-shadow .15s;
+        }
+        .project-card:hover { border-color:var(--c-accent); transform:translateY(-1px); box-shadow:var(--shadow); }
+        .project-card h2 { font-size:17px; margin-bottom:8px; }
+        .project-card p { color:var(--c-text2); font-size:13px; line-height:1.55; margin-bottom:14px; }
+        .project-metrics {
+            display:grid;
+            grid-template-columns:repeat(3,minmax(0,1fr));
+            gap:8px;
+            margin:14px 0;
+        }
+        .project-metric {
+            border:1px solid var(--c-border);
+            border-radius:8px;
+            padding:10px;
+            background:#fafbfc;
+            min-width:0;
+        }
+        .project-metric b { display:block; font-size:18px; line-height:1; }
+        .project-metric span { display:block; margin-top:5px; color:var(--c-text3); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .project-card-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:12px; }
+        .project-module-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+            gap:12px;
+        }
+        .project-module {
+            border:1px solid var(--c-border);
+            border-radius:8px;
+            background:#fff;
+            padding:14px;
+            cursor:pointer;
+            transition:border .15s, background .15s;
+        }
+        .project-module:hover { border-color:var(--c-accent); background:#fafbff; }
+        .project-module b { display:block; font-size:14px; margin-bottom:6px; }
+        .project-module span { color:var(--c-text2); font-size:12px; line-height:1.5; }
+
         @media(max-width:768px) {
             .shell { padding:0 12px 24px; }
             .kpi-strip { flex-wrap:wrap; }
@@ -697,6 +793,7 @@
             .gen-workbench { grid-template-columns:1fr; }
             .schema-contract { grid-template-columns:1fr; }
             .ownership-grid, .field-option-grid, .preview-card-head, .preview-turn-grid, .preview-assert-grid { grid-template-columns:1fr; }
+            .project-metrics { grid-template-columns:1fr; }
         }
         @media(max-width:1220px) {
             .gen-workbench { grid-template-rows:auto minmax(460px,1fr); }
@@ -712,14 +809,16 @@
             <h1>Eval Console</h1>
             <span id="env-badge" class="tag" style="background:var(--c-blue-bg);color:var(--c-blue);font-size:12px;display:none;"></span>
             <span id="project-badge" class="tag" style="background:var(--c-green-bg);color:var(--c-green);font-size:12px;display:none;"></span>
+            <select id="project-switcher" class="fi" style="display:none;width:auto;min-width:180px;padding:4px 9px;font-size:12px" onchange="switchWorkspaceProject(this.value)"></select>
             <button class="btn btn-ghost btn-sm" onclick="document.getElementById('guide-overlay').classList.add('open')" style="font-size:12px;padding:2px 10px">使用说明</button>
         </div>
         <div class="meta" id="clock"></div>
     </div>
 
     <div class="nav">
+        <div class="nav-item active" data-tab="workspace" onclick="openWorkspaceHome()">Home</div>
         <div class="nav-item" data-tab="generate" onclick="go('generate')">Generate</div>
-        <div class="nav-item active" data-tab="cases" onclick="go('cases')">Cases</div>
+        <div class="nav-item" data-tab="cases" onclick="go('cases')">Cases</div>
         <div class="nav-item" data-tab="runs" onclick="go('runs')">Runs</div>
         <div class="nav-item" data-tab="mock" onclick="go('mock')">Mock</div>
         <div class="nav-item" data-tab="prompt" onclick="go('prompt')">Prompt</div>
@@ -734,8 +833,19 @@
         <button class="btn btn-sm btn-flat" onclick="go('runs')">查看</button>
     </div>
 
+    <div class="pane active" id="workspace-home">
+        <div class="workspace-head">
+            <div>
+                <div class="workspace-title">项目控制台</div>
+                <div class="workspace-sub" id="workspace-account">测试人员</div>
+            </div>
+            <button class="btn btn-flat" onclick="initWorkspace(function(){renderWorkspaceHome();})">刷新</button>
+        </div>
+        <div class="workspace-grid" id="workspace-project-grid"></div>
+    </div>
+
     <!-- ═══════ Cases ═══════ -->
-    <div class="pane active" id="p-cases">
+    <div class="pane" id="p-cases">
         <div class="cases-sticky">
             <div class="kpi-strip">
                 <div class="kpi"><b id="k-total">0</b><span>用例</span></div>
@@ -772,7 +882,7 @@
         </div>
         <div class="card"><div class="tbl-wrap">
             <table class="cases-tbl">
-                <thead><tr>
+                <thead><tr id="cases-head-row">
                     <th class="ck"><input type="checkbox" id="ck-all" onchange="toggleAll(this)"></th>
                     <th>Case ID</th><th>对话内容</th><th>User</th><th>来源</th><th>权限</th><th>状态</th><th>回归</th><th>标签</th><th>更新时间</th><th></th>
                 </tr></thead>
@@ -801,7 +911,7 @@
                                 </select>
                             </div>
                             <div class="fg"><label class="fl">生成数量</label><input class="fi" id="pg-count" type="number" min="1" max="50" value="8"></div>
-                            <div class="fg"><label class="fl">轮次数</label><input class="fi" id="pg-turns" type="number" min="1" max="3" value="1"></div>
+                            <div class="fg" id="pg-turns-wrap"><label class="fl">轮次数</label><input class="fi" id="pg-turns" type="number" min="1" max="3" value="1"></div>
                             <div class="fg"><label class="fl">Case ID 前缀</label><input class="fi" id="pg-prefix" value="llm_demo"></div>
                         </div>
                         <div class="gen-grid-2">
@@ -809,7 +919,7 @@
                             <div class="fg"><label class="fl">自定义分组</label><input class="fi" id="pg-custom-group" value="" oninput="updateGenerateGroupLock()"></div>
                         </div>
                         <div style="display:none" id="pg-locked-group">默认分组</div>
-                        <div class="gen-grid-2">
+                        <div class="gen-grid-2" id="pg-vehicle-controls">
                             <div class="fg"><label class="fl">User ID 策略</label>
                                 <select class="fi" id="pg-user-strategy">
                                     <option value="FULL">权限类型：FULL</option>
@@ -820,13 +930,6 @@
                             </div>
                             <div class="fg"><label class="fl">期望函数字段</label>
                                 <select class="fi" id="pg-expected-tool" onchange="syncAllowedToolsFromExpected()">
-                                    <option value="RAG">RAG</option>
-                                    <option value="freeChat">freeChat</option>
-                                    <option value="open_door">open_door</option>
-                                    <option value="return_app_native_router">return_app_native_router</option>
-                                    <option value="vehicle_control">vehicle_control</option>
-                                    <option value="vehicle_operation_data_query">vehicle_operation_data_query</option>
-                                    <option value="vehicle_selective_query">vehicle_selective_query</option>
                                 </select>
                             </div>
                         </div>
@@ -834,42 +937,28 @@
                     <div class="gen-sec">
                         <div class="gen-step-head">
                             <div>
-                                <div class="gen-step-title"><span class="gen-step-num">2</span>字段模板</div>
+                                <div class="gen-step-title"><span class="gen-step-num">2</span>列模板</div>
                             </div>
                             <span class="tag tag-wait">CSV 模板列</span>
                         </div>
-                        <div class="fg"><label class="fl">必填字段（锁定）</label>
-                            <div class="field-option-grid">
-                                <label class="field-option locked"><input type="checkbox" checked disabled>caseId</label>
-                                <label class="field-option locked"><input type="checkbox" checked disabled>name</label>
-                                <label class="field-option locked"><input type="checkbox" checked disabled>groupName</label>
-                                <label class="field-option locked"><input type="checkbox" checked disabled>allowedTools</label>
-                                <label class="field-option locked"><input type="checkbox" checked disabled>turns</label>
-                                <label class="field-option locked"><input type="checkbox" checked disabled>expectedTools</label>
-                                <label class="field-option locked"><input type="checkbox" checked disabled>riskLevel</label>
-                            </div>
+                        <!-- Template-driven column schema cards -->
+                        <div id="pg-column-schema" style="margin-bottom:12px"></div>
+                        <!-- Hidden elements for backward compat with checkedValues() -->
+                        <div style="display:none" id="pg-required-fields"></div>
+                        <div style="display:none" id="pg-assertion-fields">
+                            <input type="checkbox" value="expectedArgs" checked>
+                            <input type="checkbox" value="replyContains" checked>
+                            <input type="checkbox" value="replyNotContains" checked>
+                            <input type="checkbox" value="judgePrompt" checked>
+                            <input type="checkbox" value="judgeThreshold" checked>
                         </div>
-                        <div class="fg"><label class="fl">断言字段</label>
-                            <div class="field-option-grid" id="pg-assertion-fields">
-                                <label class="field-option"><input type="checkbox" value="expectedArgs" checked onchange="refreshSchemaControls()">expected_args</label>
-                                <label class="field-option"><input type="checkbox" value="replyContains" checked onchange="refreshSchemaControls()">reply_contains</label>
-                                <label class="field-option"><input type="checkbox" value="replyNotContains" checked onchange="refreshSchemaControls()">reply_not_contains</label>
-                                <label class="field-option"><input type="checkbox" value="judgePrompt" checked onchange="refreshSchemaControls()">judge_prompt</label>
-                                <label class="field-option"><input type="checkbox" value="judgeThreshold" checked onchange="refreshSchemaControls()">judge_threshold</label>
-                            </div>
-                        </div>
-                        <details class="schema-note" style="margin:0 0 14px">
+                        <details class="schema-note" style="margin:0 0 0">
                             <summary style="cursor:pointer;font-weight:700;color:var(--c-text)">字段契约 Prompt（可编辑）/ 高级字段规则</summary>
                             <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:10px 0 6px">
                                 <button class="btn btn-ghost btn-sm" type="button" onclick="resetSchemaPrompt()">重置字段契约</button>
                             </div>
                             <textarea class="fi" id="pg-schema-prompt" rows="5" oninput="_schemaPromptTouched=true"></textarea>
                         </details>
-                        <details class="schema-note" style="margin:0">
-                            <summary style="cursor:pointer;font-weight:700;color:var(--c-text)">模板字段说明</summary>
-                            <div id="pg-template-doc" style="margin-top:10px"></div>
-                        </details>
-                        <div class="schema-note" id="pg-schema-note" style="display:none">输出字段结构：字段结构全项目统一，业务覆盖目标单独填写。</div>
                     </div>
                     <div class="gen-sec">
                         <div class="gen-step-head">
@@ -878,7 +967,7 @@
                             </div>
                             <span class="tag tag-wait">LLM 生成字段</span>
                         </div>
-                        <div class="fg"><label class="fl">业务覆盖目标（可编辑）</label><textarea class="fi" id="pg-generation-prompt" rows="7"></textarea></div>
+                        <div class="fg"><label class="fl">业务覆盖目标（可编辑）</label><textarea class="fi" id="pg-generation-prompt" rows="7" oninput="_generationPromptTouched=true"></textarea></div>
                         <div class="fg" id="pg-selected-base-wrap" style="display:none;margin-top:8px">
                             <label class="fl">当前勾选用例 ID</label>
                             <div class="gen-selected-base" id="pg-selected-base">未勾选用例；定向扩写会提示先勾选。</div>
@@ -894,7 +983,10 @@
                 <div class="gen-preview-head">
                     <div>
                         <strong>生成预览与编辑</strong>
-                        <span id="pg-preview-meta">先点击生成预览，支持逐条删除后再入库</span>
+                        <span id="pg-preview-meta">先点击生成预览，支持逐格编辑后再入库</span>
+                    </div>
+                    <div id="pg-preview-actions" style="display:none;gap:6px;align-items:center">
+                        <button class="btn btn-ghost btn-sm" onclick="downloadPreviewCsv()">下载 CSV</button>
                     </div>
                 </div>
                 <div class="gen-preview-body">
@@ -1076,7 +1168,7 @@
 
 <!-- ═══ Case Modal ═══ -->
 <div class="overlay" id="ol-case">
-    <div class="dialog">
+    <div class="dialog dialog-lg">
         <div class="dlg-head"><h2 id="case-dlg-title">新建用例</h2><button class="dlg-close" onclick="closeCM()">&times;</button></div>
         <div class="dlg-body">
             <input type="hidden" id="ce-id">
@@ -1085,25 +1177,21 @@
                 <div class="fg"><label class="fl">名称</label><input class="fi" id="ce-name" placeholder="用例描述"></div>
             </div>
             <div class="fr">
-                <div class="fg">
-                    <label class="fl">权限类型</label>
-                    <select class="fi" id="ce-tier" onchange="autoGenUid()">
-                        <option value="FULL">FULL（全权限）</option>
-                        <option value="OPEN_DOOR_ONLY">OPEN_DOOR_ONLY（仅开门）</option>
-                        <option value="OPERATIONAL_ONLY">OPERATIONAL_ONLY（仅运营）</option>
-                        <option value="DENIED">DENIED（无权限）</option>
-                    </select>
+                <div class="fg"><label class="fl">User ID</label><input class="fi" id="ce-uid" placeholder="车辆 Agent 可填；其它项目可留空"></div>
+                <div class="fg"><label class="fl">标签</label><input class="fi" id="ce-tags" placeholder="开门|高风险"></div>
+            </div>
+            <div class="fg"><label class="fl">分组</label><div style="display:flex;gap:6px"><select class="fi" id="ce-group" style="flex:1"></select><button class="btn btn-flat btn-sm" type="button" onclick="createNewGroup()">+ 新建</button></div></div>
+            <div class="case-schema-box">
+                <h4>输入字段</h4>
+                <div class="case-input-grid">
+                    <div class="fg"><label class="fl">input1</label><textarea class="fi" id="ce-input1" rows="3" placeholder="第一个输入，必填"></textarea></div>
+                    <div class="fg"><label class="fl">input2</label><textarea class="fi" id="ce-input2" rows="3" placeholder="第二个输入，可选"></textarea></div>
+                    <div class="fg"><label class="fl">input3</label><textarea class="fi" id="ce-input3" rows="3" placeholder="第三个输入，可选"></textarea></div>
                 </div>
-                <div class="fg"><label class="fl">User ID（自动生成）</label><input class="fi" id="ce-uid" readonly style="background:#f5f6fa;color:var(--c-text2)"></div>
             </div>
-            <div class="fr">
-                <div class="fg"><label class="fl">分组</label><div style="display:flex;gap:6px"><select class="fi" id="ce-group" style="flex:1"></select><button class="btn btn-flat btn-sm" type="button" onclick="createNewGroup()">+ 新建</button></div></div>
-                <div class="fg"><label class="fl">标签</label><input class="fi" id="ce-tags" placeholder="开门,车控"></div>
-            </div>
-            <div class="fg"><label class="fcheck"><input type="checkbox" id="ce-on" checked> 启用</label></div>
-            <div class="turns-box">
-                <h4>多轮对话 <button class="btn btn-p btn-sm" onclick="addTurn()">+ 轮次</button></h4>
-                <div id="turns-ct"></div>
+            <div class="case-schema-box">
+                <h4>评测点</h4>
+                <div id="eval-ct"></div>
             </div>
         </div>
         <div class="dlg-foot">
@@ -1284,24 +1372,6 @@
     </div>
 </div>
 
-<div class="auth-overlay" id="auth-overlay">
-    <div class="auth-dialog">
-        <h2>项目访问</h2>
-        <p>当前是 Eval Console demo。请输入项目访问码进入对应空间；不同团队会看到各自的 Cases、Runs、Mock 和 Prompt 数据。</p>
-        <div class="fg" style="margin-bottom:0">
-            <label class="fl">项目访问码</label>
-            <input class="fi" id="auth-access-code" type="password" placeholder="输入项目访问码" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();loginWithAccessCode();}">
-        </div>
-        <div class="auth-note">
-            演示项目码：<code>ops</code> 运营数据评测，<code>vehicle</code> 车辆控制评测，<code>eval</code> 管理员视角。
-        </div>
-        <div class="auth-error" id="auth-error"></div>
-        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
-            <button class="btn btn-p" id="auth-submit" onclick="loginWithAccessCode()">进入</button>
-        </div>
-    </div>
-</div>
-
 <div class="toast-box" id="toast-box"></div>
 
 <!-- 阅读模式：评论浮窗（单例，靠「评论」按钮定位） -->
@@ -1428,15 +1498,18 @@
 
 <script>
 var BASE = '/admin/eval';
-var AUTH_TOKEN_KEY = 'evalAdminAccessToken';
 var PROJECT_NAME_KEY = 'evalAdminProjectName';
+var PROJECT_ID_KEY = 'evalAdminProjectId';
+var PROJECTS_KEY = 'evalAdminProjects';
 var RUN_MOCK_CONFIG_KEY = 'evalRunMockConfigId';
 var _rawFetch = window.fetch.bind(window);
 var allCases = [], allRuns = [], polls = {};
+var _workspaceProjects = [];
+var _workspaceAccount = null;
 var _debugData = [];
 var _agentVersions = [];
 var _caseGenerationSchema = null;
-var LLM_ALL_TOOLS=['RAG','freeChat','open_door','return_app_native_router','vehicle_control','vehicle_operation_data_query','vehicle_selective_query'];
+var LLM_ALL_TOOLS=['RAG','freeChat','open_door','return_app_native_router','vehicle_control','vehicle_operation_data_query','vehicle_selective_query','voice_ticket_structuring','ticket_field_extract','ticket_category_route'];
 var BUTTON_TOOLTIP_MAP={
     '预览':'根据当前 Prompt、分组和期望函数字段生成预览，不会入库',
     '加入用例库':'把预览逻辑生成的用例写入 Cases 列表，默认启用',
@@ -1458,37 +1531,18 @@ var BUTTON_TOOLTIP_MAP={
 window.fetch = function(input, init){
     var url = typeof input === 'string' ? input : (input && input.url) || '';
     var next = init || {};
-    if(url.indexOf(BASE + '/api/') === 0 && url.indexOf(BASE + '/api/auth/') !== 0 && url.indexOf(BASE + '/api/env') !== 0){
-        var token = localStorage.getItem(AUTH_TOKEN_KEY);
-        if(token){
-            var headers = next.headers instanceof Headers ? Object.fromEntries(next.headers.entries()) : Object.assign({}, next.headers || {});
-            headers.Authorization = 'Bearer ' + token;
-            next = Object.assign({}, next, { headers: headers });
+    if(url.indexOf(BASE + '/api/') === 0 && url.indexOf(BASE + '/api/env') !== 0){
+        var headers = next.headers instanceof Headers ? Object.fromEntries(next.headers.entries()) : Object.assign({}, next.headers || {});
+        var projectId = localStorage.getItem(PROJECT_ID_KEY);
+        if(projectId){
+            var projects=parseStoredProjects();
+            var valid=projects.some(function(p){return p&&p.projectId===projectId;});
+            if(valid) headers['X-Project-Id'] = projectId;
         }
+        next = Object.assign({}, next, { headers: headers });
     }
-    return _rawFetch(input, next).then(function(res){
-        if(res.status === 401 && url.indexOf(BASE + '/api/auth/') !== 0){
-            localStorage.removeItem(AUTH_TOKEN_KEY);
-            localStorage.removeItem(PROJECT_NAME_KEY);
-            setProjectBadge('');
-            showAuthGate();
-        }
-        return res;
-    });
+    return _rawFetch(input, next);
 };
-
-function showAuthGate(message){
-    var overlay = document.getElementById('auth-overlay');
-    if(overlay) overlay.classList.remove('hidden');
-    var input = document.getElementById('auth-access-code');
-    if(input) setTimeout(function(){ input.focus(); }, 50);
-    if(message) setAuthError(message);
-}
-
-function hideAuthGate(){
-    var overlay = document.getElementById('auth-overlay');
-    if(overlay) overlay.classList.add('hidden');
-}
 
 function setProjectBadge(projectName){
     var badge = document.getElementById('project-badge');
@@ -1501,67 +1555,175 @@ function setProjectBadge(projectName){
     }
 }
 
-function setAuthError(message){
-    var err = document.getElementById('auth-error');
-    if(!err) return;
-    err.textContent = message || '';
-    err.classList.toggle('show', !!message);
+function parseStoredProjects(){
+    try{
+        var raw=localStorage.getItem(PROJECTS_KEY);
+        var list=raw?JSON.parse(raw):[];
+        return Array.isArray(list)?list:[];
+    }catch(e){
+        return [];
+    }
 }
 
-function authStatusHeaders(){
-    var token = localStorage.getItem(AUTH_TOKEN_KEY);
-    return token ? { Authorization: 'Bearer ' + token } : {};
+function setWorkspaceProjects(projects, activeProjectId){
+    projects=Array.isArray(projects)?projects:[];
+    _workspaceProjects=projects;
+    if(projects.length){
+        localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+    }else{
+        localStorage.removeItem(PROJECTS_KEY);
+    }
+    var active=projects.find(function(p){return p.projectId===activeProjectId;})||projects[0]||null;
+    if(active){
+        localStorage.setItem(PROJECT_ID_KEY, active.projectId);
+        localStorage.setItem(PROJECT_NAME_KEY, active.projectName || active.projectId);
+        setProjectBadge(active.projectName || active.projectId);
+    }else{
+        localStorage.removeItem(PROJECT_ID_KEY);
+        localStorage.removeItem(PROJECT_NAME_KEY);
+        setProjectBadge('');
+    }
+    var sel=document.getElementById('project-switcher');
+    if(sel){
+        if(projects.length>1){
+            sel.innerHTML=projects.map(function(p){return '<option value="'+ea(p.projectId)+'">'+esc(p.projectName||p.projectId)+'</option>';}).join('');
+            sel.value=(active&&active.projectId)||projects[0].projectId;
+            sel.style.display='inline-block';
+        }else{
+            sel.style.display='none';
+            sel.innerHTML='';
+        }
+    }
+    renderWorkspaceHome();
 }
 
-function ensureAuth(done){
-    _rawFetch(BASE + '/api/auth/status', { headers: authStatusHeaders() })
+function switchWorkspaceProject(projectId){
+    enterWorkspaceProject(projectId,'cases');
+}
+
+function activeWorkspaceProject(){
+    var projectId=localStorage.getItem(PROJECT_ID_KEY);
+    var projects=_workspaceProjects.length?_workspaceProjects:parseStoredProjects();
+    return projects.find(function(p){return p&&p.projectId===projectId;})||projects[0]||null;
+}
+
+function projectCaseCount(project, metric){
+    if(!metric||!metric.sourceGroup) return allCases.length;
+    return allCases.filter(function(c){return (c.groupName||'默认分组')===metric.sourceGroup;}).length;
+}
+
+function renderProjectMetrics(project){
+    var metrics=(project&&project.primaryMetrics)||[];
+    if(!metrics.length) metrics=[{key:'cases',label:'用例'},{key:'runs',label:'运行'},{key:'tools',label:'工具'}];
+    return metrics.map(function(m){
+        var value=m.sourceGroup?projectCaseCount(project,m):(m.key==='runs'?allRuns.length:((project.tools||[]).length||allCases.length));
+        return '<div class="project-metric"><b>'+value+'</b><span>'+esc(m.label)+'</span></div>';
+    }).join('');
+}
+
+function renderWorkspaceHome(){
+    var grid=document.getElementById('workspace-project-grid');
+    if(!grid) return;
+    var account=document.getElementById('workspace-account');
+    if(account&&_workspaceAccount) account.textContent=(_workspaceAccount.accountName||'测试人员')+' · '+_workspaceProjects.length+' 个项目';
+    var projects=_workspaceProjects.length?_workspaceProjects:parseStoredProjects();
+    if(!projects.length){
+        grid.innerHTML='<div class="card" style="padding:18px;color:var(--c-text2)">暂无可访问项目</div>';
+        return;
+    }
+    grid.innerHTML=projects.map(function(p){
+        var modules=(p.homeModules&&p.homeModules.length?p.homeModules:[
+            {label:'Cases',targetTab:'cases'},
+            {label:'Generate',targetTab:'generate'},
+            {label:'Runs',targetTab:'runs'}
+        ]);
+        return '<div class="project-card">'+
+            '<h2>'+esc(p.projectName||p.projectId)+'</h2>'+
+            '<p>'+esc(p.homeSummary||'项目评测空间')+'</p>'+
+            '<div class="project-metrics">'+renderProjectMetrics(p)+'</div>'+
+            '<div class="project-module-grid">'+modules.map(function(m){
+                return '<button class="btn btn-flat btn-sm" onclick="enterWorkspaceProject(\''+ea(p.projectId)+'\',\''+ea(m.targetTab||'cases')+'\')">'+esc(m.label||m.key||m.targetTab)+'</button>';
+            }).join('')+'</div>'+
+            '<div class="project-card-actions">'+
+                '<span class="tag" style="background:var(--c-blue-bg);color:var(--c-blue)">'+esc(p.role||'member')+'</span>'+
+                '<button class="btn btn-p btn-sm" onclick="enterWorkspaceProject(\''+ea(p.projectId)+'\',\'cases\')">进入 Cases</button>'+
+            '</div>'+
+        '</div>';
+    }).join('');
+}
+
+function moduleHint(tab){
+    if(tab==='cases') return '管理当前项目的用例结构';
+    if(tab==='generate') return '按当前项目模板生成样本';
+    if(tab==='runs') return '查看当前项目的评测运行';
+    if(tab==='mock') return '配置当前项目的数据环境';
+    if(tab==='prompt') return '维护当前项目 Prompt 草稿';
+    return '进入模块';
+}
+
+function enterWorkspaceProject(projectId,targetTab){
+    var projects=parseStoredProjects();
+    var active=projects.find(function(p){return p.projectId===projectId;});
+    if(!active)return;
+    localStorage.setItem(PROJECT_ID_KEY, active.projectId);
+    localStorage.setItem(PROJECT_NAME_KEY, active.projectName || active.projectId);
+    setProjectBadge(active.projectName || active.projectId);
+    refreshWorkspaceForProject(targetTab||'cases');
+}
+
+function refreshWorkspaceForProject(targetTab){
+    allCases=[];
+    allRuns=[];
+    _mcList=[];
+    _caseGenerationSchema=null;
+    _promptKeys=[];
+    _selectedPromptKey='';
+    _llmPreviewCases=[];
+    _schemaPromptTouched=false;
+    _generationPromptTouched=false;
+    var generationPrompt=document.getElementById('pg-generation-prompt');
+    if(generationPrompt) generationPrompt.value='';
+    var schemaPrompt=document.getElementById('pg-schema-prompt');
+    if(schemaPrompt) schemaPrompt.value='';
+    loadCases();
+    loadVersionOptions();
+    loadCaseGenerationSchema();
+    checkRunning();
+    initGeneratePage();
+    loadRuns();
+    go(targetTab||'cases');
+    toast('已进入 '+(localStorage.getItem(PROJECT_NAME_KEY)||'项目控制台'),'ok');
+}
+
+function openWorkspaceHome(){
+    document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('active');});
+    var home=document.getElementById('workspace-home');
+    if(home) home.classList.add('active');
+    document.querySelectorAll('.nav-item[data-tab]').forEach(function(n){ n.classList.toggle('active',n.getAttribute('data-tab')==='workspace'); });
+    setProjectBadge('');
+    renderWorkspaceHome();
+}
+
+function initWorkspace(done){
+    var headers = {};
+    var projectId = localStorage.getItem(PROJECT_ID_KEY);
+    if(projectId) headers['X-Project-Id'] = projectId;
+    _rawFetch(BASE + '/api/auth/status', { headers: headers })
         .then(function(r){ return r.json(); })
         .then(function(d){
-            if(d.code === '10000' && d.data && d.data.authenticated){
-                if(d.data.project && d.data.project.projectName){
-                    localStorage.setItem(PROJECT_NAME_KEY, d.data.project.projectName);
-                    setProjectBadge(d.data.project.projectName);
-                } else {
-                    setProjectBadge(localStorage.getItem(PROJECT_NAME_KEY));
-                }
-                hideAuthGate();
-                done();
-                return;
-            }
-            localStorage.removeItem(PROJECT_NAME_KEY);
-            setProjectBadge('');
-            showAuthGate();
+            var data=d.data||{};
+            _workspaceAccount=data.account||null;
+            setWorkspaceProjects(data.projects || [], data.activeProjectId || (data.project&&data.project.projectId) || localStorage.getItem(PROJECT_ID_KEY));
+            done();
         })
-        .catch(function(){ showAuthGate('认证状态检查失败，请稍后重试'); });
-}
-
-function loginWithAccessCode(){
-    var input = document.getElementById('auth-access-code');
-    var btn = document.getElementById('auth-submit');
-    var accessCode = input ? input.value.trim() : '';
-    if(!accessCode){ setAuthError('请输入访问码'); return; }
-    setAuthError('');
-    if(btn) btn.disabled = true;
-    _rawFetch(BASE + '/api/auth/login', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({accessCode:accessCode})
-    }).then(function(r){ return r.json(); }).then(function(d){
-        if(d.code !== '10000'){
-            setAuthError(d.message || '访问码不正确');
-            return;
-        }
-        localStorage.setItem(AUTH_TOKEN_KEY, d.data.token);
-        localStorage.setItem(PROJECT_NAME_KEY, d.data.projectName || '项目空间');
-        setProjectBadge(d.data.projectName || '项目空间');
-        if(input) input.value = '';
-        hideAuthGate();
-        bootApp();
-    }).catch(function(){
-        setAuthError('登录请求失败，请确认服务可用');
-    }).finally(function(){
-        if(btn) btn.disabled = false;
-    });
+        .catch(function(){
+            _workspaceAccount={accountId:'tester',accountName:'测试人员'};
+            setWorkspaceProjects([
+                {projectId:'vehicle-agent-eval',projectName:'车辆 Agent 评测',role:'member'},
+                {projectId:'voice-ticket-eval',projectName:'语音工单结构化评测',role:'member'}
+            ], localStorage.getItem(PROJECT_ID_KEY)||'vehicle-agent-eval');
+            done();
+        });
 }
 
 var _booted = false;
@@ -1603,13 +1765,13 @@ function bootApp(){
     checkRunning();
     loadEnv();
     loadCaseGenerationSchema();
-    go('cases');
     initGeneratePage();
+    openWorkspaceHome();
     applyButtonTooltips();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    ensureAuth(bootApp);
+    initWorkspace(bootApp);
 });
 function applyButtonTooltips(root){
     (root||document).querySelectorAll('button').forEach(function(btn){
@@ -1652,6 +1814,10 @@ function renderVersionOptions(){
 /* ── Nav ── */
 function go(t){
     var tabs=['cases','generate','runs','mock','prompt'];
+    var workspace=document.getElementById('workspace-home');
+    if(workspace) workspace.classList.remove('active');
+    var project=activeWorkspaceProject();
+    if(project) setProjectBadge(project.projectName||project.projectId);
     document.querySelectorAll('.nav-item[data-tab]').forEach(function(n){ n.classList.toggle('active',n.getAttribute('data-tab')===t); });
     tabs.forEach(function(n){ document.getElementById('p-'+n).classList.toggle('active',n===t); });
     if(t==='runs') loadRuns();
@@ -1664,7 +1830,7 @@ function go(t){
 /* ══════ Cases ══════ */
 function loadCases(){
     fetch(BASE+'/api/cases').then(r=>r.json()).then(d=>{
-        if(d.code==='10000'){ allCases=d.data||[]; updKpi(); filterCases(); }
+        if(d.code==='10000'){ allCases=d.data||[]; updKpi(); filterCases(); renderWorkspaceHome(); }
         else toast('加载失败: '+d.message,'err');
     }).catch(e=>toast('请求异常','err'));
 }
@@ -1676,7 +1842,16 @@ function updKpi(){
     var sel=document.getElementById('case-tool-filter');
     var prev=sel.value;
     var tools=new Set();
-    allCases.forEach(function(c){(c.turns||[]).forEach(function(t){if(t.expectedTool)tools.add(t.expectedTool);});});
+    allCases.forEach(function(c){
+        (c.turns||[]).forEach(function(t){if(t.expectedTool)tools.add(t.expectedTool);});
+        collectCaseEvalSlots(c).forEach(function(slot){
+            if(canonicalEvalType(slot.evalType)==='structure_match'){
+                var arg=parseExpectedArg(slot.expectedArg);
+                if(arg&&arg.tool) tools.add(arg.tool);
+                else if(slot.expectedArg) tools.add(slot.expectedArg);
+            }
+        });
+    });
     _allToolNames=Array.from(tools).sort();
     sel.innerHTML='<option value="">全部函数</option>'+_allToolNames.map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+'</option>';}).join('');
     sel.value=prev;
@@ -1784,13 +1959,23 @@ function filterCases(){
             var match=false;
             if((c.caseId||'').toLowerCase().includes(q)) match=true;
             if(!match&&(c.name||'').toLowerCase().includes(q)) match=true;
+            if(!match&&((c.groupName||'')+' '+(c.tags||'')).toLowerCase().includes(q)) match=true;
+            if(!match&&caseInputs(c).join('\n').toLowerCase().includes(q)) match=true;
+            if(!match&&collectCaseEvalSlots(c).map(function(s){return [s.evalType,s.expectedArg,s.judgePromptId].join(' ');}).join('\n').toLowerCase().includes(q)) match=true;
+            if(!match&&((c.payload&&c.payload.dialogueText)||'').toLowerCase().includes(q)) match=true;
             if(!match){var turns=c.turns||[];for(var i=0;i<turns.length;i++){if((turns[i].userInput||'').toLowerCase().includes(q)){match=true;break;}}}
             if(!match) return false;
         }
         if(tf){
-            var turns=c.turns||[];
             var hasT=false;
+            var turns=c.turns||[];
             for(var i=0;i<turns.length;i++){if(turns[i].expectedTool===tf){hasT=true;break;}}
+            if(!hasT){
+                collectCaseEvalSlots(c).forEach(function(slot){
+                    var arg=parseExpectedArg(slot.expectedArg);
+                    if(canonicalEvalType(slot.evalType)==='structure_match'&&((arg&&arg.tool===tf)||slot.expectedArg===tf)) hasT=true;
+                });
+            }
             if(!hasT) return false;
         }
         if(sf&&c.source!==sf) return false;
@@ -1816,49 +2001,160 @@ function sourceStyle(source){
         'llm':'background:#ede9fe;color:#6d28d9'
     }[source]||'background:var(--c-blue-bg);color:var(--c-blue)';
 }
-function renderCases(list){
-    var tb=document.getElementById('tb-cases');
-    if(!list.length){tb.innerHTML='<tr><td colspan="11" class="empty">暂无用例</td></tr>';return;}
-    tb.innerHTML=list.map(function(c){
-        var turns=c.turns||[];
-        var turnsHtml='';
-        if(turns.length){
-            var parts=[];
-            turns.forEach(function(t,i){
-                if(i>0) parts.push('<div class="case-turn-arrow">\u2193</div>');
-                var tool=t.expectedTool?'<span class="case-turn-tool">'+esc(t.expectedTool)+'</span>':'';
-                var assertions=[];
-                if(t.expectedArgs) assertions.push('args '+esc(t.expectedArgs));
-                if((t.replyContains||[]).length) assertions.push('包含 '+esc(csvListText(t.replyContains)));
-                if((t.replyNotContains||[]).length) assertions.push('不含 '+esc(csvListText(t.replyNotContains)));
-                if(t.judgePrompt||t.judgeThreshold) assertions.push('judge '+esc(t.judgeThreshold||''));
-                parts.push('<div class="case-turn"><span class="case-turn-n">'+t.turnIndex+'</span><span class="case-turn-text">'+esc(t.userInput||'')+'</span>'+tool+'</div>'+
-                    (assertions.length?'<div style="padding-left:32px;font-size:11px;color:var(--c-text3);line-height:1.5">'+assertions.join(' · ')+'</div>':''));
-            });
-            turnsHtml=parts.join('');
-        } else {
-            turnsHtml='<span style="color:var(--c-text3)">无对话</span>';
+function activeCaseType(){
+    return (_caseGenerationSchema&&_caseGenerationSchema.caseType)||'vehicle_agent_turns';
+}
+var CASE_EVAL_TYPES=[
+    {value:'',label:'未配置'},
+    {value:'structure_match',label:'结构匹配'},
+    {value:'text_match',label:'文本匹配'},
+    {value:'llm_judge',label:'语义评测'}
+];
+function evalTypeLabel(v){
+    var aliases={tool_call:'结构匹配',param_match:'结构匹配',reply_match:'文本匹配'};
+    if(aliases[v]) return aliases[v];
+    for(var i=0;i<CASE_EVAL_TYPES.length;i++){if(CASE_EVAL_TYPES[i].value===v)return CASE_EVAL_TYPES[i].label;}
+    return v||'未配置';
+}
+function canonicalEvalType(v){
+    if(v==='tool_call'||v==='param_match') return 'structure_match';
+    if(v==='reply_match') return 'text_match';
+    return v||'';
+}
+function parseExpectedArg(value){
+    if(!value) return null;
+    if(typeof value==='object') return value;
+    try{return JSON.parse(String(value));}catch(e){return null;}
+}
+function expectedArgText(value){
+    if(value===undefined||value===null) return '';
+    if(typeof value==='string') return value;
+    try{return JSON.stringify(value);}catch(e){return String(value);}
+}
+function caseInputs(c){
+    var inputs=[c.input1,c.input2,c.input3].map(function(v){return String(v||'').trim();});
+    if(inputs.some(Boolean)) return inputs;
+    if(c.payload&&c.payload.dialogueText) return [String(c.payload.dialogueText||''),'',''];
+    var turns=c.turns||[];
+    return [0,1,2].map(function(i){return String((turns[i]&&turns[i].userInput)||'').trim();});
+}
+function firstInputSummary(c){
+    var inputs=caseInputs(c).filter(Boolean);
+    if(!inputs.length) return '<span style="color:var(--c-text3)">无输入</span>';
+    return inputs.map(function(v,i){
+        return '<div class="case-turn"><span class="case-turn-n">'+(i+1)+'</span><span class="case-turn-text">'+esc(v)+'</span></div>';
+    }).join('');
+}
+function collectCaseEvalSlots(c){
+    var slots=[];
+    var hasFlat=false;
+    for(var i=1;i<=3;i++){
+        if(c['eval_type_'+i]||c['expected_arg_'+i]||c['judge_prompt_id_'+i]) hasFlat=true;
+    }
+    if(hasFlat){
+        for(var n=1;n<=3;n++){
+            var et=c['eval_type_'+n]||'';
+            var eaVal=c['expected_arg_'+n];
+            var jp=c['judge_prompt_id_'+n]||'';
+            if(et||eaVal||jp) slots.push({index:n,evalType:et,expectedArg:expectedArgText(eaVal),judgePromptId:jp});
         }
-        var tierInfo=uidTier(c.userId);
-                var lastAudit=(c.regressionAudit&&c.regressionAudit.length)?c.regressionAudit[c.regressionAudit.length-1]:null;
-                var auditTip=lastAudit?('最近操作: '+(lastAudit.action||'')+' / '+(lastAudit.actor||'')+' / '+ft(lastAudit.at)):'';
-                var regTag=c.regression?'<span class="tag" style="background:var(--c-amber-bg);color:var(--c-amber)" title="'+esc(auditTip)+'">是</span>':'<span class="tag tag-off">否</span>';
+        return slots;
+    }
+    var payload=c.payload||{};
+    var ticket=payload.expectedTicket||{};
+    if(payload.dialogueText||Object.keys(ticket).length){
+        if(Object.keys(ticket).length){
+            slots.push({index:1,evalType:'structure_match',expectedArg:expectedArgText(ticket),judgePromptId:''});
+        }
+        if(Array.isArray(ticket.missingFields)&&ticket.missingFields.length){
+            slots.push({index:2,evalType:'structure_match',expectedArg:expectedArgText({missingFields:ticket.missingFields,mustNotInvent:ticket.missingFields}),judgePromptId:''});
+        }
+        slots.push({index:3,evalType:'llm_judge',expectedArg:expectedArgText({threshold:0.8}),judgePromptId:'voice_ticket_structuring_v1'});
+        return slots.slice(0,3);
+    }
+    var turn=(c.turns||[]).find(function(t){return t.expectedTool||t.expectedArgs||(t.replyContains||[]).length||(t.replyNotContains||[]).length||t.judgePrompt||t.judgeThreshold;})||{};
+    if(turn.expectedTool||turn.expectedArgs){
+        slots.push({index:1,evalType:'structure_match',expectedArg:turn.expectedTool||expectedArgText({tool:turn.expectedTool||'',args:parseExpectedArg(turn.expectedArgs)||turn.expectedArgs||{}}),judgePromptId:''});
+    }
+    if((turn.replyContains||[]).length||(turn.replyNotContains||[]).length){
+        slots.push({index:2,evalType:'text_match',expectedArg:(turn.replyContains||[]).join('|')||expectedArgText({contains:turn.replyContains||[],notContains:turn.replyNotContains||[]}),judgePromptId:''});
+    }
+    if(turn.judgePrompt||turn.judgeThreshold){
+        slots.push({index:3,evalType:'llm_judge',expectedArg:expectedArgText({threshold:turn.judgeThreshold||turn.judgePassThreshold||0.8,criteria:turn.judgePrompt||''}),judgePromptId:''});
+    }
+    return slots.slice(0,3);
+}
+function renderEvalSummary(c){
+    var slots=collectCaseEvalSlots(c);
+    if(!slots.length) return '<span class="eval-chip muted">未配置</span>';
+    return '<div class="eval-summary">'+slots.map(function(slot){
+        var arg=parseExpectedArg(slot.expectedArg);
+        var detail='';
+        var type=canonicalEvalType(slot.evalType);
+        if(type==='structure_match'&&arg&&arg.tool) detail=' · '+arg.tool;
+        else if(type==='structure_match'&&arg) detail=' · '+Object.keys(arg).slice(0,3).join(',');
+        else if(type==='structure_match'&&slot.expectedArg) detail=' · '+slot.expectedArg;
+        else if(type==='text_match'&&arg) detail=' · '+((arg.contains||[]).length)+' 包含 / '+((arg.notContains||[]).length)+' 禁含';
+        else if(type==='text_match'&&slot.expectedArg) detail=' · '+slot.expectedArg;
+        else if(type==='llm_judge'&&slot.judgePromptId) detail=' · '+slot.judgePromptId;
+        return '<span class="eval-chip">'+esc(slot.index+'. '+evalTypeLabel(slot.evalType)+detail)+'</span>';
+    }).join('')+'</div>';
+}
+function renderCasesTableHeader(){
+    var head=document.getElementById('cases-head-row');
+    if(!head) return;
+    head.innerHTML='<th class="ck"><input type="checkbox" id="ck-all" onchange="toggleAll(this)"></th>'+
+        '<th>Case</th><th>输入</th><th>评测点</th><th>User</th><th>状态</th><th>来源</th><th>更新时间</th><th></th>';
+}
+function renderCases(list){
+    renderCasesTableHeader();
+    var tb=document.getElementById('tb-cases');
+    if(!list.length){tb.innerHTML='<tr><td colspan="9" class="empty">暂无用例</td></tr>';return;}
+    tb.innerHTML=list.map(function(c){
+        var lastAudit=(c.regressionAudit&&c.regressionAudit.length)?c.regressionAudit[c.regressionAudit.length-1]:null;
+        var auditTip=lastAudit?('最近操作: '+(lastAudit.action||'')+' / '+(lastAudit.actor||'')+' / '+ft(lastAudit.at)):'';
+        var regTag=c.regression?'<span class="tag" style="background:var(--c-amber-bg);color:var(--c-amber)" title="'+esc(auditTip)+'">回归</span>':'';
         var approveBtn=c.regression
             ?'<button class="btn btn-ghost btn-sm" onclick="approveRegression(\''+c.id+'\',false)">移回归</button>'
             :'<button class="btn btn-flat btn-sm" onclick="approveRegression(\''+c.id+'\',true)">入回归</button>';
         return '<tr>'+
             '<td class="ck"><input type="checkbox" class="ccb" value="'+c.id+'" onchange="updSelected()"></td>'+
-            '<td style="vertical-align:top"><strong class="mono">'+esc(c.caseId)+'</strong></td>'+
-            '<td class="case-turns-cell">'+turnsHtml+'</td>'+
-            '<td class="mono" style="vertical-align:top">'+esc(c.userId)+'</td>'+
+            '<td style="vertical-align:top"><div class="case-title-stack"><div class="case-name-main">'+esc(c.name||c.caseId||'未命名')+'</div><div class="case-subline mono">'+esc(c.caseId||'')+'</div><div class="case-subline">'+esc(c.groupName||'默认分组')+(c.tags?' · '+esc(c.tags):'')+'</div></div></td>'+
+            '<td class="case-turns-cell"><div class="case-input-preview">'+firstInputSummary(c)+'</div></td>'+
+            '<td style="vertical-align:top">'+renderEvalSummary(c)+'</td>'+
+            '<td class="mono" style="vertical-align:top">'+esc(c.userId||'')+'</td>'+
+            '<td style="vertical-align:top">'+(c.enabled?'<span class="tag tag-on">ON</span>':'<span class="tag tag-off">OFF</span>')+(regTag?' '+regTag:'')+'</td>'+
             '<td style="vertical-align:top"><span class="tag" style="'+sourceStyle(c.source||'manual')+'">'+sourceLabel(c.source||'manual')+'</span></td>'+
-            '<td style="vertical-align:top;font-size:12px"><span class="tag" style="'+tierInfo.style+'">'+tierInfo.label+'</span></td>'+
-            '<td style="vertical-align:top">'+(c.enabled?'<span class="tag tag-on">ON</span>':'<span class="tag tag-off">OFF</span>')+'</td>'+
-                        '<td style="vertical-align:top">'+regTag+'</td>'+
-            '<td style="vertical-align:top">'+esc(c.tags||'')+'</td>'+
             '<td style="vertical-align:top;white-space:nowrap;color:var(--c-text3);font-size:12px">'+ft(c.updatedAt)+'</td>'+
             '<td style="white-space:nowrap;vertical-align:top">'+
                             approveBtn+
+              '<button class="btn btn-ghost btn-sm" onclick="editCase(\''+c.id+'\')">编辑</button>'+
+              '<button class="btn btn-ghost btn-sm" style="color:var(--c-red)" onclick="delCase(\''+c.id+'\',\''+ea(c.caseId)+'\')">删除</button>'+
+            '</td></tr>';
+    }).join('');
+    updSelected();
+}
+function renderVoiceTicketCases(list){
+    var tb=document.getElementById('tb-cases');
+    if(!list.length){tb.innerHTML='<tr><td colspan="11" class="empty">暂无用例</td></tr>';return;}
+    tb.innerHTML=list.map(function(c){
+        var payload=c.payload||{};
+        var ticket=payload.expectedTicket||{};
+        var dialogue=payload.dialogueText||'';
+        var missing=Array.isArray(ticket.missingFields)?ticket.missingFields.join(', '):'';
+        var noise=Array.isArray(payload.noiseTags)?payload.noiseTags.join(', '):(c.tags||'');
+        return '<tr>'+
+            '<td class="ck"><input type="checkbox" class="ccb" value="'+c.id+'" onchange="updSelected()"></td>'+
+            '<td style="vertical-align:top"><strong class="mono">'+esc(c.caseId)+'</strong><br><span style="font-size:12px;color:var(--c-text2)">'+esc(c.name||'')+'</span></td>'+
+            '<td style="vertical-align:top;max-width:420px"><div style="white-space:pre-wrap;line-height:1.55">'+esc(dialogue.slice(0,260))+(dialogue.length>260?'...':'')+'</div></td>'+
+            '<td style="vertical-align:top">'+esc(ticket.ticketType||'-')+'</td>'+
+            '<td style="vertical-align:top">'+esc(ticket.issueType||'-')+'</td>'+
+            '<td style="vertical-align:top"><span class="tag" style="background:var(--c-blue-bg);color:var(--c-blue)">'+esc(ticket.routeQueue||'-')+'</span></td>'+
+            '<td style="vertical-align:top">'+esc(missing||'-')+'</td>'+
+            '<td style="vertical-align:top">'+esc(noise||'')+'</td>'+
+            '<td style="vertical-align:top">'+(c.enabled?'<span class="tag tag-on">ON</span>':'<span class="tag tag-off">OFF</span>')+'</td>'+
+            '<td style="vertical-align:top;white-space:nowrap;color:var(--c-text3);font-size:12px">'+ft(c.updatedAt)+'</td>'+
+            '<td style="white-space:nowrap;vertical-align:top">'+
               '<button class="btn btn-ghost btn-sm" onclick="editCase(\''+c.id+'\')">编辑</button>'+
               '<button class="btn btn-ghost btn-sm" style="color:var(--c-red)" onclick="delCase(\''+c.id+'\',\''+ea(c.caseId)+'\')">删除</button>'+
             '</td></tr>';
@@ -1928,11 +2224,12 @@ function openCaseModal(doc){
     document.getElementById('ce-name').value='';
     document.getElementById('ce-uid').value='';
     document.getElementById('ce-tags').value='';
-    document.getElementById('ce-tier').value='FULL';
-    document.getElementById('ce-on').checked=true;
-    document.getElementById('turns-ct').innerHTML='';
+    document.getElementById('ce-input1').value='';
+    document.getElementById('ce-input2').value='';
+    document.getElementById('ce-input3').value='';
     document.getElementById('case-dlg-title').textContent='新建用例';
-    populateGroupSelect('默认分组');
+    populateGroupSelect(activeCaseType()==='voice_ticket_dialogue'?'工单结构化':'默认分组');
+    renderEvalEditors([]);
     if(doc){
         document.getElementById('case-dlg-title').textContent='编辑用例';
         document.getElementById('ce-id').value=doc.id;
@@ -1941,28 +2238,18 @@ function openCaseModal(doc){
         document.getElementById('ce-uid').value=doc.userId||'';
         document.getElementById('ce-tags').value=doc.tags||'';
         populateGroupSelect(doc.groupName||'默认分组');
-        document.getElementById('ce-on').checked=doc.enabled;
-        // 根据已有 userId 反推 tier
-        var uid=parseInt(doc.userId);
-        if(uid>=900115000&&uid<=900119999) document.getElementById('ce-tier').value='DENIED';
-        else if(uid>=900110000&&uid<=900114999) document.getElementById('ce-tier').value='OPERATIONAL_ONLY';
-        else if(uid>=900105000&&uid<=900109999) document.getElementById('ce-tier').value='OPEN_DOOR_ONLY';
-        else document.getElementById('ce-tier').value='FULL';
-        if(doc.turns) doc.turns.forEach(function(t){
-            var eargs=t.expectedArgs?JSON.stringify(t.expectedArgs):'';
-            var rc=(t.replyContains||[]).join(';'), rnc=(t.replyNotContains||[]).join(';');
-            var jt=t.judgePassThreshold!=null?t.judgePassThreshold:(t.judgeThreshold!=null?t.judgeThreshold:'');
-            addTurn(t.userInput,t.expectedTool,eargs,rc,rnc,t.judgePrompt||'',jt);
-        });
-    } else {
-        // 新建时自动生成 userId
-        autoGenUid();
+        var inputs=caseInputs(doc);
+        document.getElementById('ce-input1').value=inputs[0]||'';
+        document.getElementById('ce-input2').value=inputs[1]||'';
+        document.getElementById('ce-input3').value=inputs[2]||'';
+        renderEvalEditors(collectCaseEvalSlots(doc));
     }
-    if(!document.querySelectorAll('#turns-ct .turn-r').length) addTurn();
     document.getElementById('ol-case').classList.add('open');
 }
 function autoGenUid(){
-    var tier=document.getElementById('ce-tier').value;
+    var tierEl=document.getElementById('ce-tier');
+    if(!tierEl) return;
+    var tier=tierEl.value;
     fetch(BASE+'/api/generate-user-id?tier='+tier).then(r=>r.json()).then(d=>{
         if(d.code==='10000') document.getElementById('ce-uid').value=d.data;
         else toast(d.message||'生成失败','err');
@@ -1973,6 +2260,121 @@ function closeCM(){ document.getElementById('ol-case').classList.remove('open');
 /* -- Generate page -- */
 var _llmPreviewRenderTarget='pg-result';
 var _schemaPromptTouched=false;
+var _generationPromptTouched=false;
+
+/* Render column schema cards in Step 2 */
+function renderColumnSchemaTable(){
+    var el=document.getElementById('pg-column-schema');
+    if(!el) return;
+    var schema=_caseGenerationSchema||{};
+    var cols=schema.columnSchema||[];
+    if(!cols.length){
+        el.innerHTML='<div style="font-size:12px;color:var(--c-text2);padding:6px 0">模板列定义加载中…</div>';
+        return;
+    }
+    var srcLabel={auto:'自动',fixed:'固定',batch:'批次锁定',llm:'LLM',manual:'手填'};
+    var typeLabel={text:'文本',textarea:'多行文本',json:'JSON',select:'下拉',tags:'标签',number:'数字',boolean:'布尔'};
+    var turnCount=Math.max(1,Math.min(3,parseInt((document.getElementById('pg-turns')||{}).value,10)||1));
+    var h='<div class="col-schema-grid">';
+    cols.forEach(function(col){
+        // For optional turn columns, only show up to current turnCount
+        if(col.optional){
+            var m=col.key.match(/_(\d)$/);
+            if(m&&Number(m[1])>turnCount) return;
+        }
+        var sc='src-'+(col.source||'manual');
+        h+='<div class="col-schema-card'+(col.optional?' optional':'')+'">'+
+            '<div class="col-schema-card-key">'+esc(col.key)+'</div>'+
+            '<div class="col-schema-card-title">'+esc(col.title)+'</div>'+
+            '<div class="col-schema-card-badges">'+
+            '<span class="src-badge '+sc+'">'+esc(srcLabel[col.source]||col.source)+'</span>'+
+            '<span class="type-badge">'+esc(typeLabel[col.inputType]||col.inputType)+'</span>'+
+            (col.dependsOn?'<span class="type-badge" style="color:var(--c-accent)">→'+esc(col.dependsOn)+'</span>':'')+
+            '</div>'+
+            (col.prompt?'<div class="col-prompt-tip" title="'+ea(col.prompt)+'">↳ '+esc(col.prompt)+'</div>':'')+
+            '</div>';
+    });
+    h+='</div>';
+    el.innerHTML=h;
+}
+
+/* Return the list of column keys to show in the preview table, using columnSchema */
+function getPreviewColumnsFromSchema(){
+    var schema=_caseGenerationSchema||{};
+    var cols=schema.columnSchema||[];
+    if(!cols.length){
+        // Fallback: hardcoded vehicle columns
+        return ['__delete','enable','case_id','name','user_id','riskLevel','group_name'].concat(CSV_TEMPLATE_COLUMNS.slice(5));
+    }
+    var turnCount=Math.max(1,Math.min(3,parseInt((document.getElementById('pg-turns')||{}).value,10)||1));
+    var result=['__delete'];
+    cols.forEach(function(col){
+        if(!col.optional){
+            result.push(col.key);
+        }else{
+            var m=col.key.match(/_(\d)$/);
+            if(m&&Number(m[1])<=turnCount) result.push(col.key);
+        }
+    });
+    return result;
+}
+
+/* Extract a flat string value from a case object given a column key */
+function getCellValueByKey(c,key){
+    if(key==='enable') return c.enabled!==false?'true':'false';
+    if(key==='case_id') return c.caseId||'';
+    if(key==='name') return c.name||'';
+    if(key==='user_id') return c.userId||'';
+    if(key==='group_name') return c.groupName||'';
+    if(key==='risk_level'||key==='riskLevel') return c.riskLevel||'medium';
+    // Voice ticket payload fields
+    if(key==='dialogue_text') return (c.payload&&c.payload.dialogueText)||'';
+    if(key==='expected_ticket_json'){
+        var et=c.payload&&c.payload.expectedTicket;
+        if(!et) return '';
+        return typeof et==='string'?et:JSON.stringify(et,null,2);
+    }
+    if(key==='expected_route') return (c.payload&&c.payload.expectedTicket&&c.payload.expectedTicket.routeQueue)||'';
+    if(key==='missing_fields'){
+        var mf=(c.payload&&c.payload.expectedTicket&&c.payload.expectedTicket.missingFields);
+        return Array.isArray(mf)?mf.join('|'):(mf||'');
+    }
+    if(key==='noise_tags'){
+        var nt=c.payload&&c.payload.noiseTags;
+        return Array.isArray(nt)?nt.join('|'):(nt||'');
+    }
+    // Turn fields: input1, expected_tool_1, expected_args_1, etc.
+    var m=key.match(/^(input|expected_tool|expected_args|reply_contains|reply_not_contains|judge_prompt|judge_threshold)_(\d)$/);
+    if(m){
+        var turnIdx=Number(m[2])-1;
+        var t=(c.turns||[])[turnIdx]||{};
+        var fmap={input:'userInput',expected_tool:'expectedTool',expected_args:'expectedArgs',reply_contains:'replyContains',reply_not_contains:'replyNotContains',judge_prompt:'judgePrompt',judge_threshold:'judgeThreshold'};
+        return previewTextValue(t[fmap[m[1]]]);
+    }
+    return '';
+}
+
+/* Download the current preview cases as a CSV file */
+function downloadPreviewCsv(){
+    var schema=_caseGenerationSchema||{};
+    var cols=schema.columnSchema||[];
+    var preview=_llmPreviewCases||[];
+    if(!preview.length){toast('无预览内容可下载','err');return;}
+    var turnCount=Math.max(1,Math.min(3,parseInt((document.getElementById('pg-turns')||{}).value,10)||1));
+    var csvCols=cols.length
+        ?cols.filter(function(col){
+            if(!col.optional) return true;
+            var m=col.key.match(/_(\d)$/);
+            return m&&Number(m[1])<=turnCount;
+        }).map(function(col){return col.key;})
+        :CSV_TEMPLATE_COLUMNS;
+    var rows=[csvCols];
+    preview.forEach(function(c){
+        rows.push(csvCols.map(function(key){return getCellValueByKey(c,key);}));
+    });
+    var fname=(schema.projectName||'eval').replace(/\s+/g,'_')+'_generated_cases.csv';
+    downloadRowsAsCsv(rows,fname,'已下载 '+preview.length+' 条预览用例');
+}
 var CSV_TEMPLATE_COLUMNS=[
     'enable','case_id','name','user_id','group_name',
     'input1','expected_tool_1','expected_args_1','reply_contains_1','reply_not_contains_1','judge_prompt_1','judge_threshold_1',
@@ -1988,20 +2390,36 @@ var CSV_TEMPLATE_DESCRIPTIONS=[
 function initGeneratePage(){
     var p=document.getElementById('pg-generation-prompt');
     if(!p) return;
-    if(!p.value) p.value=defaultGenerationPrompt();
+    if(!_generationPromptTouched||!p.value) p.value=defaultGenerationPrompt();
     var schemaPrompt=document.getElementById('pg-schema-prompt');
     if(schemaPrompt&&!schemaPrompt.value) schemaPrompt.value=defaultSchemaPrompt();
     document.getElementById('pg-prefix').value=document.getElementById('pg-prefix').value||'llm_demo';
     document.getElementById('pg-turns').value=document.getElementById('pg-turns').value||'1';
     document.getElementById('pg-count').value=document.getElementById('pg-count').value||'8';
+    var schema=_caseGenerationSchema||{};
+    var cols=schema.columnSchema||[];
+    var hasTurns=cols.some(function(c){return c.key==='input1';});
+    var hasUserId=cols.some(function(c){return c.key==='user_id';});
+    // Show/hide vehicle-specific controls based on template
+    var turnsWrap=document.getElementById('pg-turns-wrap');
+    if(turnsWrap) turnsWrap.style.display=hasTurns?'':'none';
+    var vehicleControls=document.getElementById('pg-vehicle-controls');
+    if(vehicleControls) vehicleControls.style.display=(hasTurns||hasUserId)?'':'none';
     var sel=document.getElementById('pg-group-select');
     if(sel){
         var groups=[];
         allCases.forEach(function(c){var g=c.groupName||'默认分组';if(groups.indexOf(g)===-1)groups.push(g);});
-        ['默认分组','车辆控制','运营数据查询','RAG防幻觉'].forEach(function(g){if(groups.indexOf(g)===-1)groups.push(g);});
+        // Add groups from project profile columns or hardcoded defaults
+        if(activeCaseType()==='voice_ticket_dialogue'){
+            ['工单结构化','工单字段抽取','工单分类路由'].forEach(function(g){if(groups.indexOf(g)===-1)groups.push(g);});
+        }else{
+            ['默认分组','车辆控制','运营数据查询','RAG防幻觉'].forEach(function(g){if(groups.indexOf(g)===-1)groups.push(g);});
+        }
         sel.innerHTML=groups.map(function(g){return '<option value="'+esc(g)+'">'+esc(g)+'</option>';}).join('');
         if(!sel.value) sel.value='默认分组';
+        if(activeCaseType()==='voice_ticket_dialogue'&&groups.indexOf('工单结构化')!==-1) sel.value='工单结构化';
     }
+    renderGenerateToolOptions();
     syncAllowedToolsFromExpected();
     refreshSchemaControls();
     updateGenerateGroupLock();
@@ -2044,20 +2462,102 @@ function syncAllowedToolsFromExpected(){
         checks.forEach(function(cb){if(cb.value===expected)cb.checked=true;});
     }
 }
+function renderGenerateToolOptions(){
+    var sel=document.getElementById('pg-expected-tool');
+    if(!sel)return;
+    var schema=_caseGenerationSchema||{};
+    var tools=(schema.allowedTools&&schema.allowedTools.length)?schema.allowedTools:['RAG','freeChat','open_door','return_app_native_router','vehicle_control','vehicle_operation_data_query','vehicle_selective_query'];
+    var current=sel.value;
+    sel.innerHTML=tools.map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+'</option>';}).join('');
+    sel.value=tools.indexOf(current)!==-1?current:(tools[0]||'freeChat');
+}
 function refreshSchemaControls(){
+    renderRequiredFields();
+    renderAssertionFields();
+    renderGenerateToolOptions();
     renderTemplateDoc();
+    renderColumnSchemaTable();
     var schemaPrompt=document.getElementById('pg-schema-prompt');
     if(schemaPrompt&&(!_schemaPromptTouched||!schemaPrompt.value)) schemaPrompt.value=defaultSchemaPrompt();
+}
+function schemaLabel(value){
+    var labels={
+        caseId:'caseId',
+        name:'name',
+        groupName:'groupName',
+        dialogueText:'dialogueText',
+        expectedTicket:'expectedTicket',
+        missingFields:'missingFields',
+        routeQueue:'routeQueue',
+        noiseTags:'noiseTags',
+        riskLevel:'riskLevel',
+        allowedTools:'allowedTools',
+        turns:'turns',
+        expectedTools:'expectedTools',
+        expectedArgs:'expected_args',
+        replyContains:'reply_contains',
+        replyNotContains:'reply_not_contains',
+        judgePrompt:'judge_prompt',
+        judgeThreshold:'judge_threshold',
+        mustExtract:'must_extract',
+        mustNotInvent:'must_not_invent',
+        mustUseLatestValue:'must_use_latest_value',
+        mustIgnoreAgentHypothesis:'ignore_agent_hypothesis'
+    };
+    return labels[value]||value;
+}
+function renderRequiredFields(){
+    var el=document.getElementById('pg-required-fields');
+    if(!el)return;
+    var schema=_caseGenerationSchema||{};
+    var fields=(schema.requiredFields&&schema.requiredFields.length)?schema.requiredFields:['caseId','name','groupName','allowedTools','turns','expectedTools','riskLevel'];
+    el.innerHTML=fields.map(function(f){
+        return '<label class="field-option locked"><input type="checkbox" checked disabled>'+esc(schemaLabel(f))+'</label>';
+    }).join('');
+}
+function renderAssertionFields(){
+    var el=document.getElementById('pg-assertion-fields');
+    if(!el)return;
+    var existing=Array.from(el.querySelectorAll('input[type=checkbox]'));
+    var selected=existing.filter(function(cb){return cb.checked;}).map(function(cb){return cb.value;});
+    var hadExisting=existing.length>0;
+    var schema=_caseGenerationSchema||{};
+    var fields=(schema.assertionFields&&schema.assertionFields.length)?schema.assertionFields:['expectedArgs','replyContains','replyNotContains','judgePrompt','judgeThreshold'];
+    if(hadExisting&&!fields.some(function(f){return selected.indexOf(f)!==-1;})){
+        hadExisting=false;
+    }
+    el.innerHTML=fields.map(function(f){
+        var checked=!hadExisting||selected.indexOf(f)!==-1;
+        return '<label class="field-option"><input type="checkbox" value="'+esc(f)+'" '+(checked?'checked ':'')+'onchange="refreshSchemaControls()">'+esc(schemaLabel(f))+'</label>';
+    }).join('');
 }
 function renderTemplateDoc(){
     var el=document.getElementById('pg-template-doc');
     if(!el)return;
+    var schema=_caseGenerationSchema||{};
+    var columns=(schema.importColumns&&schema.importColumns.length)?schema.importColumns:CSV_TEMPLATE_COLUMNS;
+    var desc=columns.map(function(c,i){return schema.caseType==='voice_ticket_dialogue'?voiceTemplateDescription(c):CSV_TEMPLATE_DESCRIPTIONS[i]||c;});
     var h='<div class="template-scroll"><table><thead><tr>';
-    CSV_TEMPLATE_COLUMNS.forEach(function(c){h+='<th>'+esc(c)+'</th>';});
+    columns.forEach(function(c){h+='<th>'+esc(c)+'</th>';});
     h+='</tr></thead><tbody><tr>';
-    CSV_TEMPLATE_DESCRIPTIONS.forEach(function(d){h+='<td>'+esc(d)+'</td>';});
+    desc.forEach(function(d){h+='<td>'+esc(d)+'</td>';});
     h+='</tr></tbody></table></div>';
     el.innerHTML=h;
+}
+function voiceTemplateDescription(column){
+    var desc={
+        enable:'是否启用(true/false)',
+        case_id:'用例唯一标识',
+        name:'用例名称',
+        group_name:'分组名称',
+        dialogue_text:'ASR 后的一整段多轮对话文本',
+        expected_ticket_json:'期望工单 JSON',
+        expected_route:'期望路由队列',
+        missing_fields:'缺失字段(|分隔)',
+        noise_tags:'ASR 噪声/干扰标签(|分隔)',
+        risk_level:'风险等级'
+    };
+    return desc[column]||column;
 }
 function buildGeneratePagePayload(){
     var mode=document.getElementById('pg-mode').value;
@@ -2171,6 +2671,14 @@ function loadCaseGenerationSchema(){
         if(d.code==='10000'){
             _caseGenerationSchema=d.data;
             renderSchemaNote('pg-schema-note');
+            refreshSchemaControls();
+            var generationPrompt=document.getElementById('pg-generation-prompt');
+            if(generationPrompt&&(!_generationPromptTouched||!generationPrompt.value)) generationPrompt.value=defaultGenerationPrompt();
+            var schemaPrompt=document.getElementById('pg-schema-prompt');
+            if(schemaPrompt&&(!_schemaPromptTouched||!schemaPrompt.value)) schemaPrompt.value=defaultSchemaPrompt();
+            initGeneratePage();
+            renderCasesTableHeader();
+            if(allCases.length) renderCases(filteredCases.length?filteredCases:allCases);
         }
     }).catch(function(){
         var el=document.getElementById('pg-schema-note');
@@ -2189,6 +2697,17 @@ function defaultSchemaPrompt(){
         'input2','expected_tool_2','expected_args_2','reply_contains_2','reply_not_contains_2','judge_prompt_2','judge_threshold_2',
         'input3','expected_tool_3','expected_args_3','reply_contains_3','reply_not_contains_3','judge_prompt_3','judge_threshold_3'
     ];
+    if(schema.caseType==='voice_ticket_dialogue'){
+        return [
+            '输出字段结构：语音工单项目使用独立 caseType=voice_ticket_dialogue。',
+            '输入字段：dialogueText 是一整段 ASR 多轮对话大文本，不拆成车辆 Agent 工具调用 turns。',
+            '输出字段：expectedTicket 是期望工单 JSON；missingFields、routeQueue、noiseTags 作为语义测评断言。',
+            '必填字段：'+required.join(', '),
+            '断言字段：'+assertions.join(', '),
+            '导入列：'+imports.join(', '),
+            '评测规则：只评测 AI 输出的工单语义结构、字段准确性、缺失字段、路由队列和禁止编造；没有工具调用也可以成立。'
+        ].join('\n');
+    }
     return [
         '输出字段结构：字段结构全项目统一，业务覆盖目标单独填写。',
         '必填字段：'+required.join(', '),
@@ -2205,6 +2724,16 @@ function resetSchemaPrompt(){
     _schemaPromptTouched=false;
 }
 function defaultGenerationPrompt(){
+    if(_caseGenerationSchema&&_caseGenerationSchema.defaultGenerationPrompt) return _caseGenerationSchema.defaultGenerationPrompt;
+    if(activeCaseType()==='voice_ticket_dialogue'){
+        return [
+            'ASR 对话工单结构化语义测评覆盖目标：',
+            '1. 输入是一整段坐席/用户 ASR 多轮对话文本，输出是 expectedTicket 工单 JSON。',
+            '2. 覆盖多轮补全、用户改口、坐席假设干扰、噪声词、缺失联系人/地点/车辆编号等真实对话问题。',
+            '3. 不评测工具调用；只评测 AI 输出的工单语义结构、字段准确性、缺失字段、路由队列和禁止编造。',
+            '4. 每条 case 要写清 dialogueText、expectedTicket、missingFields、routeQueue、noiseTags 和人工复核点。'
+        ].join('\n');
+    }
     return [
         '车辆控制专项覆盖目标：',
         '1. 成功路径覆盖远程开门/关门、鸣笛闪灯、空调开关与温度设置、车辆定位或寻车入口跳转，用户表达要像真实车主或运维人员。',
@@ -2248,57 +2777,67 @@ function removeLlmPreviewItem(idx){
     showLlmResult(renderLlmPreview(),true,true);
 }
 function renderLlmPreview(){
-    var previewColumns=['__delete','enable','case_id','name','user_id','riskLevel','group_name'].concat(CSV_TEMPLATE_COLUMNS.slice(5));
-    function turnMeta(col){
-        var m=col.match(/^(input|expected_tool|expected_args|reply_contains|reply_not_contains|judge_prompt|judge_threshold)_(\d)$/);
-        if(!m) return null;
-        return {kind:m[1],turnIndex:Number(m[2])-1};
-    }
+    var previewColumns=getPreviewColumnsFromSchema();
+    var schema=_caseGenerationSchema||{};
+    var colDefs={};
+    (schema.columnSchema||[]).forEach(function(c){colDefs[c.key]=c;});
+
     function cellClass(col){
-        if(col==='enable'||col==='user_id'||col==='riskLevel'||col.indexOf('expected_tool_')===0||col.indexOf('judge_threshold_')===0) return 'preview-cell short';
+        var def=colDefs[col]||{};
+        var t=def.inputType||'';
+        if(t==='boolean'||t==='number'||col==='enable'||col==='user_id'||col.indexOf('expected_tool_')===0||col.indexOf('judge_threshold_')===0) return 'preview-cell short';
         if(col==='case_id'||col==='group_name') return 'preview-cell medium';
-        if(col==='name') return 'preview-cell long';
         return 'preview-cell long';
     }
-    function getCellValue(c,col){
-        if(col==='enable') return c.enabled!==false?'true':'false';
-        if(col==='case_id') return c.caseId||'';
-        if(col==='name') return c.name||'';
-        if(col==='user_id') return c.userId||'';
-        if(col==='riskLevel') return c.riskLevel||'medium';
-        if(col==='group_name') return c.groupName||'';
-        var meta=turnMeta(col);
-        if(!meta) return '';
-        var t=(c.turns||[])[meta.turnIndex]||{};
-        var map={input:'userInput',expected_tool:'expectedTool',expected_args:'expectedArgs',reply_contains:'replyContains',reply_not_contains:'replyNotContains',judge_prompt:'judgePrompt',judge_threshold:'judgeThreshold'};
-        return previewTextValue(t[map[meta.kind]]);
-    }
-    function renderCell(c,rowIdx,col){
+    function renderPreviewCell(c,rowIdx,col){
         if(col==='__delete'){
             return '<button class="btn btn-ghost btn-sm" style="color:var(--c-red);padding:0 6px" onclick="removeLlmPreviewItem('+rowIdx+')">×</button>';
         }
-        if(col==='enable'){
-            var enabled=c.enabled!==false?'true':'false';
-            return '<select class="'+cellClass(col)+'" onchange="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)"><option value="true"'+(enabled==='true'?' selected':'')+'>true</option><option value="false"'+(enabled==='false'?' selected':'')+'>false</option></select>';
+        var def=colDefs[col]||{};
+        var inputType=def.inputType||'text';
+        var value=getCellValueByKey(c,col);
+        // boolean → true/false select
+        if(inputType==='boolean'||col==='enable'){
+            return '<select class="'+cellClass(col)+'" onchange="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+
+                '<option value="true"'+(value==='true'?' selected':'')+'>true</option>'+
+                '<option value="false"'+(value==='false'?' selected':'')+'>false</option></select>';
         }
-        if(col==='riskLevel'){
-            var risk=c.riskLevel||'medium';
-            return '<select class="'+cellClass(col)+'" onchange="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)"><option value="low"'+(risk==='low'?' selected':'')+'>low</option><option value="medium"'+(risk==='medium'?' selected':'')+'>medium</option><option value="high"'+(risk==='high'?' selected':'')+'>high</option></select>';
+        // risk_level select
+        if(col==='risk_level'||col==='riskLevel'){
+            var risk=value||'medium';
+            return '<select class="'+cellClass(col)+'" onchange="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+
+                '<option value="low"'+(risk==='low'?' selected':'')+'>low</option>'+
+                '<option value="medium"'+(risk==='medium'?' selected':'')+'>medium</option>'+
+                '<option value="high"'+(risk==='high'?' selected':'')+'>high</option></select>';
         }
+        // group_name → disabled (locked at batch level)
         if(col==='group_name'){
-            return '<input class="'+cellClass(col)+'" value="'+ea(getCellValue(c,col)||'默认分组')+'" disabled>';
+            return '<input class="'+cellClass(col)+'" value="'+ea(value||'默认分组')+'" disabled>';
         }
+        // expected_tool_N → tool select
         if(col.indexOf('expected_tool_')===0){
-            return '<select class="'+cellClass(col)+' mono" onchange="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+previewToolOptions(getCellValue(c,col))+'</select>';
+            return '<select class="'+cellClass(col)+' mono" onchange="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+previewToolOptions(value)+'</select>';
         }
-        if(/^input_|^expected_args_|^reply_contains_|^reply_not_contains_|^judge_prompt_/.test(col)){
-            return '<textarea class="'+cellClass(col)+(col.indexOf('expected_args_')===0?' mono':'')+'" oninput="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+esc(getCellValue(c,col))+'</textarea>';
+        // multi-line / JSON / tags → textarea
+        if(inputType==='textarea'||inputType==='json'||inputType==='tags'||
+           col.indexOf('input')===0||col.indexOf('expected_args_')===0||
+           col.indexOf('reply_contains_')===0||col.indexOf('reply_not_contains_')===0||
+           col.indexOf('judge_prompt_')===0||col==='dialogue_text'||
+           col==='expected_ticket_json'||col==='missing_fields'||col==='noise_tags'){
+            var mono=inputType==='json'||col.indexOf('expected_args_')===0||col==='expected_ticket_json';
+            return '<textarea class="'+cellClass(col)+(mono?' mono':'')+'" oninput="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+esc(value)+'</textarea>';
         }
-        return '<input class="'+cellClass(col)+(col==='case_id'||col==='user_id'||col.indexOf('judge_threshold_')===0?' mono':'')+'" value="'+ea(getCellValue(c,col))+'" oninput="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">';
+        // default → text input
+        var isMono=col==='case_id'||col==='user_id'||col.indexOf('judge_threshold_')===0;
+        return '<input class="'+cellClass(col)+(isMono?' mono':'')+'" value="'+ea(value)+'" oninput="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">';
     }
+
     var preview=_llmPreviewCases||[];
     var total=preview.length;
     var visiblePreview=preview.slice(0,Math.min(_llmPreviewVisibleLimit,total));
+    // Show/hide download button
+    var actionsEl=document.getElementById('pg-preview-actions');
+    if(actionsEl) actionsEl.style.display=total?'flex':'none';
     var h='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">'+
         '<div><b>预览入库字段</b></div>'+
         '<span class="tag tag-done">显示 '+visiblePreview.length+' / '+total+' 条候选</span>'+
@@ -2308,16 +2847,20 @@ function renderLlmPreview(){
     }
     var tableMaxHeight=_llmPreviewRenderTarget==='pg-result'?'420px':'360px';
     h+='<div class="gen-preview-scroll" style="max-height:'+tableMaxHeight+';max-width:100%">'+
-        '<table style="font-size:12px">'+
-        '<thead><tr>';
+        '<table style="font-size:12px"><thead><tr>';
     previewColumns.forEach(function(col){
-        h+='<th>'+(col==='__delete'?'删除':esc(col))+'</th>';
+        var def=colDefs[col]||{};
+        var srcClass=col==='__delete'?'':' class="src-badge src-'+(def.source||'manual')+'" style="display:inline-block;margin-bottom:2px"';
+        var label=col==='__delete'?'删除':(def.title||col);
+        h+='<th><div'+srcClass+(col==='__delete'?'':'')+'>'+esc(label)+'</div>'+
+            (col!=='__delete'?'<div style="font-size:10px;color:var(--c-text3);font-weight:400;font-family:monospace">'+esc(col)+'</div>':'')+
+            '</th>';
     });
     h+='</tr></thead><tbody>';
     visiblePreview.forEach(function(c,idx){
         h+='<tr>';
         previewColumns.forEach(function(col){
-            h+='<td'+(col==='__delete'?' style="text-align:center"':'')+'>'+renderCell(c,idx,col)+'</td>';
+            h+='<td'+(col==='__delete'?' style="text-align:center"':'')+'>'+renderPreviewCell(c,idx,col)+'</td>';
         });
         h+='</tr>';
     });
@@ -2459,6 +3002,87 @@ function buildToolOptions(selected){
     _allToolNames.forEach(function(t){opts+='<option value="'+ea(t)+'"'+(t===selected?' selected':'')+'>'+esc(t)+'</option>';});
     return opts;
 }
+function evalTypeOptions(selected){
+    return CASE_EVAL_TYPES.map(function(item){
+        return '<option value="'+ea(item.value)+'"'+(item.value===selected?' selected':'')+'>'+esc(item.label+(item.value?' ('+item.value+')':''))+'</option>';
+    }).join('');
+}
+function renderEvalEditors(slots){
+    var ct=document.getElementById('eval-ct');
+    if(!ct) return;
+    var byIndex={};
+    (slots||[]).forEach(function(slot){byIndex[slot.index]=slot;});
+    var html='';
+    for(var i=1;i<=3;i++){
+        var slot=byIndex[i]||{};
+        html+='<div class="eval-card" data-eval-index="'+i+'">'+
+            '<div class="eval-card-head"><span class="eval-card-num">'+i+'</span><strong>评测点 '+i+'</strong></div>'+
+            '<div class="eval-grid">'+
+            '<div class="fg"><label class="fl">eval_type_'+i+'</label><select class="fi ev-type" data-index="'+i+'">'+evalTypeOptions(slot.evalType||'')+'</select></div>'+
+            '<div class="fg"><label class="fl">expected_arg_'+i+'</label><textarea class="fi eval-arg-ta ev-arg" data-index="'+i+'" rows="4" placeholder="填写期望字段、函数名、关键文本或评测说明">'+esc(slot.expectedArg||'')+'</textarea></div>'+
+            '<div class="fg"><label class="fl">judge_prompt_id_'+i+'</label><input class="fi ev-judge" data-index="'+i+'" value="'+ea(slot.judgePromptId||'')+'" placeholder="需要语义评测时填写"></div>'+
+            '</div>'+
+            '</div>';
+    }
+    ct.innerHTML=html;
+}
+function readEvalEditors(){
+    var slots=[];
+    for(var i=1;i<=3;i++){
+        var typeEl=document.querySelector('.ev-type[data-index="'+i+'"]');
+        var argEl=document.querySelector('.ev-arg[data-index="'+i+'"]');
+        var judgeEl=document.querySelector('.ev-judge[data-index="'+i+'"]');
+        var evalType=canonicalEvalType((typeEl&&typeEl.value.trim())||'');
+        var expectedArg=(argEl&&argEl.value.trim())||'';
+        var judgePromptId=(judgeEl&&judgeEl.value.trim())||'';
+        if(!evalType&&!expectedArg&&!judgePromptId) continue;
+        if(!evalType){
+            toast('评测点 '+i+' 已填写参数或 Prompt，但 eval_type 为空','err');
+            return null;
+        }
+        slots.push({index:i,evalType:evalType,expectedArg:expectedArg,judgePromptId:judgePromptId});
+    }
+    return slots;
+}
+function buildCompatibilityTurnsFromSchema(doc,slots){
+    var inputs=[doc.input1,doc.input2,doc.input3].map(function(v){return String(v||'').trim();});
+    var turns=inputs.map(function(inp,i){return inp?{turnIndex:i+1,userInput:inp}:null;}).filter(Boolean);
+    if(!turns.length) return [];
+    var target=turns[turns.length-1];
+    var toolSlot=(slots||[]).find(function(s){return canonicalEvalType(s.evalType)==='structure_match';});
+    var replySlot=(slots||[]).find(function(s){return canonicalEvalType(s.evalType)==='text_match';});
+    var judgeSlot=(slots||[]).find(function(s){return canonicalEvalType(s.evalType)==='llm_judge';});
+    if(toolSlot){
+        var toolArg=parseExpectedArg(toolSlot.expectedArg)||{};
+        target.expectedTool=toolArg.tool||toolSlot.expectedArg||'';
+        target.expectedArgs=toolArg.args!==undefined?toolArg.args:(toolArg.tool?toolArg:{});
+    }
+    if(replySlot){
+        var replyArg=parseExpectedArg(replySlot.expectedArg)||{};
+        target.replyContains=Array.isArray(replyArg.contains)?replyArg.contains:splitAssertList(replySlot.expectedArg);
+        target.replyNotContains=Array.isArray(replyArg.notContains)?replyArg.notContains:[];
+    }
+    if(judgeSlot){
+        var judgeArg=parseExpectedArg(judgeSlot.expectedArg)||{};
+        target.judgePrompt=judgeSlot.judgePromptId||judgeArg.criteria||'';
+        target.judgeThreshold=judgeArg.threshold!==undefined?judgeArg.threshold:'';
+    }
+    return turns;
+}
+function buildVoicePayloadFromSchema(doc,slots){
+    var structureSlots=(slots||[]).filter(function(s){return canonicalEvalType(s.evalType)==='structure_match';});
+    var structureSlot=structureSlots[0];
+    var paramSlot=structureSlots[1];
+    var expectedTicket=parseExpectedArg(structureSlot&&structureSlot.expectedArg)||{};
+    var paramArg=parseExpectedArg(paramSlot&&paramSlot.expectedArg)||{};
+    if(Array.isArray(paramArg.missingFields)) expectedTicket.missingFields=paramArg.missingFields;
+    return {
+        dialogueText:doc.input1||'',
+        expectedTicket:expectedTicket,
+        assertions:{},
+        noiseTags:splitAssertList(doc.tags)
+    };
+}
 function csvListText(v){
     if(Array.isArray(v)) return v.join('|');
     return v||'';
@@ -2484,62 +3108,68 @@ function splitAssertList(v){
     return String(v||'').split(/[|,，\n]/).map(function(x){return x.trim();}).filter(Boolean);
 }
 function saveCase(){
-    var id=document.getElementById('ce-id').value, turns=[];
-    document.querySelectorAll('#turns-ct .turn-r').forEach(function(r,i){
-        var inp=r.querySelector('.t-inp').value.trim();
-        if(inp){
-            var rc=r.querySelector('.rc-fi').value.trim(), rnc=r.querySelector('.rnc-fi').value.trim();
-            var eargsRaw=r.querySelector('.eargs-fi').value.trim(), eargs=null;
-            if(eargsRaw){try{eargs=JSON.parse(eargsRaw);}catch(e){toast('第'+(i+1)+'轮期望参数 JSON 格式错误','err');return;}}
-            var jpRaw=r.querySelector('.jp-fi').value.trim(), jtRaw=r.querySelector('.jt-fi').value.trim();
-            var turnObj={turnIndex:i+1,userInput:inp,expectedTool:r.querySelector('.tool-fi').value.trim(),
-                expectedArgs:eargs,
-                replyContains:rc?rc.split(';').map(function(s){return s.trim();}).filter(Boolean):[],
-                replyNotContains:rnc?rnc.split(';').map(function(s){return s.trim();}).filter(Boolean):[]};
-            if(jpRaw) turnObj.judgePrompt=jpRaw;
-            if(jtRaw){
-                var jv=parseFloat(jtRaw);
-                if(!isNaN(jv)&&jv>=0&&jv<=1){
-                    turnObj.judgeThreshold=jv;
-                    turnObj.judgePassThreshold=jv;
-                }else{
-                    toast('第'+(i+1)+'轮评判及格线须为0-1','err');
-                    return;
-                }
-            }
-            turns.push(turnObj);
-        }
-    });
-    if(!turns.length){toast('至少一轮对话','err');return;}
+    var id=document.getElementById('ce-id').value;
+    var slots=readEvalEditors();
+    if(slots===null) return;
     var doc={caseId:document.getElementById('ce-caseId').value.trim(),name:document.getElementById('ce-name').value.trim(),
         userId:document.getElementById('ce-uid').value.trim(),tags:document.getElementById('ce-tags').value.trim(),
+        input1:document.getElementById('ce-input1').value.trim(),
+        input2:document.getElementById('ce-input2').value.trim(),
+        input3:document.getElementById('ce-input3').value.trim(),
         groupName:document.getElementById('ce-group').value.trim()||'默认分组',
         source:'manual',
         evalDimensions:['intent','tool','params','responseQuality'],
         regression:false,
-        enabled:document.getElementById('ce-on').checked,turns:turns};
+        enabled:true};
     if(!doc.caseId){toast('Case ID 必填','err');return;}
+    if(!doc.name){toast('名称必填','err');return;}
+    if(!doc.input1){toast('input1 必填','err');return;}
+    if(!slots.length){toast('至少配置一个评测点','err');return;}
+    slots.forEach(function(slot){
+        doc['eval_type_'+slot.index]=slot.evalType;
+        doc['expected_arg_'+slot.index]=slot.expectedArg;
+        doc['judge_prompt_id_'+slot.index]=slot.judgePromptId;
+    });
+    doc.turns=buildCompatibilityTurnsFromSchema(doc,slots);
+    doc.expectedTools=doc.turns.map(function(t){return t.expectedTool;}).filter(Boolean);
+    if(activeCaseType()==='voice_ticket_dialogue') {
+        doc.caseType='voice_ticket_dialogue';
+        doc.payload=buildVoicePayloadFromSchema(doc,slots);
+    } else {
+        doc.caseType='vehicle_agent_turns';
+    }
     var url=id?BASE+'/api/cases/'+id:BASE+'/api/cases', method=id?'PUT':'POST';
     fetch(url,{method:method,headers:{'Content-Type':'application/json'},body:JSON.stringify(doc)})
         .then(r=>r.json()).then(d=>{if(d.code==='10000'){toast('已保存','ok');closeCM();loadCases();}else toast('保存失败: '+d.message,'err');})
         .catch(e=>toast('请求异常','err'));
 }
 function downloadCsvTemplate(){
+    var header=['enable','case_id','name','group_name','tags','user_id','input1','input2','input3','eval_type_1','expected_arg_1','judge_prompt_id_1','eval_type_2','expected_arg_2','judge_prompt_id_2','eval_type_3','expected_arg_3','judge_prompt_id_3'];
+    if(activeCaseType()==='voice_ticket_dialogue'){
+        var voiceRows=[
+            header,
+            ['# 是否启用(true/false)','用例唯一标识','用例名称','分组','标签(|分隔)','用户ID(可空)','输入1','输入2','输入3','评测类型1','评测参数1(JSON)','Judge Prompt ID 1','评测类型2','评测参数2(JSON)','Judge Prompt ID 2','评测类型3','评测参数3(JSON)','Judge Prompt ID 3'],
+            ['true','voice_ticket_001','开门失败-缺联系电话','工单结构化','字段抽取|缺失字段','','坐席：您好，请问有什么问题？\n用户：车打不开了，客户在现场挺急的。\n坐席：是哪辆车？\n用户：X6S5002，在青岛园区 A 区。','','','structure_match','ticketType|issueType|vehicleId|location','','structure_match','missingFields: contactPhone; mustNotInvent: contactPhone','','llm_judge','threshold=0.85','voice_ticket_structuring_v1']
+        ];
+        return downloadRowsAsCsv(voiceRows,'case_schema_template.csv','模板已下载');
+    }
     var rows=[
-        ['enable','case_id','name','user_id','group_name','input1','expected_tool_1','expected_args_1','reply_contains_1','reply_not_contains_1','judge_prompt_1','judge_threshold_1','input2','expected_tool_2','expected_args_2','reply_contains_2','reply_not_contains_2','judge_prompt_2','judge_threshold_2','input3','expected_tool_3','expected_args_3','reply_contains_3','reply_not_contains_3','judge_prompt_3','judge_threshold_3'],
-        ['# 是否启用(true/false)','用例唯一标识','用例名称','用户ID(数字 或 权限类型: FULL/OPEN_DOOR_ONLY/OPERATIONAL_ONLY/DENIED)','分组名称(默认:默认分组)','第1轮用户输入','第1轮期望工具名','第1轮期望参数(JSON或说明)','第1轮回复必须包含(|分隔)','第1轮回复不能包含(|分隔)','第1轮 Judge Prompt','第1轮 Judge 阈值','第2轮用户输入','第2轮期望工具名','第2轮期望参数','第2轮回复必须包含','第2轮回复不能包含','第2轮 Judge Prompt','第2轮 Judge 阈值','第3轮用户输入','第3轮期望工具名','第3轮期望参数','第3轮回复必须包含','第3轮回复不能包含','第3轮 Judge Prompt','第3轮 Judge 阈值'],
-        ['true','t1_door_001','开门基本流程','FULL','开门场景','帮我开一下车门','open_door','{"action":"openDoor"}','已为你开门|成功','','检查回复是否说明开门结果','0.8','','','','','','','','','','','','','',''],
-        ['true','t2_query_001','查询电量','FULL','默认分组','查一下车辆电量','vehicle_selective_query','{"field":"battery"}','电量','','检查回复是否围绕车辆电量回答','0.8','','','','','','','','','','','','','',''],
-        ['false','t5_multi_001','多轮对话','OPERATIONAL_ONLY','默认分组','附近有什么车','vehicle_selective_query','','附近','','','0.7','第一辆电量多少','vehicle_selective_query','','电量','','','0.7','帮我开门','open_door','{"action":"openDoor"}','','不能执行','','0.7']
+        header,
+        ['# 是否启用(true/false)','用例唯一标识','用例名称','分组','标签(|分隔)','用户ID','输入1','输入2','输入3','评测类型1','评测参数1(JSON)','Judge Prompt ID 1','评测类型2','评测参数2(JSON)','Judge Prompt ID 2','评测类型3','评测参数3(JSON)','Judge Prompt ID 3'],
+        ['true','t1_door_001','开门基本流程','开门场景','开门|成功','900100000','帮我打开车门','','','structure_match','open_door','','text_match','已为你开门|成功','','llm_judge','threshold=0.8','vehicle_control_success_v1'],
+        ['true','t1_multi_open_001','多轮选车后开门','车辆控制','多轮|开门','900100000','附近有什么车','第一辆','帮我开门','structure_match','open_door','','text_match','开门','','llm_judge','threshold=0.8','vehicle_control_success_v1']
     ];
+    downloadRowsAsCsv(rows,'case_schema_template.csv','模板已下载');
+}
+function downloadRowsAsCsv(rows,filename,message){
     var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
     var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
     var a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download='eval_cases_template.csv';
+    a.download=filename;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast('模板已下载','ok');
+    toast(message||'模板已下载','ok');
 }
 function exportCases(){
     var count=filteredCases.length;
@@ -2711,6 +3341,7 @@ function loadRuns(){
         if(d.code==='10000'){ allRuns=d.data||[]; renderVersionOptions(); filterRuns();
             allRuns.filter(r=>r.status==='RUNNING').forEach(function(r){showLive(r);pollRun(r.id);});
             if(!allRuns.some(r=>r.status==='RUNNING')) hideLive();
+            renderWorkspaceHome();
         }
     });
 }

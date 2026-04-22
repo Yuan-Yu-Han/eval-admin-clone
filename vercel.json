@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/admin/eval/api/:path*", "destination": "/api/server" },
+    { "source": "/admin/eval/assets/:path*", "destination": "/api/server" },
     { "source": "/admin/eval", "destination": "/api/server" },
     { "source": "/", "destination": "/api/server" }
   ]
