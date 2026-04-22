@@ -4,7 +4,9 @@ import sqlite3 from 'sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DEFAULT_DB_PATH = path.resolve(__dirname, '../../../data/runtime.sqlite');
+const DEFAULT_DB_PATH = process.env.VERCEL
+  ? '/tmp/runtime.sqlite'
+  : path.resolve(__dirname, '../../../data/runtime.sqlite');
 
 function openDb(filePath) {
   return new Promise((resolve, reject) => {
