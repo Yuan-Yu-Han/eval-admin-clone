@@ -167,13 +167,16 @@
         .eval-card-num { width:24px; height:24px; border-radius:50%; background:var(--c-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; }
         .eval-grid { display:grid; grid-template-columns:180px minmax(0,1fr) 220px; gap:10px; align-items:start; }
         .eval-arg-ta { min-height:74px; font-family:'SF Mono',SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.45; resize:vertical; }
-        .eval-summary { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
-        .eval-chip { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:999px; background:#eef2ff; color:var(--c-accent); font-size:11px; font-weight:700; white-space:nowrap; }
+        .eval-summary { display:grid; gap:5px; align-items:start; min-width:0; }
+        .eval-chip { display:block; max-width:100%; overflow-x:auto; padding:2px 7px; border-radius:999px; background:#eef2ff; color:var(--c-accent); font-size:11px; font-weight:700; white-space:nowrap; scrollbar-width:thin; }
         .eval-chip.muted { background:#f3f4f6; color:var(--c-text3); }
         .case-title-stack { display:grid; gap:4px; }
         .case-name-main { font-weight:700; color:var(--c-text); }
         .case-subline { font-size:12px; color:var(--c-text3); line-height:1.4; }
-        .case-input-preview { white-space:pre-wrap; word-break:break-word; line-height:1.55; max-width:460px; }
+        .case-input-preview { line-height:1.55; max-width:100%; max-height:118px; overflow:auto; padding-right:4px; scrollbar-width:thin; }
+        .case-cell-scroll { max-width:100%; overflow:auto; scrollbar-width:thin; }
+        .case-cell-nowrap { white-space:nowrap; }
+        .case-cell-actions { display:flex; gap:6px; flex-wrap:nowrap; min-width:max-content; }
         @media (max-width:900px) {
             .case-input-grid, .eval-grid { grid-template-columns:1fr; }
         }
@@ -508,12 +511,23 @@
         .template-mode-tabs { display:flex; gap:6px; flex-wrap:wrap; }
 
         /* ── Cases table turns ── */
-        .cases-tbl { table-layout:auto; }
+        .cases-tbl { table-layout:fixed; min-width:1510px; width:100%; }
+        .cases-tbl th, .cases-tbl td { overflow:hidden; }
+        .cases-tbl th { white-space:nowrap; }
+        .cases-tbl .col-ck { width:44px; }
+        .cases-tbl .col-case { width:230px; }
+        .cases-tbl .col-input { width:330px; }
+        .cases-tbl .col-eval { width:390px; }
+        .cases-tbl .col-user { width:120px; }
+        .cases-tbl .col-status { width:105px; }
+        .cases-tbl .col-source { width:96px; }
+        .cases-tbl .col-updated { width:135px; }
+        .cases-tbl .col-actions { width:260px; }
         .case-turns-cell { vertical-align:top; }
         .cases-sticky { position:sticky; top:0; z-index:50; background:var(--c-bg); padding:16px 0 12px; }
         .case-turn { display:flex; align-items:center; gap:6px; padding:3px 0; font-size:13px; }
         .case-turn-n { width:20px; height:20px; border-radius:50%; background:var(--c-accent); color:#fff; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-        .case-turn-text { word-break:break-word; }
+        .case-turn-text { white-space:normal; word-break:break-word; min-width:0; }
         .case-turn-tool { font-size:11px; color:var(--c-accent); font-family:'SF Mono',SFMono-Regular,Menlo,monospace; background:var(--c-accent-light); padding:1px 6px; border-radius:3px; flex-shrink:0; }
         .case-turn-arrow { color:var(--c-text3); font-size:9px; padding-left:26px; line-height:1; }
 
@@ -899,9 +913,10 @@
                     <div class="gen-sec">
                         <div class="gen-step-head">
                             <div>
-                                <div class="gen-step-title"><span class="gen-step-num">1</span>批次控制</div>
+                                <div class="gen-step-title">Case 基础信息</div>
+                                <div class="gen-step-hint">和「+ 新建」保持同一套字段：分组、输入、用户与生成数量。</div>
                             </div>
-                            <span class="tag tag-wait">页面锁定字段</span>
+                            <span class="tag tag-wait">基础字段</span>
                         </div>
                         <div class="gen-grid-4">
                             <div class="fg"><label class="fl">模式</label>
@@ -915,7 +930,7 @@
                             <div class="fg"><label class="fl">Case ID 前缀</label><input class="fi" id="pg-prefix" value="llm_demo"></div>
                         </div>
                         <div class="gen-grid-2">
-                            <div class="fg"><label class="fl">目标分组 / 选择已有分组</label><select class="fi" id="pg-group-select" onchange="onGenerateGroupChange()"></select></div>
+                            <div class="fg"><label class="fl">目标分组</label><select class="fi" id="pg-group-select" onchange="onGenerateGroupChange()"></select></div>
                             <div class="fg"><label class="fl">自定义分组</label><input class="fi" id="pg-custom-group" value="" oninput="updateGenerateGroupLock()"></div>
                         </div>
                         <div style="display:none" id="pg-locked-group">默认分组</div>
@@ -934,38 +949,25 @@
                             </div>
                         </div>
                     </div>
-                    <div class="gen-sec">
-                        <div class="gen-step-head">
-                            <div>
-                                <div class="gen-step-title"><span class="gen-step-num">2</span>列模板</div>
-                            </div>
-                            <span class="tag tag-wait">CSV 模板列</span>
-                        </div>
-                        <!-- Template-driven column schema cards -->
-                        <div id="pg-column-schema" style="margin-bottom:12px"></div>
-                        <!-- Hidden elements for backward compat with checkedValues() -->
-                        <div style="display:none" id="pg-required-fields"></div>
-                        <div style="display:none" id="pg-assertion-fields">
+                    <div style="display:none">
+                        <div id="pg-column-schema"></div>
+                        <div id="pg-required-fields"></div>
+                        <div id="pg-assertion-fields">
                             <input type="checkbox" value="expectedArgs" checked>
                             <input type="checkbox" value="replyContains" checked>
                             <input type="checkbox" value="replyNotContains" checked>
                             <input type="checkbox" value="judgePrompt" checked>
                             <input type="checkbox" value="judgeThreshold" checked>
                         </div>
-                        <details class="schema-note" style="margin:0 0 0">
-                            <summary style="cursor:pointer;font-weight:700;color:var(--c-text)">字段契约 Prompt（可编辑）/ 高级字段规则</summary>
-                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:10px 0 6px">
-                                <button class="btn btn-ghost btn-sm" type="button" onclick="resetSchemaPrompt()">重置字段契约</button>
-                            </div>
-                            <textarea class="fi" id="pg-schema-prompt" rows="5" oninput="_schemaPromptTouched=true"></textarea>
-                        </details>
+                        <textarea id="pg-schema-prompt" oninput="_schemaPromptTouched=true"></textarea>
                     </div>
                     <div class="gen-sec">
                         <div class="gen-step-head">
                             <div>
-                                <div class="gen-step-title"><span class="gen-step-num">3</span>内容生成</div>
+                                <div class="gen-step-title">业务覆盖目标</div>
+                                <div class="gen-step-hint">描述要覆盖的真实业务场景，系统会按统一字段生成。</div>
                             </div>
-                            <span class="tag tag-wait">LLM 生成字段</span>
+                            <span class="tag tag-wait">生成说明</span>
                         </div>
                         <div class="fg"><label class="fl">业务覆盖目标（可编辑）</label><textarea class="fi" id="pg-generation-prompt" rows="7" oninput="_generationPromptTouched=true"></textarea></div>
                         <div class="fg" id="pg-selected-base-wrap" style="display:none;margin-top:8px">
@@ -1003,7 +1005,7 @@
             <div class="bar">
                 <input class="search" id="run-q" placeholder="搜索运行名称 ...">
                 <select class="search" id="run-agent-filter" style="width:200px" onchange="filterRuns()">
-                    <option value="">Agent 版本筛选：全部</option>
+                    <option value="">版本筛选：全部</option>
                 </select>
                 <div class="spacer"></div>
                 <button class="btn btn-p" onclick="openNewRunFromRuns()">新建运行</button>
@@ -1020,7 +1022,7 @@
         </div>
         <!-- run detail sub-pane (full width, hidden by default) -->
         <div id="runs-detail" style="display:none">
-            <span style="display:none">Run 总览 整体通过 路由选对 中间链路异常 回复质量评分 链路判断 逐轮明细 无 SkillResult 链路 LLM 评价</span>
+            <span style="display:none">Run 总览 整体通过 结构匹配 文本匹配 语义评测 逐轮明细</span>
             <div class="bar cases-sticky" style="margin-bottom:20px">
                 <button class="btn btn-flat" onclick="backToRuns()">&larr; 返回列表</button>
                 <strong id="rd-title" style="font-size:16px;margin-left:8px"></strong>
@@ -2103,8 +2105,8 @@ function renderEvalSummary(c){
 function renderCasesTableHeader(){
     var head=document.getElementById('cases-head-row');
     if(!head) return;
-    head.innerHTML='<th class="ck"><input type="checkbox" id="ck-all" onchange="toggleAll(this)"></th>'+
-        '<th>Case</th><th>输入</th><th>评测点</th><th>User</th><th>状态</th><th>来源</th><th>更新时间</th><th></th>';
+    head.innerHTML='<th class="ck col-ck"><input type="checkbox" id="ck-all" onchange="toggleAll(this)"></th>'+
+        '<th class="col-case">Case</th><th class="col-input">输入</th><th class="col-eval">评测点</th><th class="col-user">User</th><th class="col-status">状态</th><th class="col-source">来源</th><th class="col-updated">更新时间</th><th class="col-actions"></th>';
 }
 function renderCases(list){
     renderCasesTableHeader();
@@ -2119,18 +2121,18 @@ function renderCases(list){
             :'<button class="btn btn-flat btn-sm" onclick="approveRegression(\''+c.id+'\',true)">入回归</button>';
         return '<tr>'+
             '<td class="ck"><input type="checkbox" class="ccb" value="'+c.id+'" onchange="updSelected()"></td>'+
-            '<td style="vertical-align:top"><div class="case-title-stack"><div class="case-name-main">'+esc(c.name||c.caseId||'未命名')+'</div><div class="case-subline mono">'+esc(c.caseId||'')+'</div><div class="case-subline">'+esc(c.groupName||'默认分组')+(c.tags?' · '+esc(c.tags):'')+'</div></div></td>'+
+            '<td style="vertical-align:top"><div class="case-cell-scroll"><div class="case-title-stack"><div class="case-name-main">'+esc(c.name||c.caseId||'未命名')+'</div><div class="case-subline mono case-cell-nowrap">'+esc(c.caseId||'')+'</div><div class="case-subline">'+esc(c.groupName||'默认分组')+(c.tags?' · '+esc(c.tags):'')+'</div></div></div></td>'+
             '<td class="case-turns-cell"><div class="case-input-preview">'+firstInputSummary(c)+'</div></td>'+
-            '<td style="vertical-align:top">'+renderEvalSummary(c)+'</td>'+
-            '<td class="mono" style="vertical-align:top">'+esc(c.userId||'')+'</td>'+
+            '<td style="vertical-align:top"><div class="case-cell-scroll">'+renderEvalSummary(c)+'</div></td>'+
+            '<td class="mono" style="vertical-align:top"><div class="case-cell-scroll case-cell-nowrap">'+esc(c.userId||'')+'</div></td>'+
             '<td style="vertical-align:top">'+(c.enabled?'<span class="tag tag-on">ON</span>':'<span class="tag tag-off">OFF</span>')+(regTag?' '+regTag:'')+'</td>'+
             '<td style="vertical-align:top"><span class="tag" style="'+sourceStyle(c.source||'manual')+'">'+sourceLabel(c.source||'manual')+'</span></td>'+
-            '<td style="vertical-align:top;white-space:nowrap;color:var(--c-text3);font-size:12px">'+ft(c.updatedAt)+'</td>'+
-            '<td style="white-space:nowrap;vertical-align:top">'+
+            '<td style="vertical-align:top;color:var(--c-text3);font-size:12px"><div class="case-cell-scroll case-cell-nowrap">'+ft(c.updatedAt)+'</div></td>'+
+            '<td style="vertical-align:top"><div class="case-cell-scroll"><div class="case-cell-actions">'+
                             approveBtn+
               '<button class="btn btn-ghost btn-sm" onclick="editCase(\''+c.id+'\')">编辑</button>'+
               '<button class="btn btn-ghost btn-sm" style="color:var(--c-red)" onclick="delCase(\''+c.id+'\',\''+ea(c.caseId)+'\')">删除</button>'+
-            '</td></tr>';
+            '</div></div></td></tr>';
     }).join('');
     updSelected();
 }
@@ -2263,25 +2265,60 @@ var _schemaPromptTouched=false;
 var _generationPromptTouched=false;
 
 /* Render column schema cards in Step 2 */
+var CASE_SCHEMA_COLUMNS=[
+    'enable','case_id','name','group_name','tags','user_id','input1','input2','input3',
+    'eval_type_1','expected_arg_1','judge_prompt_id_1',
+    'eval_type_2','expected_arg_2','judge_prompt_id_2',
+    'eval_type_3','expected_arg_3','judge_prompt_id_3'
+];
+var CASE_SCHEMA_COLUMN_TITLES={
+    enable:'启用',
+    case_id:'Case ID',
+    name:'名称',
+    group_name:'分组',
+    tags:'标签',
+    user_id:'用户',
+    input1:'输入 1',
+    input2:'输入 2',
+    input3:'输入 3',
+    eval_type_1:'评测类型 1',
+    expected_arg_1:'期望字段 1',
+    judge_prompt_id_1:'Judge Prompt 1',
+    eval_type_2:'评测类型 2',
+    expected_arg_2:'期望字段 2',
+    judge_prompt_id_2:'Judge Prompt 2',
+    eval_type_3:'评测类型 3',
+    expected_arg_3:'期望字段 3',
+    judge_prompt_id_3:'Judge Prompt 3'
+};
+function caseSchemaColumnMeta(key){
+    var inputType=/^eval_type_/.test(key)?'select':(/^expected_arg_/.test(key)||key==='input1'||key==='input2'||key==='input3'?'textarea':(key==='enable'?'boolean':'text'));
+    var source=/^eval_type_/.test(key)?'fixed':(/^expected_arg_/.test(key)||key==='input1'||key==='name'?'llm':(key==='group_name'||key==='user_id'?'batch':'manual'));
+    if(/^judge_prompt_id_/.test(key)) source='fixed';
+    return {
+        key:key,
+        title:CASE_SCHEMA_COLUMN_TITLES[key]||key,
+        inputType:inputType,
+        source:source,
+        optional:['user_id','input2','input3','judge_prompt_id_1','judge_prompt_id_2','judge_prompt_id_3'].indexOf(key)>=0,
+        prompt:/^expected_arg_/.test(key)?'填写函数名、字段名、关键文本或语义评测阈值，不要求 JSON。':''
+    };
+}
+function currentCaseSchemaColumns(){
+    return CASE_SCHEMA_COLUMNS.map(caseSchemaColumnMeta);
+}
 function renderColumnSchemaTable(){
     var el=document.getElementById('pg-column-schema');
     if(!el) return;
-    var schema=_caseGenerationSchema||{};
-    var cols=schema.columnSchema||[];
+    var cols=currentCaseSchemaColumns();
     if(!cols.length){
-        el.innerHTML='<div style="font-size:12px;color:var(--c-text2);padding:6px 0">模板列定义加载中…</div>';
+        el.innerHTML='<div style="font-size:12px;color:var(--c-text2);padding:6px 0">Case Schema 加载中…</div>';
         return;
     }
     var srcLabel={auto:'自动',fixed:'固定',batch:'批次锁定',llm:'LLM',manual:'手填'};
     var typeLabel={text:'文本',textarea:'多行文本',json:'JSON',select:'下拉',tags:'标签',number:'数字',boolean:'布尔'};
-    var turnCount=Math.max(1,Math.min(3,parseInt((document.getElementById('pg-turns')||{}).value,10)||1));
     var h='<div class="col-schema-grid">';
     cols.forEach(function(col){
-        // For optional turn columns, only show up to current turnCount
-        if(col.optional){
-            var m=col.key.match(/_(\d)$/);
-            if(m&&Number(m[1])>turnCount) return;
-        }
         var sc='src-'+(col.source||'manual');
         h+='<div class="col-schema-card'+(col.optional?' optional':'')+'">'+
             '<div class="col-schema-card-key">'+esc(col.key)+'</div>'+
@@ -2300,23 +2337,7 @@ function renderColumnSchemaTable(){
 
 /* Return the list of column keys to show in the preview table, using columnSchema */
 function getPreviewColumnsFromSchema(){
-    var schema=_caseGenerationSchema||{};
-    var cols=schema.columnSchema||[];
-    if(!cols.length){
-        // Fallback: hardcoded vehicle columns
-        return ['__delete','enable','case_id','name','user_id','riskLevel','group_name'].concat(CSV_TEMPLATE_COLUMNS.slice(5));
-    }
-    var turnCount=Math.max(1,Math.min(3,parseInt((document.getElementById('pg-turns')||{}).value,10)||1));
-    var result=['__delete'];
-    cols.forEach(function(col){
-        if(!col.optional){
-            result.push(col.key);
-        }else{
-            var m=col.key.match(/_(\d)$/);
-            if(m&&Number(m[1])<=turnCount) result.push(col.key);
-        }
-    });
-    return result;
+    return ['__delete'].concat(CASE_SCHEMA_COLUMNS);
 }
 
 /* Extract a flat string value from a case object given a column key */
@@ -2326,6 +2347,7 @@ function getCellValueByKey(c,key){
     if(key==='name') return c.name||'';
     if(key==='user_id') return c.userId||'';
     if(key==='group_name') return c.groupName||'';
+    if(key==='tags') return c.tags||((c.payload&&Array.isArray(c.payload.noiseTags))?c.payload.noiseTags.join(','):'');
     if(key==='risk_level'||key==='riskLevel') return c.riskLevel||'medium';
     // Voice ticket payload fields
     if(key==='dialogue_text') return (c.payload&&c.payload.dialogueText)||'';
@@ -2343,7 +2365,21 @@ function getCellValueByKey(c,key){
         var nt=c.payload&&c.payload.noiseTags;
         return Array.isArray(nt)?nt.join('|'):(nt||'');
     }
-    // Turn fields: input1, expected_tool_1, expected_args_1, etc.
+    if(key==='input1'||key==='input2'||key==='input3'){
+        var inputIdx=Number(key.replace('input',''))-1;
+        var inputs=caseInputs(c);
+        return inputs[inputIdx]||'';
+    }
+    var ev=key.match(/^(eval_type|expected_arg|judge_prompt_id)_(\d)$/);
+    if(ev){
+        var slotIdx=Number(ev[2]);
+        var slots=collectCaseEvalSlots(c);
+        var slot=slots.find(function(item){return item.index===slotIdx;})||{};
+        if(ev[1]==='eval_type') return canonicalEvalType(slot.evalType||c[key]||'');
+        if(ev[1]==='expected_arg') return slot.expectedArg||c[key]||'';
+        if(ev[1]==='judge_prompt_id') return slot.judgePromptId||c[key]||'';
+    }
+    // Legacy turn fields kept only so older preview responses still render.
     var m=key.match(/^(input|expected_tool|expected_args|reply_contains|reply_not_contains|judge_prompt|judge_threshold)_(\d)$/);
     if(m){
         var turnIdx=Number(m[2])-1;
@@ -2356,18 +2392,10 @@ function getCellValueByKey(c,key){
 
 /* Download the current preview cases as a CSV file */
 function downloadPreviewCsv(){
-    var schema=_caseGenerationSchema||{};
-    var cols=schema.columnSchema||[];
     var preview=_llmPreviewCases||[];
     if(!preview.length){toast('无预览内容可下载','err');return;}
-    var turnCount=Math.max(1,Math.min(3,parseInt((document.getElementById('pg-turns')||{}).value,10)||1));
-    var csvCols=cols.length
-        ?cols.filter(function(col){
-            if(!col.optional) return true;
-            var m=col.key.match(/_(\d)$/);
-            return m&&Number(m[1])<=turnCount;
-        }).map(function(col){return col.key;})
-        :CSV_TEMPLATE_COLUMNS;
+    var schema=_caseGenerationSchema||{};
+    var csvCols=CASE_SCHEMA_COLUMNS;
     var rows=[csvCols];
     preview.forEach(function(c){
         rows.push(csvCols.map(function(key){return getCellValueByKey(c,key);}));
@@ -2375,17 +2403,13 @@ function downloadPreviewCsv(){
     var fname=(schema.projectName||'eval').replace(/\s+/g,'_')+'_generated_cases.csv';
     downloadRowsAsCsv(rows,fname,'已下载 '+preview.length+' 条预览用例');
 }
-var CSV_TEMPLATE_COLUMNS=[
-    'enable','case_id','name','user_id','group_name',
-    'input1','expected_tool_1','expected_args_1','reply_contains_1','reply_not_contains_1','judge_prompt_1','judge_threshold_1',
-    'input2','expected_tool_2','expected_args_2','reply_contains_2','reply_not_contains_2','judge_prompt_2','judge_threshold_2',
-    'input3','expected_tool_3','expected_args_3','reply_contains_3','reply_not_contains_3','judge_prompt_3','judge_threshold_3'
-];
+var CSV_TEMPLATE_COLUMNS=CASE_SCHEMA_COLUMNS.slice();
 var CSV_TEMPLATE_DESCRIPTIONS=[
-    '是否启用(true/false)','用例唯一标识','用例名称','用户ID(数字 或 权限类型: FULL/OPEN_DOOR_ONLY/OPERATIONAL_ONLY/DENIED)','分组名称(默认:默认分组)',
-    '第1轮用户输入','第1轮期望工具名','第1轮期望参数(JSON)','第1轮回复须含(分号分隔)','第1轮回复禁含(分号分隔)','第1轮LLM评判prompt','第1轮评判及格线(0-1)',
-    '第2轮用户输入','第2轮期望工具名','第2轮期望参数(JSON)','第2轮回复须含','第2轮回复禁含','第2轮LLM评判prompt','第2轮评判及格线',
-    '第3轮用户输入','第3轮期望工具名','第3轮期望参数(JSON)','第3轮回复须含','第3轮回复禁含','第3轮LLM评判prompt','第3轮评判及格线'
+    '是否启用(true/false)','用例唯一标识','用例名称','分组名称','标签(逗号分隔)','用户ID或权限账号',
+    '第1段输入','第2段输入','第3段输入',
+    '评测类型1(structure_match/text_match/llm_judge)','期望字段1','Prompt ID 1',
+    '评测类型2(structure_match/text_match/llm_judge)','期望字段2','Prompt ID 2',
+    '评测类型3(structure_match/text_match/llm_judge)','期望字段3','Prompt ID 3'
 ];
 function initGeneratePage(){
     var p=document.getElementById('pg-generation-prompt');
@@ -2407,23 +2431,40 @@ function initGeneratePage(){
     if(vehicleControls) vehicleControls.style.display=(hasTurns||hasUserId)?'':'none';
     var sel=document.getElementById('pg-group-select');
     if(sel){
-        var groups=[];
-        allCases.forEach(function(c){var g=c.groupName||'默认分组';if(groups.indexOf(g)===-1)groups.push(g);});
-        // Add groups from project profile columns or hardcoded defaults
-        if(activeCaseType()==='voice_ticket_dialogue'){
-            ['工单结构化','工单字段抽取','工单分类路由'].forEach(function(g){if(groups.indexOf(g)===-1)groups.push(g);});
-        }else{
-            ['默认分组','车辆控制','运营数据查询','RAG防幻觉'].forEach(function(g){if(groups.indexOf(g)===-1)groups.push(g);});
-        }
+        var groups=generateProjectGroups();
+        var previous=sel.value;
         sel.innerHTML=groups.map(function(g){return '<option value="'+esc(g)+'">'+esc(g)+'</option>';}).join('');
-        if(!sel.value) sel.value='默认分组';
-        if(activeCaseType()==='voice_ticket_dialogue'&&groups.indexOf('工单结构化')!==-1) sel.value='工单结构化';
+        if(previous&&groups.indexOf(previous)!==-1) sel.value=previous;
+        else sel.value=groups[0]||'默认分组';
     }
     renderGenerateToolOptions();
     syncAllowedToolsFromExpected();
     refreshSchemaControls();
     updateGenerateGroupLock();
     onGeneratePageModeChange();
+}
+function activeGenerateProjectId(){
+    var p=currentWorkspaceProject();
+    return (p&&p.projectId)||localStorage.getItem(PROJECT_ID_KEY)||'vehicle-agent-eval';
+}
+function caseBelongsToActiveProject(c){
+    var projectId=activeGenerateProjectId();
+    if(!projectId||projectId==='all') return true;
+    return !c.projectId||c.projectId===projectId;
+}
+function generateProjectGroups(){
+    var projectId=activeGenerateProjectId();
+    var isVoice=projectId==='voice-ticket-eval'||activeCaseType()==='voice_ticket_dialogue';
+    var groups=[];
+    allCases.filter(caseBelongsToActiveProject).forEach(function(c){
+        var g=c.groupName||'默认分组';
+        if(groups.indexOf(g)===-1) groups.push(g);
+    });
+    var defaults=isVoice
+        ?['车辆故障 / 缺失字段','配送履约 / 路由','客户投诉 / 升级','对话理解 / 纠错','ASR 噪声 / 字段抽取','缺失信息 / 防幻觉','复杂对话 / 多问题','售后回访 / 完结确认']
+        :['车控 / 开门','车控 / 权限','运营数据 / 城市日报','运营数据 / 多轮上下文','车控 / 批量动作','知识问答 / 安全策略','App 路由 / 寻车','用户偏好 / 昵称','车辆查询 / 指定车辆'];
+    defaults.forEach(function(g){if(groups.indexOf(g)===-1) groups.push(g);});
+    return groups.length?groups:['默认分组'];
 }
 function currentGenerateGroup(){
     var custom=document.getElementById('pg-custom-group');
@@ -2687,34 +2728,23 @@ function loadCaseGenerationSchema(){
 }
 function defaultSchemaPrompt(){
     var schema=_caseGenerationSchema||{};
-    var required=(schema.requiredFields&&schema.requiredFields.length)?schema.requiredFields:['caseId','name','groupName','allowedTools','turns','expectedTools','evalDimensions','riskLevel'];
-    var turn=(schema.turnFields&&schema.turnFields.length)?schema.turnFields:['userInput','expectedTool'];
-    var assertions=checkedValues('#pg-assertion-fields');
-    if(!assertions.length) assertions=(schema.assertionFields&&schema.assertionFields.length)?schema.assertionFields:['expectedArgs','replyContains','replyNotContains','judgePrompt','judgeThreshold'];
-    var imports=(schema.importColumns&&schema.importColumns.length)?schema.importColumns:[
-        'enable','case_id','name','user_id','group_name',
-        'input1','expected_tool_1','expected_args_1','reply_contains_1','reply_not_contains_1','judge_prompt_1','judge_threshold_1',
-        'input2','expected_tool_2','expected_args_2','reply_contains_2','reply_not_contains_2','judge_prompt_2','judge_threshold_2',
-        'input3','expected_tool_3','expected_args_3','reply_contains_3','reply_not_contains_3','judge_prompt_3','judge_threshold_3'
-    ];
-    if(schema.caseType==='voice_ticket_dialogue'){
+    var imports=CASE_SCHEMA_COLUMNS;
+    if(activeCaseType()==='voice_ticket_dialogue'||schema.caseType==='voice_ticket_dialogue'){
         return [
-            '输出字段结构：语音工单项目使用独立 caseType=voice_ticket_dialogue。',
-            '输入字段：dialogueText 是一整段 ASR 多轮对话大文本，不拆成车辆 Agent 工具调用 turns。',
-            '输出字段：expectedTicket 是期望工单 JSON；missingFields、routeQueue、noiseTags 作为语义测评断言。',
-            '必填字段：'+required.join(', '),
-            '断言字段：'+assertions.join(', '),
+            '输出字段结构：使用统一 Case CSV Schema。',
+            '输入字段：input1 写完整 ASR 对话文本；input2/input3 可留空。',
+            '评测字段：eval_type_1=structure_match，expected_arg_1 写期望工单字段；eval_type_2=text_match，expected_arg_2 写关键文本；eval_type_3=llm_judge，judge_prompt_id_3 写语义评测 Prompt ID。',
             '导入列：'+imports.join(', '),
-            '评测规则：只评测 AI 输出的工单语义结构、字段准确性、缺失字段、路由队列和禁止编造；没有工具调用也可以成立。'
+            '评测规则：评测工单语义结构、字段准确性、缺失字段、路由队列和禁止编造；不要求工具调用。'
         ].join('\n');
     }
     return [
-        '输出字段结构：字段结构全项目统一，业务覆盖目标单独填写。',
-        '必填字段：'+required.join(', '),
-        '轮次字段：'+turn.join(', ')+'；断言字段：'+assertions.join(', '),
+        '输出字段结构：使用统一 Case CSV Schema。',
+        '输入字段：input1/input2/input3 分别对应最多三段用户输入。',
+        '评测字段：eval_type_1=structure_match，expected_arg_1 写函数名或结构字段；eval_type_2=text_match，expected_arg_2 写回复关键文本；eval_type_3=llm_judge，expected_arg_3 写阈值或语义要求。',
         '导入列：'+imports.join(', '),
         '字段说明：'+CSV_TEMPLATE_COLUMNS.map(function(c,i){return c+'='+CSV_TEMPLATE_DESCRIPTIONS[i];}).join('；'),
-        '断言规则：只为已勾选的断言字段生成内容；未勾选字段保持空值。expectedArgs 必须是 JSON object 或空字符串；replyContains/replyNotContains 使用分号分隔；judgeThreshold 是 0-1 数字。'
+        '断言规则：expected_arg 直接写函数字段、结构字段、关键文本或语义要求；不要求 JSON。'
     ].join('\n');
 }
 function resetSchemaPrompt(){
@@ -2724,23 +2754,22 @@ function resetSchemaPrompt(){
     _schemaPromptTouched=false;
 }
 function defaultGenerationPrompt(){
-    if(_caseGenerationSchema&&_caseGenerationSchema.defaultGenerationPrompt) return _caseGenerationSchema.defaultGenerationPrompt;
     if(activeCaseType()==='voice_ticket_dialogue'){
         return [
             'ASR 对话工单结构化语义测评覆盖目标：',
-            '1. 输入是一整段坐席/用户 ASR 多轮对话文本，输出是 expectedTicket 工单 JSON。',
-            '2. 覆盖多轮补全、用户改口、坐席假设干扰、噪声词、缺失联系人/地点/车辆编号等真实对话问题。',
-            '3. 不评测工具调用；只评测 AI 输出的工单语义结构、字段准确性、缺失字段、路由队列和禁止编造。',
-            '4. 每条 case 要写清 dialogueText、expectedTicket、missingFields、routeQueue、noiseTags 和人工复核点。'
+            '输入是一整段坐席/用户 ASR 多轮对话文本，input1 承载完整对话。',
+            '覆盖多轮补全、用户改口、坐席假设干扰、噪声词、缺失联系人/地点/车辆编号等真实对话问题。',
+            '评测 AI 输出的工单语义结构、字段准确性、缺失字段、路由队列和禁止编造。',
+            '每条 case 要写清 expected_arg_1 的工单字段、expected_arg_2 的关键文本和 judge_prompt_id_3。'
         ].join('\n');
     }
     return [
         '车辆控制专项覆盖目标：',
-        '1. 成功路径覆盖远程开门/关门、鸣笛闪灯、空调开关与温度设置、车辆定位或寻车入口跳转，用户表达要像真实车主或运维人员。',
-        '2. 权限与状态边界覆盖无权限车辆、非绑定用户、车辆离线、车门已开/已锁、车辆行驶中、低电量或信号弱导致无法执行。',
-        '3. 多轮用例要体现上下文引用，例如“第一辆车”“刚才那辆车”“这台车”，并验证系统能继承上一轮车辆、动作或园区上下文。',
-        '4. 每条用例写清楚 expectedTool、关键参数、前置条件和人工复核点，例如目标车辆 VIN/车牌、控制动作、期望是否二次确认、失败原因是否可解释。',
-        '5. 不要只改同义句；请覆盖不同业务意图、不同失败原因、不同车辆数据条件，至少包含高风险控制动作和低风险查询/跳转动作。'
+        '成功路径覆盖远程开门/关门、鸣笛闪灯、空调开关与温度设置、车辆定位或寻车入口跳转，用户表达要像真实车主或运维人员。',
+        '权限与状态边界覆盖无权限车辆、非绑定用户、车辆离线、车门已开/已锁、车辆行驶中、低电量或信号弱导致无法执行。',
+        '多轮用例要体现上下文引用，例如“第一辆车”“刚才那辆车”“这台车”，并验证系统能继承上一轮车辆、动作或园区上下文。',
+        '每条用例写清 expected_arg_1 的函数或结构字段、expected_arg_2 的回复关键文本和 expected_arg_3 的语义阈值。',
+        '不要只改同义句；请覆盖不同业务意图、不同失败原因、不同车辆数据条件。'
     ].join('\n');
 }
 function showLlmResult(text,ok,html){
@@ -2778,15 +2807,14 @@ function removeLlmPreviewItem(idx){
 }
 function renderLlmPreview(){
     var previewColumns=getPreviewColumnsFromSchema();
-    var schema=_caseGenerationSchema||{};
     var colDefs={};
-    (schema.columnSchema||[]).forEach(function(c){colDefs[c.key]=c;});
+    currentCaseSchemaColumns().forEach(function(c){colDefs[c.key]=c;});
 
     function cellClass(col){
         var def=colDefs[col]||{};
         var t=def.inputType||'';
-        if(t==='boolean'||t==='number'||col==='enable'||col==='user_id'||col.indexOf('expected_tool_')===0||col.indexOf('judge_threshold_')===0) return 'preview-cell short';
-        if(col==='case_id'||col==='group_name') return 'preview-cell medium';
+        if(t==='boolean'||t==='number'||col==='enable'||col==='user_id'||col.indexOf('eval_type_')===0) return 'preview-cell short';
+        if(col==='case_id'||col==='group_name'||col==='tags'||col.indexOf('judge_prompt_id_')===0) return 'preview-cell medium';
         return 'preview-cell long';
     }
     function renderPreviewCell(c,rowIdx,col){
@@ -2814,21 +2842,24 @@ function renderLlmPreview(){
         if(col==='group_name'){
             return '<input class="'+cellClass(col)+'" value="'+ea(value||'默认分组')+'" disabled>';
         }
-        // expected_tool_N → tool select
-        if(col.indexOf('expected_tool_')===0){
-            return '<select class="'+cellClass(col)+' mono" onchange="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+previewToolOptions(value)+'</select>';
+        if(col.indexOf('eval_type_')===0){
+            return '<select class="'+cellClass(col)+' mono" onchange="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+
+                '<option value="structure_match"'+(value==='structure_match'?' selected':'')+'>structure_match</option>'+
+                '<option value="text_match"'+(value==='text_match'?' selected':'')+'>text_match</option>'+
+                '<option value="llm_judge"'+(value==='llm_judge'?' selected':'')+'>llm_judge</option>'+
+                '</select>';
         }
         // multi-line / JSON / tags → textarea
         if(inputType==='textarea'||inputType==='json'||inputType==='tags'||
-           col.indexOf('input')===0||col.indexOf('expected_args_')===0||
+           col.indexOf('input')===0||col.indexOf('expected_arg_')===0||col.indexOf('expected_args_')===0||
            col.indexOf('reply_contains_')===0||col.indexOf('reply_not_contains_')===0||
            col.indexOf('judge_prompt_')===0||col==='dialogue_text'||
            col==='expected_ticket_json'||col==='missing_fields'||col==='noise_tags'){
-            var mono=inputType==='json'||col.indexOf('expected_args_')===0||col==='expected_ticket_json';
+            var mono=inputType==='json'||col.indexOf('expected_arg_')===0||col.indexOf('expected_args_')===0||col==='expected_ticket_json';
             return '<textarea class="'+cellClass(col)+(mono?' mono':'')+'" oninput="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">'+esc(value)+'</textarea>';
         }
         // default → text input
-        var isMono=col==='case_id'||col==='user_id'||col.indexOf('judge_threshold_')===0;
+        var isMono=col==='case_id'||col==='user_id'||col.indexOf('judge_prompt_id_')===0||col.indexOf('judge_threshold_')===0;
         return '<input class="'+cellClass(col)+(isMono?' mono':'')+'" value="'+ea(value)+'" oninput="setPreviewCsvField('+rowIdx+',\''+col+'\',this.value)">';
     }
 
@@ -2905,7 +2936,19 @@ function setPreviewCsvField(caseIdx,col,value){
     if(col==='case_id'){ c.caseId=value; return; }
     if(col==='name'){ c.name=value; return; }
     if(col==='user_id'){ c.userId=value; return; }
+    if(col==='group_name'){ c.groupName=value; return; }
+    if(col==='tags'){ c.tags=value; return; }
     if(col==='riskLevel'){ c.riskLevel=value; return; }
+    if(col==='input1'||col==='input2'||col==='input3'){
+        setPreviewTurnField(caseIdx,Number(col.replace('input',''))-1,'userInput',value);
+        c[col]=value;
+        return;
+    }
+    var ev=col.match(/^(eval_type|expected_arg|judge_prompt_id)_(\d)$/);
+    if(ev){
+        c[col]=value;
+        return;
+    }
     var m=col.match(/^(input|expected_tool|expected_args|reply_contains|reply_not_contains|judge_prompt|judge_threshold)_(\d)$/);
     if(!m)return;
     var turnIdx=Number(m[2])-1;
@@ -3487,51 +3530,149 @@ function onBaselineChanged(runId){
     });
 }
 function buildCaseDiagnosis(r){
-    var checks=r.contractChecks||[];
-    function byKey(key){return checks.find(function(x){return x.key===key;})||{};}
-    function stageBadge(cc){
-        if(cc.applies===false) return {label:'跳过', color:'var(--c-text3)', bg:'#f3f4f6'};
-        if(cc.pass) return {label:'通过', color:'var(--c-green)', bg:'var(--c-green-bg)'};
-        return {label:'未通过', color:'var(--c-red)', bg:'var(--c-red-bg)'};
-    }
-    var stages=[
-        {key:'route', label:'意图路由', short:'选错业务能力', cc:byKey('route')},
-        {key:'input', label:'输入条件', short:'条件没有保留', cc:byKey('input')},
-        {key:'skillResult', label:'SkillResult', short:'结构化结果异常', cc:byKey('skillResult')},
-        {key:'render', label:'回复渲染', short:'最终回复不忠实', cc:byKey('render')}
-    ];
+    var checks=resultEvalChecks(r);
     var judgeScore=(r.llmJudge&&isFinite(Number(r.llmJudge.score)))?Math.max(0,Math.min(100,Math.round(Number(r.llmJudge.score)))):null;
-    var qualityScore=judgeScore;
-    if(qualityScore===null&&Array.isArray(r.stageChecks)){
-        var q=(r.stageChecks||[]).find(function(item){return item.key==='responseQuality';});
-        if(q&&isFinite(Number(q.score))) qualityScore=Math.max(0,Math.min(100,Math.round(Number(q.score))));
-    }
-    if(qualityScore===null) qualityScore=0;
-    var scoreColor='var(--c-green)',scoreBg='var(--c-green-bg)';
-    if(qualityScore<70){scoreColor='var(--c-red)';scoreBg='var(--c-red-bg)';}
-    else if(qualityScore<85){scoreColor='var(--c-amber)';scoreBg='var(--c-amber-bg)';}
     var llmEval=(r.llmJudge&&String(r.llmJudge.reason||r.llmJudge.comment||'').trim())||'';
-    if(!llmEval) llmEval='暂无 LLM 评价';
+    if(!llmEval) llmEval='暂无语义评测说明';
     var h='<div style="border:1px solid '+(r.pass?'#bbf7d0':'#fecaca')+';border-radius:8px;padding:12px 14px;margin-bottom:10px;background:'+(r.pass?'#f0fdf4':'#fff7f7')+'">'+
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'+
         '<div style="min-width:260px;flex:1">'+
-        '<div style="font-size:13px;font-weight:800;color:var(--c-text)">回复质量评分</div>'+
-        '<div style="font-size:30px;font-weight:800;line-height:1.1;margin-top:6px;color:'+scoreColor+'">'+qualityScore+'<span style="font-size:14px;margin-left:4px;color:var(--c-text3)">/100</span></div>'+
+        '<div style="font-size:13px;font-weight:800;color:var(--c-text)">评判结果</div>'+
+        '<div style="font-size:20px;font-weight:800;line-height:1.2;margin-top:6px;color:'+(r.pass?'var(--c-green)':'var(--c-red)')+'">'+(r.pass?'PASS':'FAIL')+'</div>'+
         '</div>'+
-        '<span class="tag" style="background:'+scoreBg+';color:'+scoreColor+';font-size:12px">LLM Judge · '+qualityScore+'</span>'+
+        (judgeScore!==null?'<span class="tag" style="background:#eef2ff;color:var(--c-accent);font-size:12px">语义评分 · '+judgeScore+'</span>':'')+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:10px">'+
+        checks.map(function(item){
+            var st=item.applies===false?{label:'未配置',bg:'#f3f4f6',color:'var(--c-text3)'}:(item.pass?{label:'通过',bg:'var(--c-green-bg)',color:'var(--c-green)'}:{label:'未通过',bg:'var(--c-red-bg)',color:'var(--c-red)'});
+            return '<div style="border:1px solid var(--c-border);border-radius:8px;background:#fff;padding:10px 12px">'+
+                '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+                '<strong style="font-size:13px">'+esc(item.label)+'</strong>'+
+                '<span class="tag" style="background:'+st.bg+';color:'+st.color+'">'+st.label+'</span>'+
+                '</div>'+
+                '<div style="font-size:12px;color:var(--c-text2);line-height:1.55;margin-top:7px;white-space:pre-wrap;word-break:break-word">'+esc(item.summary||'')+'</div>'+
+                (item.expected?'<div class="mono" style="font-size:11px;color:var(--c-text3);margin-top:7px;white-space:pre-wrap;word-break:break-word">expected: '+esc(item.expected)+'</div>':'')+
+                '</div>';
+        }).join('')+
         '</div>'+
         '<div style="margin-top:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;padding:10px 12px">'+
-        '<div style="font-size:11px;color:var(--c-text3);margin-bottom:6px">LLM 评价</div>'+
+        '<div style="font-size:11px;color:var(--c-text3);margin-bottom:6px">语义评测说明</div>'+
         '<div style="font-size:13px;line-height:1.6;color:var(--c-text);white-space:pre-wrap;word-break:break-word">'+esc(llmEval)+'</div>'+
         '</div>'+
-        '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">';
-    stages.forEach(function(item){
-        var s=stageBadge(item.cc);
-        h+='<span class="tag" title="'+esc(item.cc.summary||item.short)+'" style="background:'+s.bg+';color:'+s.color+'">'+esc(item.label)+' · '+s.label+'</span>';
-    });
-    h+='</div>'+
         '</div>';
     return h;
+}
+function evalTypeMeta(){
+    return [
+        {key:'structure_match',label:'结构匹配'},
+        {key:'text_match',label:'文本匹配'},
+        {key:'llm_judge',label:'语义评测'}
+    ];
+}
+function finalReplyText(result){
+    var turns=result.turns||[];
+    for(var i=turns.length-1;i>=0;i--){
+        if(turns[i].llmReplyText) return String(turns[i].llmReplyText||'');
+    }
+    return '';
+}
+function parseEvalExpectedText(value){
+    if(value===undefined||value===null) return '';
+    if(typeof value==='object') return expectedArgText(value);
+    return String(value||'').trim();
+}
+function evalThreshold(value){
+    var text=parseEvalExpectedText(value);
+    var json=parseExpectedArg(text);
+    var raw=json&&json.threshold!==undefined?json.threshold:null;
+    if(raw===null){
+        var m=/threshold\s*[:=]\s*([0-9.]+)/i.exec(text);
+        if(m) raw=m[1];
+    }
+    var n=Number(raw);
+    if(!isFinite(n)) n=0.7;
+    return n<=1?n*100:n;
+}
+function splitExpectedTerms(value){
+    var text=parseEvalExpectedText(value);
+    var json=parseExpectedArg(text);
+    if(json){
+        if(Array.isArray(json.contains)) return json.contains.map(String).filter(Boolean);
+        if(Array.isArray(json.fields)) return json.fields.map(String).filter(Boolean);
+        if(json.tool) return [String(json.tool)];
+        return Object.keys(json).filter(Boolean);
+    }
+    return splitAssertList(text.replace(/^contains\s*[:=]/i,''));
+}
+function resultEvalSlots(result){
+    var meta=result.caseMeta||{};
+    var slots=collectCaseEvalSlots(meta).map(function(slot){
+        return {index:slot.index,evalType:canonicalEvalType(slot.evalType),expectedArg:slot.expectedArg,judgePromptId:slot.judgePromptId};
+    });
+    if(slots.length) return slots;
+    var turns=result.turns||[];
+    var t=turns.find(function(item){return item.expectedTool||item.skillResultJson||item.llmReplyText;})||turns[0]||{};
+    if(t.expectedTool) slots.push({index:1,evalType:'structure_match',expectedArg:t.expectedTool,judgePromptId:''});
+    if(t.llmReplyText) slots.push({index:2,evalType:'text_match',expectedArg:'',judgePromptId:''});
+    if(result.llmJudge) slots.push({index:3,evalType:'llm_judge',expectedArg:'threshold=0.7',judgePromptId:''});
+    return slots;
+}
+function resultEvalChecks(result){
+    var slots=resultEvalSlots(result);
+    var checksByType={};
+    evalTypeMeta().forEach(function(m){checksByType[m.key]={key:m.key,label:m.label,applies:false,pass:false,total:0,passCount:0,summary:'未配置该评测点',expected:''};});
+    slots.forEach(function(slot){
+        var type=canonicalEvalType(slot.evalType);
+        if(!checksByType[type]) return;
+        var check=evaluateResultSlot(result,slot);
+        var bucket=checksByType[type];
+        bucket.applies=true;
+        bucket.total+=1;
+        if(check.pass) bucket.passCount+=1;
+        bucket.pass=bucket.passCount===bucket.total;
+        bucket.summary=bucket.total>1?(bucket.passCount+'/'+bucket.total+' 个评测点通过'):(check.summary||bucket.summary);
+        bucket.expected=bucket.expected?[bucket.expected,check.expected].filter(Boolean).join('\n'):check.expected;
+    });
+    return evalTypeMeta().map(function(m){return checksByType[m.key];});
+}
+function evaluateResultSlot(result,slot){
+    var type=canonicalEvalType(slot.evalType);
+    var expected=parseEvalExpectedText(slot.expectedArg);
+    if(type==='structure_match'){
+        var terms=splitExpectedTerms(expected);
+        var actualTools=(result.turns||[]).map(function(t){return t.actualTool||'';}).filter(Boolean);
+        var skillText=(result.turns||[]).map(function(t){return [t.actualTool,t.skillResultJson,t.hintsJson].join('\n');}).join('\n');
+        var pass=false;
+        if(terms.length){
+            pass=terms.every(function(term){
+                return actualTools.indexOf(term)>=0||skillText.indexOf(term)>=0;
+            });
+        }else{
+            var cc=(result.contractChecks||[]).find(function(x){return x.key==='route'||x.key==='skillResult'||x.key==='input';});
+            pass=cc?!!cc.pass:!!result.pass;
+        }
+        return {pass:pass,expected:expected,summary:terms.length?('检查结构字段/函数: '+terms.join(', ')):'按结构检查结果判断'};
+    }
+    if(type==='text_match'){
+        var reply=finalReplyText(result);
+        var textJson=parseExpectedArg(expected);
+        var contains=textJson&&Array.isArray(textJson.contains)?textJson.contains.map(String):splitExpectedTerms(expected);
+        var notContains=textJson&&Array.isArray(textJson.notContains)?textJson.notContains.map(String):[];
+        var containsPass=contains.length?contains.every(function(term){return reply.indexOf(term)>=0;}):!!reply;
+        var notPass=notContains.every(function(term){return reply.indexOf(term)<0;});
+        return {pass:containsPass&&notPass,expected:expected,summary:contains.length?('命中文本: '+contains.join(', ')):'检查最终回复文本'};
+    }
+    if(type==='llm_judge'){
+        var score=result.llmJudge&&isFinite(Number(result.llmJudge.score))?Number(result.llmJudge.score):null;
+        if(score===null){
+            var q=(result.stageChecks||[]).find(function(item){return item.key==='responseQuality';});
+            if(q&&isFinite(Number(q.score))) score=Number(q.score);
+        }
+        var threshold=evalThreshold(expected);
+        var pass=score!==null?score>=threshold:!!result.pass;
+        return {pass:pass,expected:expected||slot.judgePromptId,summary:(score!==null?'语义评分 '+Math.round(score)+' / 阈值 '+Math.round(threshold):'按整体结果判断语义评测')};
+    }
+    return {pass:!!result.pass,expected:expected,summary:'未知评测类型'};
 }
 function setRdPerfFilter(key,value){
     if(!_rdPerfFilter) _rdPerfFilter={ttft:'',llm:'',tool:'',db:'',token:'',cost:''};
@@ -3646,16 +3787,11 @@ function buildRunTopOverview(res){
             '</div>';
     }).join('');
 
-    var stageMeta=[
-        {key:'route',label:'意图识别'},
-        {key:'input',label:'参数提取'},
-        {key:'skillResult',label:'业务能力'},
-        {key:'render',label:'回复质量'}
-    ];
+    var stageMeta=evalTypeMeta();
     var stageStats={};
     stageMeta.forEach(function(m){stageStats[m.key]={pass:0,total:0,label:m.label};});
     res.forEach(function(r){
-        var checks=r.contractChecks||[];
+        var checks=resultEvalChecks(r);
         stageMeta.forEach(function(m){
             var cc=checks.find(function(x){return x.key===m.key;});
             if(!cc||cc.applies===false) return;
@@ -3687,7 +3823,7 @@ function buildRunTopOverview(res){
             '<div class="run-overview-title">按模块通过率</div><div class="run-rate-list">'+moduleRows+'</div>'+
         '</div>'+
         '<div class="run-overview-card">'+
-            '<div class="run-overview-title">按链路环节通过率</div><div class="run-rate-list">'+stageRows+'</div>'+
+            '<div class="run-overview-title">按评测类型通过率</div><div class="run-rate-list">'+stageRows+'</div>'+
         '</div>'+
         '</div></div>';
 }
@@ -3833,7 +3969,7 @@ function renderRD(run){
         // expanded body
         h+='<div class="'+bodyOpenCls+'"><div class="turn-detail">';
         h+=buildCaseDiagnosis(r);
-        if(r.contractChecks&&r.contractChecks.length){
+        if(false&&r.contractChecks&&r.contractChecks.length){
             var ccRoute=(r.contractChecks||[]).find(function(x){return x.key==='route';})||{};
             var ccInput=(r.contractChecks||[]).find(function(x){return x.key==='input';})||{};
             var ccSkill=(r.contractChecks||[]).find(function(x){return x.key==='skillResult';})||{};
