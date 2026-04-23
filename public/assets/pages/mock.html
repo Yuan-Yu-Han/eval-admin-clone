@@ -1,0 +1,41 @@
+<!-- ═══════ Mock ═══════ -->
+    <div class="pane" id="p-mock">
+        <div class="bar" style="margin-bottom:20px">
+            <span style="font-size:14px;font-weight:600">Mock 数据集</span>
+            <select class="fi" id="mc-sel" style="width:220px" onchange="switchMockConfig()"></select>
+            <button class="btn btn-p btn-sm" onclick="createMockConfig()">+ 新建</button>
+            <button class="btn btn-flat btn-sm" onclick="cloneMockConfig()">克隆</button>
+            <button class="btn btn-flat btn-sm" onclick="renameMockConfig()">重命名</button>
+            <button class="btn btn-r btn-sm" onclick="deleteMockConfig()">删除</button>
+        </div>
+        <div class="kpi-strip">
+            <div class="kpi"><b id="k-mc">0</b><span>Case 总数</span></div>
+            <div class="kpi"><b id="k-mo">0</b><span>已配置实际输出</span></div>
+            <div class="kpi"><b id="k-mu">0</b><span>未配置实际输出</span></div>
+        </div>
+
+        <div class="mock-card">
+            <h3>Mock 实际输出</h3>
+            <div class="sub">这里假装 AI 已经跑完一次。Case 写期望，Mock 写实际，Run 负责比较两边。</div>
+            <div class="fr" style="align-items:flex-end">
+                <div class="fg" style="flex:1"><label class="fl">Case</label><select class="fi" id="mock-output-case" onchange="loadMockOutputForCase()"></select></div>
+                <div class="fg" style="display:flex;align-items:flex-end;gap:8px"><button class="btn btn-flat" onclick="fillMockOutputExample()">生成示例</button><button class="btn btn-p" onclick="saveMockOutputForCase()">保存实际输出</button></div>
+            </div>
+            <div id="mock-output-status" style="font-size:12px;color:var(--c-text3);margin:4px 0 10px"></div>
+            <div class="mock-output-context" id="mock-output-context"></div>
+            <div class="mock-output-form">
+                <div class="fg"><label class="fl">实际函数名</label><input class="fi" id="mock-actual-function" placeholder="例如：open_door"></div>
+                <div class="fg"><label class="fl">实际参数 JSON</label><textarea class="fi mono" id="mock-actual-arguments" rows="5" placeholder='{"door_position":"left_front"}'></textarea></div>
+                <div class="fg"><label class="fl">实际最终回复</label><textarea class="fi" id="mock-actual-reply" rows="5" placeholder="例如：已为你打开左前车门。"></textarea></div>
+            </div>
+            <details class="mock-output-advanced">
+                <summary>高级 JSON</summary>
+                <div class="sub" style="margin-top:8px">需要扩展字段时可以在这里直接编辑，保存时会以这里和上面表单合并后的结果为准。</div>
+                <div class="fg">
+                    <label class="fl">实际输出 JSON</label>
+                    <textarea class="fi" id="mock-output-json" rows="8" style="font-family:'SF Mono',SFMono-Regular,Menlo,monospace;font-size:12px" placeholder='{"function_name":"open_door","arguments":{"door_position":"left_front"},"final_reply":"已为你打开左前车门。"}'></textarea>
+                </div>
+            </details>
+        </div>
+
+    </div>

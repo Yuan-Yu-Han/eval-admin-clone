@@ -5,12 +5,11 @@
   "description": "One-to-one local demo for the /admin/eval page with mock APIs.",
   "type": "module",
   "scripts": {
-    "build": "node -e \"console.log('static frontend: public/index.html (no bundle step)')\"",
+    "build": "node -e \"console.log('static frontend: public/index.html + public/assets (no bundle step)')\"",
     "dev": "npm run dev:api",
     "dev:api": "node server.js",
     "start": "npm run start:api",
-    "start:api": "node server.js",
-    "test": "node --test --test-concurrency=1"
+    "start:api": "node server.js"
   },
   "engines": {
     "node": ">=18"

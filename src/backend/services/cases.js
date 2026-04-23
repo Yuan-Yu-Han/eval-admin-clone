@@ -31,9 +31,14 @@ export function createCasesService(deps) {
         if (filters.onlyRegression && !item.regression) return false;
         return true;
       });
+      const schema = generationSchemaForProject ? generationSchemaForProject(ctx) : null;
+      let columns = schema?.importColumns?.length ? schema.importColumns : CASE_IMPORT_COLUMNS;
+      if (isAdminProject(ctx) && columns.includes('expected_tool_1')) {
+        columns = columns.filter((column) => column !== 'risk_level' && !/^evaluations_\d$/.test(column));
+      }
       return [
-        CASE_IMPORT_COLUMNS,
-        ...scoped.map((item) => caseSchemaCsvRow(normalizeCase(item)))
+        columns,
+        ...scoped.map((item) => columns.map((column) => caseColumnValue(normalizeCase(item), column)))
       ];
     },
     async bulk(req, ctx) {
@@ -233,6 +238,15 @@ function parseJsonObject(text, fallback = {}) {
   }
 }
 
+function parseJsonArray(text, fallback = []) {
+  try {
+    const parsed = JSON.parse(String(text || ''));
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function listValue(value) {
   if (Array.isArray(value)) return value;
   if (value === undefined || value === null || value === '') return [];
@@ -266,6 +280,58 @@ function caseSchemaCsvRow(item) {
     item.expected_arg_3 || '',
     item.judge_prompt_id_3 || ''
   ];
+}
+
+function caseColumnValue(item, key) {
+  if (key === 'enable') return item.enabled ? 'true' : 'false';
+  if (key === 'case_id') return item.caseId || '';
+  if (key === 'name') return item.name || '';
+  if (key === 'group_name') return item.groupName || '';
+  if (key === 'tags') return item.tags || '';
+  if (key === 'user_id') return item.userId || '';
+  if (key === 'risk_level') return item.riskLevel || 'medium';
+  if (key === 'dialogue_text') return item.payload?.dialogueText || item.input1 || '';
+  if (key === 'expected_ticket_json') return item.payload?.expectedTicket ? JSON.stringify(item.payload.expectedTicket) : '';
+  if (key === 'expected_route') return item.payload?.expectedTicket?.routeQueue || item.payload?.expectedTicket?.routeTo || '';
+  if (key === 'missing_fields') {
+    const fields = item.payload?.expectedTicket?.missingFields || item.payload?.assertions?.missingFields || [];
+    return Array.isArray(fields) ? fields.join('|') : fields || '';
+  }
+  if (key === 'noise_tags') {
+    const tags = item.payload?.noiseTags || [];
+    return Array.isArray(tags) ? tags.join('|') : tags || item.tags || '';
+  }
+  const inputMatch = /^input(\d)$/.exec(key);
+  if (inputMatch) {
+    const idx = Number(inputMatch[1]) - 1;
+    return item[`input${idx + 1}`] || item.turns?.[idx]?.userInput || (idx === 0 ? item.payload?.dialogueText : '') || '';
+  }
+  const turnMatch = /^(expected_tool|expected_args|reply_contains|reply_not_contains|judge_prompt|judge_threshold)_(\d)$/.exec(key);
+  if (turnMatch) {
+    const idx = Number(turnMatch[2]) - 1;
+    const turn = item.turns?.[idx] || {};
+    const map = {
+      expected_tool: 'expectedTool',
+      expected_args: 'expectedArgs',
+      reply_contains: 'replyContains',
+      reply_not_contains: 'replyNotContains',
+      judge_prompt: 'judgePrompt',
+      judge_threshold: 'judgeThreshold'
+    };
+    const value = turn[map[turnMatch[1]]];
+    if (Array.isArray(value)) return value.join('|');
+    if (value && typeof value === 'object') return JSON.stringify(value);
+    return value ?? '';
+  }
+  const evalsMatch = /^evaluations_(\d)$/.exec(key);
+  if (evalsMatch) {
+    const idx = Number(evalsMatch[1]) - 1;
+    const value = item.turns?.[idx]?.evaluations || [];
+    return value.length ? JSON.stringify(value) : '';
+  }
+  const flatMatch = /^(eval_type|expected_arg|judge_prompt_id)_(\d)$/.exec(key);
+  if (flatMatch) return item[key] || '';
+  return item[key] || '';
 }
 
 function schemaEvalSlots(doc) {
@@ -373,18 +439,24 @@ function rowToCaseDoc({ row, header, schema, ctx }) {
         expectedTicket,
         assertions: {},
         noiseTags
-      }
+      },
+      turns: [{
+        turnIndex: 1,
+        userInput: rowValue(row, header, 'dialogue_text'),
+        evaluations: parseJsonArray(rowValue(row, header, 'evaluations_1'))
+      }]
     };
   }
-  const turns = [1, 2, 3].map((n) => ({
+  const turns = [1, 2, 3].map((n) => normalizeTurnFromEvaluations({
     userInput: rowValue(row, header, `input${n}`),
     expectedTool: rowValue(row, header, `expected_tool_${n}`),
     expectedArgs: rowValue(row, header, `expected_args_${n}`),
+    evaluations: parseJsonArray(rowValue(row, header, `evaluations_${n}`)),
     replyContains: listValue(rowValue(row, header, `reply_contains_${n}`)),
     replyNotContains: listValue(rowValue(row, header, `reply_not_contains_${n}`)),
     judgePrompt: rowValue(row, header, `judge_prompt_${n}`),
     judgeThreshold: rowValue(row, header, `judge_threshold_${n}`)
-  })).filter((turn) => turn.userInput || turn.expectedTool);
+  })).filter((turn) => turn.userInput || turn.expectedTool || turn.evaluations.length);
   return {
     projectId: ctx.projectId,
     caseType: 'vehicle_agent_turns',
@@ -394,5 +466,27 @@ function rowToCaseDoc({ row, header, schema, ctx }) {
     groupName: rowValue(row, header, 'group_name') || '默认分组',
     enabled: rowValue(row, header, 'enable') !== 'false',
     turns
+  };
+}
+
+function normalizeTurnFromEvaluations(turn) {
+  const evaluations = Array.isArray(turn.evaluations) ? turn.evaluations : [];
+  const findStage = (key) => evaluations.find((item) => item?.stageKey === key) || {};
+  const toolEval = findStage('functionInvocation');
+  const paramEval = findStage('inputConditionRetention');
+  const replyEval = findStage('replyFaithfulness');
+  const qualityEval = findStage('responseQuality');
+  const toolJson = parseJsonObject(toolEval.expected, {});
+  const replyJson = parseJsonObject(replyEval.expected, {});
+  const thresholdMatch = /threshold\s*[:=]\s*([0-9.]+)/i.exec(String(qualityEval.expected || ''));
+  return {
+    ...turn,
+    evaluations,
+    expectedTool: turn.expectedTool || toolJson.tool || toolEval.expected || '',
+    expectedArgs: turn.expectedArgs || paramEval.expected || (toolJson.args ? JSON.stringify(toolJson.args) : ''),
+    replyContains: turn.replyContains.length ? turn.replyContains : (Array.isArray(replyJson.contains) ? replyJson.contains : listValue(replyEval.expected)),
+    replyNotContains: turn.replyNotContains.length ? turn.replyNotContains : (Array.isArray(replyJson.notContains) ? replyJson.notContains : []),
+    judgePrompt: turn.judgePrompt || qualityEval.expected || '',
+    judgeThreshold: turn.judgeThreshold || (thresholdMatch ? thresholdMatch[1] : '')
   };
 }

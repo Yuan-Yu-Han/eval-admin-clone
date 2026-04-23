@@ -22,6 +22,7 @@ const VEHICLE_COLUMN_SCHEMA = [
   { key: 'reply_not_contains_1', title: '回复禁含①', inputType: 'tags', source: 'llm', description: '第1轮回复禁含(分号分隔)' },
   { key: 'judge_prompt_1', title: '评判 Prompt①', inputType: 'textarea', source: 'llm', description: '第1轮LLM评判prompt' },
   { key: 'judge_threshold_1', title: '及格线①', inputType: 'number', source: 'llm', description: '第1轮评判及格线(0-1)' },
+  { key: 'evaluations_1', title: '第1轮链路评测', inputType: 'json', source: 'llm', dependsOn: 'input1', description: '第1轮中间链路评测数组(JSON)，每项包含 stageKey/evalType/expected' },
   // Turn 2 (optional)
   { key: 'input2', title: '第2轮输入', inputType: 'text', source: 'llm', optional: true, description: '第2轮用户输入' },
   { key: 'expected_tool_2', title: '第2轮工具', inputType: 'select', source: 'llm', optional: true, description: '第2轮期望工具名' },
@@ -30,6 +31,7 @@ const VEHICLE_COLUMN_SCHEMA = [
   { key: 'reply_not_contains_2', title: '回复禁含②', inputType: 'tags', source: 'llm', optional: true, description: '第2轮回复禁含(分号分隔)' },
   { key: 'judge_prompt_2', title: '评判 Prompt②', inputType: 'textarea', source: 'llm', optional: true, description: '第2轮LLM评判prompt' },
   { key: 'judge_threshold_2', title: '及格线②', inputType: 'number', source: 'llm', optional: true, description: '第2轮评判及格线(0-1)' },
+  { key: 'evaluations_2', title: '第2轮链路评测', inputType: 'json', source: 'llm', optional: true, dependsOn: 'input2', description: '第2轮中间链路评测数组(JSON)' },
   // Turn 3 (optional)
   { key: 'input3', title: '第3轮输入', inputType: 'text', source: 'llm', optional: true, description: '第3轮用户输入' },
   { key: 'expected_tool_3', title: '第3轮工具', inputType: 'select', source: 'llm', optional: true, description: '第3轮期望工具名' },
@@ -38,6 +40,7 @@ const VEHICLE_COLUMN_SCHEMA = [
   { key: 'reply_not_contains_3', title: '回复禁含③', inputType: 'tags', source: 'llm', optional: true, description: '第3轮回复禁含(分号分隔)' },
   { key: 'judge_prompt_3', title: '评判 Prompt③', inputType: 'textarea', source: 'llm', optional: true, description: '第3轮LLM评判prompt' },
   { key: 'judge_threshold_3', title: '及格线③', inputType: 'number', source: 'llm', optional: true, description: '第3轮评判及格线(0-1)' },
+  { key: 'evaluations_3', title: '第3轮链路评测', inputType: 'json', source: 'llm', optional: true, dependsOn: 'input3', description: '第3轮中间链路评测数组(JSON)' },
   { key: 'risk_level', title: '风险等级', inputType: 'select', source: 'llm', options: ['low', 'medium', 'high'], description: '风险等级' }
 ];
 
@@ -51,7 +54,104 @@ const VOICE_TICKET_COLUMN_SCHEMA = [
   { key: 'expected_route', title: '期望路由', inputType: 'text', source: 'llm', dependsOn: 'dialogue_text', description: '期望路由队列名称' },
   { key: 'missing_fields', title: '缺失字段', inputType: 'tags', source: 'llm', dependsOn: 'dialogue_text', description: '对话中缺失的工单字段（|分隔）' },
   { key: 'noise_tags', title: 'ASR 噪声标签', inputType: 'tags', source: 'llm', description: 'ASR 噪声/坐席假设标签（|分隔）' },
-  { key: 'risk_level', title: '风险等级', inputType: 'select', source: 'llm', options: ['low', 'medium', 'high'], description: '风险等级' }
+  { key: 'risk_level', title: '风险等级', inputType: 'select', source: 'llm', options: ['low', 'medium', 'high'], description: '风险等级' },
+  { key: 'evaluations_1', title: '链路评测', inputType: 'json', source: 'llm', dependsOn: 'dialogue_text', description: '本条对话的链路评测数组(JSON)，每项包含 stageKey/evalType/expected' }
+];
+
+const VEHICLE_AGENT_STAGES = [
+  {
+    key: 'intent',
+    label: '意图识别',
+    shortLabel: '意图',
+    evalTypes: ['structure_match'],
+    resultKeys: ['intent', 'route'],
+    dependency: null,
+    caseFields: ['input1', 'input2', 'input3', 'expected_tool_*', 'eval_type_*', 'expected_arg_*'],
+    description: '判断用户输入是否被路由到正确业务意图或期望工具。'
+  },
+  {
+    key: 'functionInvocation',
+    label: '工具选择',
+    shortLabel: '工具',
+    evalTypes: ['structure_match'],
+    resultKeys: ['functionInvocation', 'route'],
+    dependency: 'intent',
+    caseFields: ['expected_tool_*', 'eval_type_*', 'expected_arg_*'],
+    description: '判断 Agent 是否选择并调用了期望工具。'
+  },
+  {
+    key: 'inputConditionRetention',
+    label: '参数提取',
+    shortLabel: '参数',
+    evalTypes: ['structure_match'],
+    resultKeys: ['inputConditionRetention', 'input', 'skillResultContract', 'skillResult'],
+    dependency: 'functionInvocation',
+    caseFields: ['expected_args_*', 'expected_arg_*'],
+    description: '判断车辆、城市、日期、动作等关键参数是否进入工具参数或 SkillResult。'
+  },
+  {
+    key: 'replyFaithfulness',
+    label: '回复生成',
+    shortLabel: '回复',
+    evalTypes: ['text_match'],
+    resultKeys: ['replyFaithfulness', 'render'],
+    dependency: 'inputConditionRetention',
+    caseFields: ['reply_contains_*', 'reply_not_contains_*', 'expected_arg_*'],
+    description: '判断最终回复是否覆盖关键文本，并与工具结果保持一致。'
+  },
+  {
+    key: 'responseQuality',
+    label: '语义质量',
+    shortLabel: '语义',
+    evalTypes: ['llm_judge'],
+    resultKeys: ['responseQuality'],
+    dependency: 'replyFaithfulness',
+    caseFields: ['judge_prompt_*', 'judge_threshold_*', 'judge_prompt_id_*'],
+    description: '使用 LLM judge 或综合评分判断回答是否完整、可信、可复核。'
+  }
+];
+
+const VOICE_TICKET_STAGES = [
+  {
+    key: 'asrTranscription',
+    label: 'ASR 转写',
+    shortLabel: 'ASR',
+    evalTypes: ['text_match'],
+    resultKeys: ['dialogueGrounding'],
+    dependency: null,
+    caseFields: ['dialogue_text'],
+    description: '检查导入文本是否保留原始对话信息、噪声和多轮上下文。'
+  },
+  {
+    key: 'fieldExtraction',
+    label: '字段抽取',
+    shortLabel: '字段',
+    evalTypes: ['structure_match'],
+    resultKeys: ['fieldAccuracy', 'missingFieldDetection'],
+    dependency: 'asrTranscription',
+    caseFields: ['expected_ticket_json', 'missing_fields'],
+    description: '检查车辆、地点、问题、联系人、缺失字段等工单字段。'
+  },
+  {
+    key: 'ticketStructure',
+    label: '工单结构生成',
+    shortLabel: '工单',
+    evalTypes: ['structure_match'],
+    resultKeys: ['routeAccuracy', 'noHallucination'],
+    dependency: 'fieldExtraction',
+    caseFields: ['expected_ticket_json', 'expected_route'],
+    description: '检查工单 JSON、分类路由和禁止编造。'
+  },
+  {
+    key: 'semanticQuality',
+    label: '语义质量',
+    shortLabel: '语义',
+    evalTypes: ['llm_judge'],
+    resultKeys: ['dialogueGrounding', 'noHallucination'],
+    dependency: 'ticketStructure',
+    caseFields: ['expected_ticket_json', 'noise_tags'],
+    description: '检查输出是否忠实于整段 ASR 对话，能处理改口、补充和噪声。'
+  }
 ];
 
 export const PROJECT_PROFILES = [
@@ -70,6 +170,7 @@ export const PROJECT_PROFILES = [
     ],
     groups: ['默认分组', '车辆控制', '开门场景', '运营数据查询', 'RAG防幻觉'],
     columnSchema: VEHICLE_COLUMN_SCHEMA,
+    stageDefinitions: VEHICLE_AGENT_STAGES,
     homeTitle: '车辆 Agent 评测首页',
     homeSummary: '车辆控制、车辆查询、RAG 防幻觉与工具链路评测',
     defaultTab: 'project-home',
@@ -79,6 +180,7 @@ export const PROJECT_PROFILES = [
       { key: 'rag', label: 'RAG 防幻觉', sourceGroup: 'RAG防幻觉' }
     ],
     homeModules: [
+      { key: 'templates', label: '评测模板', targetTab: 'templates' },
       { key: 'cases', label: '车辆场景用例', targetTab: 'cases' },
       { key: 'generate', label: '车辆用例生成', targetTab: 'generate' },
       { key: 'runs', label: '链路评测运行', targetTab: 'runs' }
@@ -99,6 +201,7 @@ export const PROJECT_PROFILES = [
     tools: ['voice_ticket_structuring', 'ticket_field_extract', 'ticket_category_route', 'freeChat', 'RAG'],
     groups: ['工单结构化', '工单字段抽取', '工单分类路由'],
     columnSchema: VOICE_TICKET_COLUMN_SCHEMA,
+    stageDefinitions: VOICE_TICKET_STAGES,
     homeTitle: '语音工单结构化评测首页',
     homeSummary: '语音转写后的工单结构化、字段抽取与分类路由评测',
     defaultTab: 'project-home',
@@ -108,6 +211,7 @@ export const PROJECT_PROFILES = [
       { key: 'routing', label: '分类路由', sourceGroup: '工单分类路由' }
     ],
     homeModules: [
+      { key: 'templates', label: '评测模板', targetTab: 'templates' },
       { key: 'cases', label: '工单样本用例', targetTab: 'cases' },
       { key: 'generate', label: '语音转写生成', targetTab: 'generate' },
       { key: 'runs', label: '抽取质量运行', targetTab: 'runs' }

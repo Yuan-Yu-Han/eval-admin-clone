@@ -7,21 +7,24 @@ import { fileURLToPath } from 'node:url';
 import { URL } from 'node:url';
 import { ALL_AGENT_TOOLS, VEHICLE_AGENT_PROJECT, VOICE_TICKET_PROJECT, projectProfile, toolsForProjectId } from './src/backend/config/projectProfiles.js';
 import { defaultProjectAccess } from './src/backend/config/projects.js';
+import { functionBindingsForProject, templateMappingForProject, templatesForProject } from './src/backend/config/evaluationTemplates.js';
+import { createApiRouter } from './src/backend/http/apiRouter.js';
+import { evaluateCase as evaluateTemplateCaseWithRunner } from './src/backend/evaluator/index.js';
 import { createDemoRepository } from './src/backend/repositories/demoRepository.js';
 import { createCasesService } from './src/backend/services/cases.js';
 import { createGenerationService } from './src/backend/services/generation.js';
 import { createMockConfigsService } from './src/backend/services/mockConfigs.js';
 import { createProjectsService } from './src/backend/services/projects.js';
 import { createRunsService } from './src/backend/services/runs.js';
+import { createTemplatesService } from './src/backend/services/templates.js';
 import { createSqliteStateStore } from './src/backend/storage/sqliteStateStore.js';
 
 const PORT = Number(process.env.PORT || 5178);
 const HOST = process.env.HOST || '127.0.0.1';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const PUBLIC_DIR = path.join(__dirname, 'public');
 const PUBLIC_INDEX_HTML = path.join(__dirname, 'public', 'index.html');
-const DIST_DIR = path.join(__dirname, 'dist');
-const CASES_JSON = path.join(__dirname, 'data', 'original-cases.json');
 const RUNS_JSON = path.join(__dirname, 'data', 'original-runs.json');
 const PROMPTS_JSON = path.join(__dirname, 'data', 'original-prompts.json');
 const OK = '10000';
@@ -31,7 +34,7 @@ const AUTH_TOKEN_TTL_MS = Number(process.env.EVAL_DEMO_AUTH_TTL_MS || 12 * 60 * 
 const DEFAULT_PROJECT_ACCESS = defaultProjectAccess(DEMO_ACCESS_CODE);
 const CASE_SOURCES = ['manual', 'llm'];
 const CASE_RISK_LEVELS = ['low', 'medium', 'high'];
-const DEFAULT_EVAL_DIMENSIONS = ['intent', 'tool', 'params', 'responseQuality'];
+const DEFAULT_EVAL_DIMENSIONS = ['intent', 'functionInvocation', 'inputConditionRetention', 'replyFaithfulness', 'responseQuality'];
 const CASE_TURN_ASSERTION_FIELDS = [
   'expectedArgs',
   'replyContains',
@@ -72,7 +75,7 @@ const DATASET_VERSIONS = [
 const FUNNEL_STAGE_DEFS = [
   {
     key: 'intent',
-    label: '意图路由',
+    label: '意图识别',
     meaning: '看 Agent 有没有把用户这句话理解成正确业务意图。',
     rule: '按每个 case 的真实轮次比较 expectedTool 与 actualTool，匹配率达到 80% 记为通过。',
     description: '判断每轮用户输入是否对应正确的期望函数，用 expectedTool 与 actualTool 的匹配作为近似信号。',
@@ -80,7 +83,7 @@ const FUNNEL_STAGE_DEFS = [
   },
   {
     key: 'functionInvocation',
-    label: '能力调用',
+    label: '工具选择',
     meaning: '看 Agent 选中的业务能力有没有真的进入执行链路。',
     rule: '每轮有 actualTool；如果需要后端能力，则应有 SkillResult 或明确的直接回复。',
     description: '检查业务能力是否被调用起来，而不是只停在路由判断。',
@@ -88,23 +91,15 @@ const FUNNEL_STAGE_DEFS = [
   },
   {
     key: 'inputConditionRetention',
-    label: '输入契约',
+    label: '参数提取',
     meaning: '看用户明确说出的车辆、城市、日期、动作等条件，是否按 case.expectedTrace 或默认契约进入 SkillResult / 回复。',
     rule: '优先按 case.expectedTrace 精确检查；没有配置时只检查用户输入中可规则识别的显式条件；不判断数据库结果是否真实正确。',
     description: '检查输入条件是否被传入链路，例如车号、城市、日期词、动作词是否在结构化结果或回复中体现。',
     dynamicStepNote: '这是固定评测阶段，不代表 case 有固定执行步骤；没有可规则识别条件的 case 记为通过但不声称参数全对。'
   },
   {
-    key: 'skillResultContract',
-    label: 'SkillResult 契约',
-    meaning: '看当前 function/resultType 对应的业务字段有没有命中，例如运营数据看 data.filter/data.sections，控制结果看 data.action。',
-    rule: '优先按 case.expectedTrace 精确检查；没有配置时按线上已出现的 resultType 默认契约检查；不判断数据库结果是否真实正确。',
-    description: '检查 SkillResult 是否符合当前能力的业务契约，而不是泛泛判断 JSON 结构。',
-    dynamicStepNote: '这是固定评测阶段，不代表 case 有固定执行步骤；freeChat 等无 SkillResult 链路会按直接回复口径处理。'
-  },
-  {
     key: 'replyFaithfulness',
-    label: '渲染契约',
+    label: '回复生成',
     meaning: '看最终回复是否按 SkillResult 复述关键业务结果，没有把失败说成成功，也没有明显脱离结构化返回。',
     rule: '检查最终回复是否覆盖 SkillResult 的错误原因、动作、场景、运营报告章节等关键信息；不判断数据库结果是否真实正确。',
     description: '检查最终用户回复和 SkillResult 是否一致，重点防止渲染阶段改写含义。',
@@ -112,7 +107,7 @@ const FUNNEL_STAGE_DEFS = [
   },
   {
     key: 'responseQuality',
-    label: '回复质量',
+    label: '语义质量',
     meaning: '衡量最终用户可见回复是否完整、可读、可复核。',
     rule: '按路由、输入契约、SkillResult 契约、渲染契约和回复完整度加权计算，综合分达到 70 记为通过。',
     description: '综合可检查链路与回复完整度形成最终质量分。',
@@ -222,12 +217,11 @@ let nextId = 1000;
 const now = () => new Date().toISOString();
 const id = (prefix) => `${prefix}_${nextId++}`;
 
-const originalCaseSeed = JSON.parse(readFileSync(CASES_JSON, 'utf8'));
-const seedCases = buildTypicalCases(originalCaseSeed).map((item) => normalizeCase(item));
+const seedCases = [];
 let cases = [];
 const promptSeed = JSON.parse(readFileSync(PROMPTS_JSON, 'utf8'));
 
-const mockConfigs = [
+const seedMockConfigs = [
   {
     configId: 'mock_default',
     name: '默认 Mock 数据集',
@@ -324,6 +318,7 @@ const mockConfigs = [
     vehicles: []
   }
 ];
+let mockConfigs = [];
 
 const promptKeys = promptSeed.keys;
 const promptContent = promptSeed.content;
@@ -372,10 +367,10 @@ const voicePromptContent = {
 };
 
 const originalRunSeed = JSON.parse(readFileSync(RUNS_JSON, 'utf8'));
-const seedRuns = buildSeedRuns(originalRunSeed);
-seedRuns.push(buildVoiceTicketSeedRun());
+const seedRuns = buildStageSeedRuns();
 seedRuns.forEach((run) => enrichRun(run));
 let runs = [];
+let customTemplates = [];
 const PROJECT_STORAGE_IDS = [VEHICLE_AGENT_PROJECT, VOICE_TICKET_PROJECT];
 const seedCasesByProject = Object.fromEntries(PROJECT_STORAGE_IDS.map((projectId) => [projectId, seedCases.filter((item) => normalizeCase(item).projectId === projectId)]));
 const seedRunsByProject = Object.fromEntries(PROJECT_STORAGE_IDS.map((projectId) => [projectId, seedRuns.filter((item) => normalizeRunProject(item).projectId === projectId)]));
@@ -383,11 +378,28 @@ const seedRunsByProject = Object.fromEntries(PROJECT_STORAGE_IDS.map((projectId)
 const stateStore = await createSqliteStateStore({
   projectIds: PROJECT_STORAGE_IDS,
   seedCasesByProject,
-  seedRunsByProject
+  seedRunsByProject,
+  seedMockConfigs
 });
 
-cases = (await stateStore.loadCases()).map((item) => normalizeCase(item));
-runs = (await stateStore.loadRuns()).map((item) => enrichRun(item));
+cases = (await stateStore.loadCases())
+  .map((item) => normalizeCase(item))
+  .filter((item) => PROJECT_STORAGE_IDS.includes(item.projectId));
+if (!cases.some((item) => item.projectId === VEHICLE_AGENT_PROJECT)) {
+  cases.push(...demoTemplateCases().map((item) => normalizeCase(item)));
+}
+runs = compactProjectRuns(await stateStore.loadRuns(), seedRuns)
+  .map((item) => enrichRun(item))
+  .filter((item) => PROJECT_STORAGE_IDS.includes(normalizeRunProject(item).projectId));
+customTemplates = (await stateStore.loadTemplates())
+  .filter((item) => PROJECT_STORAGE_IDS.includes(item.projectId || (item.projectIds || [])[0]));
+mockConfigs = (await stateStore.loadMockConfigs())
+  .filter((item) => PROJECT_STORAGE_IDS.includes(item.projectId));
+if (!mockConfigs.length) mockConfigs = JSON.parse(JSON.stringify(seedMockConfigs));
+await stateStore.saveCases(cases);
+await stateStore.saveRuns(runs);
+await stateStore.saveTemplates(customTemplates);
+await stateStore.saveMockConfigs(mockConfigs);
 
 async function persistCasesState() {
   await stateStore.saveCases(cases);
@@ -395,6 +407,21 @@ async function persistCasesState() {
 
 async function persistRunsState() {
   await stateStore.saveRuns(runs);
+}
+
+async function persistTemplatesState() {
+  await stateStore.saveTemplates(customTemplates);
+}
+
+async function persistMockConfigsState() {
+  await stateStore.saveMockConfigs(mockConfigs);
+}
+
+function runtimeTemplatesForProject(projectId) {
+  const scopedAll = customTemplates.filter((item) => item.projectId === projectId || (item.projectIds || []).includes(projectId));
+  const scopedCustom = scopedAll.filter((item) => !item.deleted);
+  const customIds = new Set(scopedAll.map((item) => item.templateId));
+  return scopedCustom.concat(templatesForProject(projectId).filter((item) => !customIds.has(item.templateId)));
 }
 
 function pseudoRand(seedText) {
@@ -418,6 +445,135 @@ function findSeedResult(seedRuns, predicate) {
     }
   }
   return null;
+}
+
+function compactProjectCases(items = [], fallbackSeeds = []) {
+  const kept = [];
+  fallbackSeeds.map((item) => normalizeCase(item)).forEach((seed) => {
+    if (!kept.some((item) => item.caseId === seed.caseId)) kept.push(seed);
+  });
+  const byProject = new Map();
+  kept.forEach((item) => {
+    const list = byProject.get(item.projectId) || [];
+    if (list.length < 8) list.push(item);
+    byProject.set(item.projectId, list);
+  });
+  return PROJECT_STORAGE_IDS.flatMap((projectId) => byProject.get(projectId) || []);
+}
+
+function demoTemplateCases() {
+  const base = {
+    projectId: VEHICLE_AGENT_PROJECT,
+    caseType: 'vehicle_agent_turns',
+    source: 'manual',
+    riskLevel: 'medium',
+    enabled: true,
+    regression: false,
+    userId: '900100001',
+    evalDimensions: DEFAULT_EVAL_DIMENSIONS
+  };
+  return [
+    {
+      ...base,
+      id: id('case'),
+      caseId: 'demo_open_left_front_door',
+      name: '把左前门打开一下',
+      groupName: '车控指令',
+      tags: 'demo,车门',
+      template_id: 'instruction_execution',
+      input1: '把左前门打开一下',
+      expected: {
+        functionInvocation: 'open_door',
+        inputConditionRetention: 'left_front',
+        replyFaithfulness_contains: '左前门\n已打开',
+        replyFaithfulness_not_contains: '失败\n无法操作'
+      },
+      turns: [{ turnIndex: 1, userInput: '把左前门打开一下', evaluations: [] }]
+    },
+    {
+      ...base,
+      id: id('case'),
+      caseId: 'demo_qingdao_yesterday_report',
+      name: '帮我看看青岛昨天跑得怎么样',
+      groupName: '数据问答',
+      tags: 'demo,运营数据',
+      template_id: 'data_query',
+      input1: '帮我看看青岛昨天跑得怎么样',
+      expected: {
+        functionInvocation: 'vehicle_operation_data_query',
+        inputConditionRetention: '青岛, 昨天',
+        replyFaithfulness_contains: '青岛\n昨天',
+        replyFaithfulness_not_contains: '无法查询\n没有数据'
+      },
+      turns: [{ turnIndex: 1, userInput: '帮我看看青岛昨天跑得怎么样', evaluations: [] }]
+    },
+    {
+      ...base,
+      id: id('case'),
+      caseId: 'demo_rename_assistant_xiaozhi',
+      name: '以后你就叫小智',
+      groupName: '助手设置',
+      tags: 'demo,昵称',
+      template_id: 'instruction_execution',
+      input1: '以后你就叫小智',
+      expected: {
+        functionInvocation: 'update_user_agent_name',
+        inputConditionRetention: '小智',
+        replyFaithfulness_contains: '小智\n确认',
+        replyFaithfulness_not_contains: '已修改'
+      },
+      turns: [{ turnIndex: 1, userInput: '以后你就叫小智', evaluations: [] }]
+    },
+    {
+      ...base,
+      id: id('case'),
+      caseId: 'demo_open_task_center',
+      name: '直接带我去任务中心',
+      groupName: '页面跳转',
+      tags: 'demo,页面',
+      template_id: 'instruction_execution',
+      input1: '直接带我去任务中心',
+      expected: {
+        functionInvocation: 'return_app_native_router',
+        inputConditionRetention: 'task_center',
+        replyFaithfulness_contains: '任务中心',
+        replyFaithfulness_not_contains: '无法跳转'
+      },
+      turns: [{ turnIndex: 1, userInput: '直接带我去任务中心', evaluations: [] }]
+    },
+    {
+      ...base,
+      id: id('case'),
+      caseId: 'demo_door_troubleshooting',
+      name: '车门打不开一般先排查什么',
+      groupName: '知识问答',
+      tags: 'demo,RAG',
+      template_id: 'answer_quality',
+      input1: '车门打不开一般先排查什么？',
+      expected: {
+        replyFaithfulness_contains: '车辆状态\n权限',
+        replyFaithfulness_not_contains: '一定可以打开'
+      },
+      turns: [{ turnIndex: 1, userInput: '车门打不开一般先排查什么？', evaluations: [] }]
+    }
+  ];
+}
+
+function compactProjectRuns(items = [], fallbackSeeds = []) {
+  const normalized = items.map((item) => enrichRun(item));
+  const wantedRunIds = new Set(fallbackSeeds.map((item) => item.runId));
+  const kept = normalized.filter((item) => wantedRunIds.has(item.runId));
+  fallbackSeeds.forEach((seed) => {
+    if (!kept.some((item) => item.runId === seed.runId)) kept.push(seed);
+  });
+  const byProject = new Map();
+  kept.forEach((item) => {
+    const projectId = normalizeRunProject(item).projectId;
+    const list = byProject.get(projectId) || [];
+    if (list.length < 4) list.push(item);
+    byProject.set(projectId, list);
+  });
+  return PROJECT_STORAGE_IDS.flatMap((projectId) => byProject.get(projectId) || []);
 }
 
 function parsedTurnSkill(turn) {
@@ -795,6 +951,105 @@ function buildSeedRuns() {
   ].filter((run) => run.results.length);
 }
 
+function buildStageSeedRuns() {
+  const vehicleResults = [
+    makeManualResult({
+      caseId: 'demo_open_left_front_door',
+      caseName: '把左前门打开一下',
+      userInput: '把左前门打开一下',
+      expectedTool: 'open_door',
+      actualTool: 'open_door',
+      pass: true,
+      skillResult: {
+        skill: 'open_door',
+        success: true,
+        resultType: 'action_result',
+        data: { action: '打开车门', door_position: 'left_front', successCount: 1 }
+      },
+      reply: '已为你打开左前门。',
+      durationMs: 1180
+    }),
+    makeManualResult({
+      caseId: 'demo_qingdao_yesterday_report',
+      caseName: '帮我看看青岛昨天跑得怎么样',
+      userInput: '帮我看看青岛昨天跑得怎么样',
+      expectedTool: 'vehicle_operation_data_query',
+      actualTool: 'vehicle_operation_data_query',
+      pass: true,
+      skillResult: operationReportResult({
+        city: '青岛',
+        queryDate: '2026-04-22',
+        title: '青岛昨日运营概览',
+        items: [
+          { label: '运营车辆数', value: '1,222', unit: '辆' },
+          { label: '有效任务数', value: '17,754', unit: '单' }
+        ],
+        analysis: ['回答基于日报表 mock 数据生成。']
+      }),
+      reply: '青岛昨天整体运营正常，运营车辆数 1,222 辆，有效任务数 17,754 单。',
+      durationMs: 1540
+    }),
+    makeManualResult({
+      caseId: 'demo_rename_assistant_xiaozhi',
+      caseName: '以后你就叫小智',
+      userInput: '以后你就叫小智',
+      expectedTool: 'update_user_agent_name',
+      actualTool: 'update_user_agent_name',
+      pass: true,
+      skillResult: {
+        skill: 'update_user_agent_name',
+        success: true,
+        resultType: 'multi_turn_prompt',
+        data: { scene: 'agent_name_workflow', agentName: '小智', pendingConfirm: true }
+      },
+      reply: '好的，之后我可以叫小智，不过还需要你确认一下。',
+      durationMs: 980
+    }),
+    makeManualResult({
+      caseId: 'demo_open_task_center',
+      caseName: '直接带我去任务中心',
+      userInput: '直接带我去任务中心',
+      expectedTool: 'return_app_native_router',
+      actualTool: 'return_app_native_router',
+      pass: true,
+      skillResult: {
+        skill: 'return_app_native_router',
+        success: true,
+        resultType: 'route_result',
+        data: { routeName: 'task_center' }
+      },
+      reply: '好的，马上带你去任务中心。',
+      durationMs: 760
+    }),
+    makeManualResult({
+      caseId: 'demo_door_troubleshooting',
+      caseName: '车门打不开一般先排查什么',
+      userInput: '车门打不开一般先排查什么？',
+      expectedTool: 'RAG',
+      actualTool: 'RAG',
+      pass: true,
+      skillResult: {
+        skill: 'RAG',
+        success: true,
+        resultType: 'knowledge_answer',
+        data: { topic: 'door_troubleshooting' }
+      },
+      reply: '可以先检查车辆状态、账号权限，以及车门当前是否处于可操作状态。',
+      durationMs: 890
+    })
+  ];
+  return [
+    makeSeedRun({
+      id: 'seed_run_vehicle_template_demo',
+      runId: 'run_demo_vehicle_template_cases',
+      name: '示例｜当前模板 Case 演示',
+      env: 'vehicle-agent-demo',
+      startedAt: '2026-04-24T10:00:00.000Z',
+      results: vehicleResults
+    })
+  ];
+}
+
 function buildVoiceTicketSeedRun() {
   const results = [
     makeManualResult({
@@ -868,6 +1123,7 @@ function demoCaseDoc({ caseId, name, groupName, projectId = '', userId = '900100
       userInput: turn.userInput,
       expectedTool: turn.expectedTool || '',
       expectedArgs: turn.expectedArgs ?? '',
+      evaluations: Array.isArray(turn.evaluations) ? turn.evaluations : [],
       replyContains: listValue(turn.replyContains),
       replyNotContains: listValue(turn.replyNotContains),
       judgePrompt: turn.judgePrompt || '',
@@ -883,8 +1139,51 @@ function demoCaseDoc({ caseId, name, groupName, projectId = '', userId = '900100
   };
 }
 
+function agentEvaluations({ tool = '', args = null, reply = null, quality = '' }) {
+  return [
+    tool ? { stageKey: 'functionInvocation', evalType: 'structure_match', expected: tool } : null,
+    args ? { stageKey: 'inputConditionRetention', evalType: 'structure_match', expected: typeof args === 'string' ? args : JSON.stringify(args) } : null,
+    reply ? { stageKey: 'replyFaithfulness', evalType: 'text_match', expected: typeof reply === 'string' ? reply : JSON.stringify(reply) } : null,
+    quality ? { stageKey: 'responseQuality', evalType: 'llm_judge', expected: quality } : null
+  ].filter(Boolean);
+}
+
+function voiceEvaluations({ asr = '', ticket = {}, structure = {}, quality = 'threshold=0.8' }) {
+  return [
+    asr ? { stageKey: 'asrTranscription', evalType: 'text_match', expected: asr } : null,
+    Object.keys(ticket || {}).length ? { stageKey: 'fieldExtraction', evalType: 'structure_match', expected: JSON.stringify(ticket) } : null,
+    Object.keys(structure || {}).length ? { stageKey: 'ticketStructure', evalType: 'structure_match', expected: JSON.stringify(structure) } : null,
+    quality ? { stageKey: 'semanticQuality', evalType: 'llm_judge', expected: quality } : null
+  ].filter(Boolean);
+}
+
 function buildTypicalCases(seedCases) {
-  const manualTypical = [
+  const ticketDoor = {
+    ticketType: 'vehicle_fault',
+    issueType: 'door_open_failure',
+    vehicleId: 'A001',
+    location: '青岛市南区',
+    contactPhone: '13800000000',
+    routeQueue: 'vehicle_ops_queue',
+    missingFields: []
+  };
+  const ticketBattery = {
+    ticketType: 'vehicle_fault',
+    issueType: 'low_battery',
+    vehicleId: 'X6S5002',
+    location: '深圳宝安园区',
+    deadline: '今天下午前',
+    routeQueue: 'vehicle_ops_queue',
+    missingFields: ['contactPhone']
+  };
+  const ticketComplaint = {
+    ticketType: 'customer_complaint',
+    issueType: 'delivery_delay',
+    priority: 'high',
+    routeQueue: 'after_sales_followup',
+    missingFields: ['vehicleId', 'contactPhone']
+  };
+  return [
     demoCaseDoc({
       caseId: 'voice_ticket_structuring_001',
       name: '语音工单｜车辆无法开门派单',
@@ -894,7 +1193,13 @@ function buildTypicalCases(seedCases) {
         {
           userInput: '语音转写：客户说青岛市南区 A001 车辆昨晚无法开门，现场等了十分钟，需要今天上午派人处理，电话 13800000000',
           expectedTool: 'voice_ticket_structuring',
-          expectedArgs: { ticketType: '车辆故障', priority: 'high', location: '青岛市南区', vehicleId: 'A001' },
+          expectedArgs: ticketDoor,
+          evaluations: voiceEvaluations({
+            asr: '保留车辆 A001、青岛市南区、无法开门、今天上午、13800000000',
+            ticket: ticketDoor,
+            structure: { routeQueue: 'vehicle_ops_queue', missingFields: [] },
+            quality: '字段必须全部来自 ASR 对话，不得补充未出现的处理结论'
+          }),
           replyContains: ['车辆故障', '青岛市南区', 'A001'],
           judgePrompt: '检查是否把语音文本结构化为可派单工单，并保留车辆、地点、故障和联系方式。',
           judgeThreshold: 0.8
@@ -908,9 +1213,15 @@ function buildTypicalCases(seedCases) {
       projectId: VOICE_TICKET_PROJECT,
       turns: [
         {
-          userInput: '用户来电说 X6S5002 低电量停在深圳宝安园区，要求今天下午前处理，联系电话 13900001111',
+          userInput: '用户来电说 X6S5002 低电量停在深圳宝安园区，要求今天下午前处理，但没留下联系电话',
           expectedTool: 'ticket_field_extract',
-          expectedArgs: { vehicleId: 'X6S5002', issue: '低电量', location: '深圳宝安园区', deadline: '今天下午前' },
+          expectedArgs: ticketBattery,
+          evaluations: voiceEvaluations({
+            asr: '保留 X6S5002、低电量、深圳宝安园区、今天下午前，并识别未留下电话',
+            ticket: ticketBattery,
+            structure: { routeQueue: 'vehicle_ops_queue', missingFields: ['contactPhone'] },
+            quality: '必须把未留下联系电话识别为缺失字段，不能编造手机号'
+          }),
           replyContains: ['X6S5002', '低电量', '深圳宝安园区'],
           judgePrompt: '检查结构化字段是否覆盖车辆编号、问题类型、地点、处理时限和联系电话。',
           judgeThreshold: 0.8
@@ -926,7 +1237,13 @@ function buildTypicalCases(seedCases) {
         {
           userInput: '客户投诉车辆绕路导致配送延误，要求售后回访并升级处理，语气很着急',
           expectedTool: 'ticket_category_route',
-          expectedArgs: { category: '投诉升级', priority: 'high', routeTo: '售后回访' },
+          expectedArgs: ticketComplaint,
+          evaluations: voiceEvaluations({
+            asr: '保留投诉、绕路、配送延误、售后回访、升级处理',
+            ticket: ticketComplaint,
+            structure: { routeQueue: 'after_sales_followup', missingFields: ['vehicleId', 'contactPhone'] },
+            quality: '应识别投诉升级和高优先级，缺失车辆与联系方式时不能编造'
+          }),
           replyContains: ['投诉', '升级', '回访'],
           judgePrompt: '检查是否识别投诉升级场景，并给出正确分类、优先级和处理队列。',
           judgeThreshold: 0.75
@@ -939,9 +1256,37 @@ function buildTypicalCases(seedCases) {
       groupName: '运营数据查询',
       projectId: VEHICLE_AGENT_PROJECT,
       turns: [
-        { userInput: '青岛昨天运营情况怎么样', expectedTool: 'vehicle_operation_data_query' },
-        { userInput: '那上海呢', expectedTool: 'vehicle_operation_data_query' },
-        { userInput: '再看空驶率', expectedTool: 'vehicle_operation_data_query' }
+        {
+          userInput: '青岛昨天运营情况怎么样',
+          expectedTool: 'vehicle_operation_data_query',
+          expectedArgs: { city: '青岛', date: '昨天' },
+          evaluations: agentEvaluations({
+            tool: 'vehicle_operation_data_query',
+            args: { city: '青岛', date: '昨天' },
+            reply: { contains: ['青岛', '昨天'], notContains: ['上海'] }
+          })
+        },
+        {
+          userInput: '那上海呢',
+          expectedTool: 'vehicle_operation_data_query',
+          expectedArgs: { city: '上海', date: '昨天' },
+          evaluations: agentEvaluations({
+            tool: 'vehicle_operation_data_query',
+            args: { city: '上海', date: '昨天' },
+            reply: { contains: ['上海', '昨天'], notContains: ['青岛'] }
+          })
+        },
+        {
+          userInput: '再看空驶率',
+          expectedTool: 'vehicle_operation_data_query',
+          expectedArgs: { city: '上海', date: '昨天', metric: '空驶率' },
+          evaluations: agentEvaluations({
+            tool: 'vehicle_operation_data_query',
+            args: { city: '上海', date: '昨天', metric: '空驶率' },
+            reply: { contains: ['空驶率', '上海'], notContains: ['青岛'] },
+            quality: '必须继承上一轮城市和日期，只切换指标'
+          })
+        }
       ]
     }),
     demoCaseDoc({
@@ -950,8 +1295,27 @@ function buildTypicalCases(seedCases) {
       groupName: '开门场景',
       projectId: VEHICLE_AGENT_PROJECT,
       turns: [
-        { userInput: '打开 X6S5002 的后舱门', expectedTool: 'open_door' },
-        { userInput: '确认执行', expectedTool: 'open_door' }
+        {
+          userInput: '打开 X6S5002 的后舱门',
+          expectedTool: 'open_door',
+          expectedArgs: { vehicleId: 'X6S5002', door: 'rear' },
+          evaluations: agentEvaluations({
+            tool: 'open_door',
+            args: { vehicleId: 'X6S5002', door: 'rear' },
+            reply: { contains: ['确认', 'X6S5002', '后舱门'] }
+          })
+        },
+        {
+          userInput: '确认执行',
+          expectedTool: 'open_door',
+          expectedArgs: { vehicleId: 'X6S5002', door: 'rear', confirmed: true },
+          evaluations: agentEvaluations({
+            tool: 'open_door',
+            args: { vehicleId: 'X6S5002', door: 'rear', confirmed: true },
+            reply: { contains: ['X6S5002', '后舱门'], notContains: ['失败'] },
+            quality: '确认轮必须继承上一轮车辆和门位，不得改成其他车辆'
+          })
+        }
       ]
     }),
     demoCaseDoc({
@@ -960,51 +1324,34 @@ function buildTypicalCases(seedCases) {
       groupName: '默认分组',
       projectId: VEHICLE_AGENT_PROJECT,
       turns: [
-        { userInput: '以后叫你小慧吧', expectedTool: 'update_user_agent_name' },
-        { userInput: '确认，就叫小慧', expectedTool: 'update_user_agent_name' }
+        {
+          userInput: '以后叫你小慧吧',
+          expectedTool: 'update_user_agent_name',
+          expectedArgs: { agentName: '小慧', pendingConfirm: true },
+          evaluations: agentEvaluations({
+            tool: 'update_user_agent_name',
+            args: { agentName: '小慧', pendingConfirm: true },
+            reply: { contains: ['小慧', '确认'] }
+          })
+        },
+        {
+          userInput: '确认，就叫小慧',
+          expectedTool: 'update_user_agent_name',
+          expectedArgs: { agentName: '小慧', confirmed: true },
+          evaluations: agentEvaluations({
+            tool: 'update_user_agent_name',
+            args: { agentName: '小慧', confirmed: true },
+            reply: { contains: ['小慧'], notContains: ['失败'] },
+            quality: '确认后应完成昵称更新，并避免重复询问确认'
+          })
+        }
       ]
     })
-  ];
-  const preferredByGroup = {
-    运营数据: '0326_t1_vod_017',
-    车控场景: 't1_door_025',
-    unsupported_test: 'T5_Unsup_40',
-    RAG防幻觉: 'b_rag_070',
-    车辆控制: 'c1_query_240',
-    运营数据查询: 'cd_perm_op_speed_001',
-    默认分组: 't4_interact_024',
-    开门场景: 't1_door_001',
-    订单: 't1_query_006',
-    车速: 't1_query_019',
-    '运营&车辆在线': 't1_query_027',
-    里程: 't1_query_048',
-    '异常任务 & 路口通行指标': 't1_query_060',
-    装卸货: 't1_query_075',
-    '偏差 & ETA': 't1_query_102',
-    停靠相关指标: 't1_query_109',
-    车辆相关指标: 't1_query_114',
-    '调度 & 空驶': 't1_query_132',
-    权限测试: 't4_perm_001',
-    车控复合意图: 'vc_full_019'
-  };
-  const byCaseId = new Map(seedCases.map((item) => [item.caseId, item]));
-  const groups = [...new Set(seedCases.map((item) => item.groupName || '默认分组'))];
-  const picked = [...manualTypical];
-  const usedIds = new Set(picked.map((item) => item.caseId));
-  groups.forEach((groupName) => {
-    const preferred = byCaseId.get(preferredByGroup[groupName]);
-    const fallback = seedCases.find((item) => (item.groupName || '默认分组') === groupName);
-    const selected = preferred || fallback;
-    if (!selected || usedIds.has(selected.caseId)) return;
-    usedIds.add(selected.caseId);
-    picked.push({
-      ...selected,
-      tags: selected.tags || '典型',
-      regression: selected.regression ?? true,
-      enabled: selected.enabled !== false
-    });
-  });
-  return picked.slice(0, 32);
+  ].map((item) => ({
+    ...item,
+    regression: true,
+    enabled: item.enabled !== false
+  }));
 }
 
 function normalizeCase(item) {
@@ -1627,12 +1974,11 @@ function buildStageChecks(result, contractChecks = buildContractChecks(result)) 
   const render = contractChecks.find((item) => item.key === 'render') || { pass: true, score: 100, applies: false };
   const qualityScore = Math.round((route.score * 0.35 + input.score * 0.15 + skillResult.score * 0.2 + render.score * 0.2 + replyRatio * 10));
   const rawChecks = [
-    { key: 'intent', label: '意图路由', pass: route.pass, score: route.score, rule: '按轮次比较 expectedTool 与 actualTool' },
-    { key: 'functionInvocation', label: '能力调用', pass: hasActualTools, score: hasActualTools ? 100 : 50, rule: '每轮均有 actualTool 或明确直接回复' },
-    { key: 'inputConditionRetention', label: '输入契约', pass: input.pass, score: input.score, applies: input.applies, rule: '按 case.expectedTrace 或默认契约检查用户显式条件' },
-    { key: 'skillResultContract', label: 'SkillResult 契约', pass: skillResult.pass, score: skillResult.score, applies: skillResult.applies, rule: '按 case.expectedTrace 或当前 resultType 默认契约检查业务字段' },
-    { key: 'replyFaithfulness', label: '渲染契约', pass: render.pass, score: render.score, applies: render.applies, rule: '最终回复是否按 SkillResult 复述关键结果' },
-    { key: 'responseQuality', label: '回复质量', pass: qualityScore >= 70, score: qualityScore, rule: '综合(路由+输入契约+SkillResult 契约+渲染契约+回复完整度)' }
+    { key: 'intent', label: '意图识别', pass: route.pass, score: route.score, rule: '按轮次比较 expectedTool 与 actualTool' },
+    { key: 'functionInvocation', label: '工具选择', pass: hasActualTools, score: hasActualTools ? 100 : 50, rule: '每轮均有 actualTool 或明确直接回复' },
+    { key: 'inputConditionRetention', label: '参数提取', pass: input.pass, score: input.score, applies: input.applies, rule: '按 case.expectedTrace 或默认契约检查用户显式条件' },
+    { key: 'replyFaithfulness', label: '回复生成', pass: render.pass && skillResult.pass, score: Math.round((render.score + skillResult.score) / 2), applies: render.applies !== false || skillResult.applies !== false, rule: '最终回复是否按 SkillResult 复述关键结果' },
+    { key: 'responseQuality', label: '语义质量', pass: qualityScore >= 70, score: qualityScore, rule: '综合(意图识别+工具选择+参数提取+回复生成+回复完整度)' }
   ];
 
   // 串行门控：前序阶段失败时，后续阶段统一置为 FAIL / 0。
@@ -1835,7 +2181,7 @@ function buildRunFunnel(results) {
     },
     {
       key: 'intent',
-      label: '意图路由正确率',
+      label: '意图识别通过率',
       meaning: '看 Agent 有没有选对 expectedTool 对应的业务能力。',
       rule: '按 stageChecks.intent 统计；本指标只判断路由是否选对。',
       dynamicStepNote: '这是 Run 级诊断指标，不代表每个 case 的固定执行步骤；不同 function 仍有不同后续链路。',
@@ -1845,8 +2191,19 @@ function buildRunFunnel(results) {
       }
     },
     {
+      key: 'functionInvocation',
+      label: '工具选择通过率',
+      meaning: '看 Agent 是否进入了期望工具或明确的直接回复链路。',
+      rule: '按 stageChecks.functionInvocation 统计；前序意图失败会阻断本阶段。',
+      dynamicStepNote: '这是 Run 级诊断指标，不代表每个 case 的固定执行步骤；不同 function 仍有不同后续链路。',
+      collect: (result) => {
+        const check = (result.stageChecks || []).find((item) => item.key === 'functionInvocation');
+        return { applies: check?.applies !== false, pass: Boolean(check?.pass) };
+      }
+    },
+    {
       key: 'inputConditionRetention',
-      label: '输入契约命中率',
+      label: '参数提取通过率',
       meaning: '看用户明确说出的车辆、城市、日期、动作等条件，是否按 case.expectedTrace 或默认契约进入 SkillResult / 回复。',
       rule: '优先统计 case.expectedTrace.inputFields；没有配置时用默认契约识别显式条件；不判断数据库结果是否真实正确。',
       dynamicStepNote: '这是 Run 级诊断指标，不代表每个 case 的固定执行步骤；没有显式条件的 case 会记为未检查。',
@@ -1856,25 +2213,25 @@ function buildRunFunnel(results) {
       }
     },
     {
-      key: 'skillResultContract',
-      label: 'SkillResult 契约命中率',
-      meaning: '看当前 function/resultType 的业务字段是否命中，例如运营数据看 data.filter/data.sections，控制结果看 data.action。',
-      rule: '优先统计 case.expectedTrace.skillResultFields；没有配置时按线上已出现的 resultType 默认契约检查；不判断数据库结果是否真实正确。',
-      dynamicStepNote: '这是 Run 级诊断指标，不代表每个 case 的固定执行步骤；无 SkillResult 的直接回复链路会记为未检查。',
-      collect: (result) => {
-        const check = (result.contractChecks || []).find((item) => item.key === 'skillResult');
-        return { applies: check?.applies !== false, pass: Boolean(check?.pass) };
-      }
-    },
-    {
       key: 'replyFaithfulness',
-      label: '渲染契约命中率',
+      label: '回复生成通过率',
       meaning: '看最终回复是否按 SkillResult 复述关键业务结果，没有把失败说成成功，也没有明显脱离结构化返回。',
       rule: '优先统计 case.expectedTrace.renderFields；没有配置时按 SkillResult 里的错误原因、动作、场景、报告章节等默认契约检查；不判断数据库结果是否真实正确。',
       dynamicStepNote: '这是 Run 级诊断指标，不代表每个 case 的固定执行步骤；它评估的是渲染一致性。',
       collect: (result) => {
         const check = (result.contractChecks || []).find((item) => item.key === 'render');
         return { applies: check?.applies !== false, pass: Boolean(check?.pass) };
+      }
+    },
+    {
+      key: 'responseQuality',
+      label: '语义质量通过率',
+      meaning: '看最终回答是否完整、可信、可复核。',
+      rule: '按 stageChecks.responseQuality 统计；综合前序链路和回复质量。',
+      dynamicStepNote: '这是 Run 级诊断指标，不代表每个 case 的固定执行步骤；适合定位最后一跳语义质量问题。',
+      collect: (result) => {
+        const check = (result.stageChecks || []).find((item) => item.key === 'responseQuality');
+        return { applies: true, pass: Boolean(check?.pass) };
       }
     }
   ];
@@ -1986,10 +2343,25 @@ function voiceTicketFunnel(results) {
   const total = results.length || 1;
   const defs = [
     { key: 'casePass', label: 'Case 通过率', meaning: '看这一批语音工单 case 最终整体通过情况。', collect: (result) => ({ applies: true, pass: Boolean(result.pass) }) },
-    { key: 'fieldAccuracy', label: '字段准确率', meaning: '看工单类型、问题类型、车辆、地点、联系方式等字段是否正确。', collect: (result) => pickVoiceCheck(result, 'fieldAccuracy') },
-    { key: 'missingFieldDetection', label: '缺失字段命中率', meaning: '看对话里没说清的信息是否被正确放入 missingFields。', collect: (result) => pickVoiceCheck(result, 'missingFieldDetection') },
-    { key: 'routeAccuracy', label: '路由队列准确率', meaning: '看工单是否进入正确处理队列。', collect: (result) => pickVoiceCheck(result, 'routeAccuracy') },
-    { key: 'noHallucination', label: '禁止编造通过率', meaning: '看输出是否没有编造对话里不存在的信息。', collect: (result) => pickVoiceCheck(result, 'noHallucination') }
+    { key: 'asrTranscription', label: 'ASR 转写通过率', meaning: '看导入的 ASR 对话文本是否保留关键事实并可作为评测依据。', collect: (result) => pickVoiceCheck(result, 'dialogueGrounding') },
+    {
+      key: 'fieldExtraction',
+      label: '字段抽取通过率',
+      meaning: '看工单类型、问题类型、车辆、地点、联系方式和缺失字段是否正确。',
+      collect: (result) => mergeVoiceChecks(result, ['fieldAccuracy', 'missingFieldDetection'])
+    },
+    {
+      key: 'ticketStructure',
+      label: '工单结构生成通过率',
+      meaning: '看工单 JSON、路由队列和禁止编造是否达标。',
+      collect: (result) => mergeVoiceChecks(result, ['routeAccuracy', 'noHallucination'])
+    },
+    {
+      key: 'semanticQuality',
+      label: '语义质量通过率',
+      meaning: '看结构化结果是否忠实于完整对话，能处理改口、补充和噪声。',
+      collect: (result) => mergeVoiceChecks(result, ['dialogueGrounding', 'noHallucination'])
+    }
   ];
   return defs.map((metric) => {
     const collected = results.map((result) => metric.collect(result));
@@ -2015,6 +2387,16 @@ function voiceTicketFunnel(results) {
 function pickVoiceCheck(result, key) {
   const check = (result.stageChecks || []).find((item) => item.key === key);
   return { applies: check?.applies !== false, pass: Boolean(check?.pass) };
+}
+
+function mergeVoiceChecks(result, keys) {
+  const checks = keys.map((key) => (result.stageChecks || []).find((item) => item.key === key)).filter(Boolean);
+  if (!checks.length) return { applies: true, pass: Boolean(result.pass) };
+  const applicable = checks.filter((item) => item.applies !== false);
+  return {
+    applies: applicable.length > 0,
+    pass: applicable.length > 0 && applicable.every((item) => item.pass)
+  };
 }
 
 function applyVoiceTicketRunShape(run) {
@@ -2127,7 +2509,16 @@ function services() {
     }),
     runs: createRunsService({ bodyJson, runs, runsForDisplay, makeRun, normalizeRunProject, inProject, enrichRun, now, id, persistRuns: persistRunsState }),
     generation: createGenerationService({ bodyJson, generationSchemaForProject, generateCasesForUpload, normalizeCase, isAdminProject, now, id, cases, persistCases: persistCasesState }),
-    mockConfigs: createMockConfigsService({ bodyJson, mockConfigs, configList, configById, isAdminProject, id })
+    mockConfigs: createMockConfigsService({ bodyJson, mockConfigs, configList, configById, isAdminProject, id, persistMockConfigs: persistMockConfigsState }),
+    templates: createTemplatesService({
+      bodyJson,
+      customTemplates,
+      defaultTemplatesForProject: templatesForProject,
+      inProject,
+      now,
+      id,
+      persistTemplates: persistTemplatesState
+    })
   };
   return backendServices;
 }
@@ -2297,27 +2688,55 @@ function toolsForProject(ctx) {
   return toolsForProjectId(ctx?.projectId || 'all');
 }
 
+function workbenchContract(ctx) {
+  const schema = generationSchemaForProject(ctx);
+  const isVoice = ctx?.projectId === VOICE_TICKET_PROJECT;
+  return {
+    projectId: schema.projectId,
+    projectName: schema.projectName,
+    caseType: schema.caseType,
+    generateTemplate: {
+      columns: schema.columnSchema || [],
+      importColumns: schema.importColumns || [],
+      defaultGenerationPrompt: schema.defaultGenerationPrompt
+    },
+    stageDefinitions: schema.stageDefinitions || [],
+    evaluatorConfig: {
+      rules: isVoice
+        ? [
+            { stageKey: 'fieldExtraction', targetField: 'expectedTicket', method: 'json_schema_match' },
+            { stageKey: 'fieldExtraction', targetField: 'missingFields', method: 'structure_match' },
+            { stageKey: 'ticketStructure', targetField: 'routeQueue', method: 'structure_match' },
+            { stageKey: 'ticketStructure', targetField: 'hallucination', method: 'llm_judge', promptKey: 'voice-ticket-semantic-eval-prompt' },
+            { stageKey: 'semanticQuality', targetField: 'dialogueGrounding', method: 'llm_judge', promptKey: 'voice-ticket-semantic-eval-prompt' }
+          ]
+        : [
+            { stageKey: 'intent', targetField: 'expectedTool', method: 'structure_match' },
+            { stageKey: 'inputConditionRetention', targetField: 'expectedArgs', method: 'structure_match' },
+            { stageKey: 'replyFaithfulness', targetField: 'replyContains', method: 'text_match' },
+            { stageKey: 'responseQuality', targetField: 'semanticQuality', method: 'llm_judge', promptKey: 'agent-semantic-eval-prompt' }
+          ]
+    },
+    runLabels: isVoice
+      ? { primaryVersionLabel: '结构化 Prompt 版本', datasetVersionLabel: '样本集版本', ruleVersionLabel: '评测规则版本' }
+      : { primaryVersionLabel: 'Agent 版本', datasetVersionLabel: '测试集版本', ruleVersionLabel: '评测规则版本' }
+  };
+}
+
 function generationSchemaForProject(ctx) {
   const baseSchema = ctx?.projectId === VOICE_TICKET_PROJECT ? VOICE_TICKET_CASE_SCHEMA : CASE_GENERATION_SCHEMA;
-  const profile = projectProfile(ctx?.projectId);
+  const profile = projectProfile(ctx?.projectId) || (isAdminProject(ctx) ? projectProfile(VEHICLE_AGENT_PROJECT) : null);
+  const profileColumns = (profile?.columnSchema || []).map((column) => column.key);
   return {
     ...baseSchema,
+    importColumns: profileColumns.length ? profileColumns : baseSchema.importColumns,
     projectId: ctx?.projectId || 'all',
     projectName: ctx?.projectName || '管理员视角',
     defaultGenerationPrompt: PROJECT_DEFAULT_GENERATION_PROMPTS[ctx?.projectId] || PROJECT_DEFAULT_GENERATION_PROMPTS[VEHICLE_AGENT_PROJECT],
     allowedTools: toolsForProject(ctx),
-    columnSchema: profile?.columnSchema || []
+    columnSchema: profile?.columnSchema || [],
+    stageDefinitions: profile?.stageDefinitions || []
   };
-}
-
-function promptKeysForProject(ctx) {
-  if (ctx?.projectId === VOICE_TICKET_PROJECT) return voicePromptKeys;
-  return vehiclePromptKeys;
-}
-
-function promptContentForProject(key, ctx) {
-  if (ctx?.projectId === VOICE_TICKET_PROJECT) return voicePromptContent[key] || '';
-  return promptContent[key] || '';
 }
 
 async function bodyJson(req) {
@@ -2345,6 +2764,7 @@ async function sourceHtml() {
 }
 
 function assetContentType(filePath) {
+  if (filePath.endsWith('.html')) return 'text/html; charset=utf-8';
   if (filePath.endsWith('.js')) return 'text/javascript; charset=utf-8';
   if (filePath.endsWith('.css')) return 'text/css; charset=utf-8';
   if (filePath.endsWith('.svg')) return 'image/svg+xml';
@@ -2356,8 +2776,8 @@ function assetContentType(filePath) {
 async function serveStaticAsset(res, pathname) {
   const prefix = '/admin/eval/';
   const relative = decodeURIComponent(pathname.startsWith(prefix) ? pathname.slice(prefix.length) : pathname.slice(1));
-  const assetPath = path.normalize(path.join(DIST_DIR, relative));
-  if (!assetPath.startsWith(DIST_DIR)) return false;
+  const assetPath = path.normalize(path.join(PUBLIC_DIR, relative));
+  if (!assetPath.startsWith(PUBLIC_DIR)) return false;
   try {
     const body = await readFile(assetPath);
     res.writeHead(200, { 'content-type': assetContentType(assetPath), 'cache-control': 'no-store' });
@@ -2607,12 +3027,111 @@ function evaluateCase(item) {
   };
 }
 
+function splitExpectedContent(value) {
+  return String(value || '')
+    .split(/[,，\n|]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function objectText(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string') return value;
+  try { return JSON.stringify(value); } catch { return String(value); }
+}
+
+function actualOutputText(actual, stage) {
+  const name = String(stage.name || '').toLowerCase();
+  if (/函数|工具|function|tool/.test(name)) return objectText(actual.function_name || actual.actualTool || actual.tool || actual.name || '');
+  if (/参数|argument|args/.test(name)) return objectText(actual.arguments || actual.args || actual.params || {});
+  if (/回复|文本|reply|answer/.test(name)) return objectText(actual.final_reply || actual.reply || actual.llmReplyText || '');
+  if (/中间|调用|trace/.test(name)) return objectText(actual.intermediate_calls || actual.trace || actual.agent_trace || actual.calls || '');
+  return objectText(actual);
+}
+
+function evaluateTemplateStage(stage, item, actual) {
+  const expectedMap = item.expected || {};
+  const expected = expectedMap[stage.key]
+    ?? expectedMap[`${stage.key}_exact`]
+    ?? expectedMap[`${stage.key}_contains`]
+    ?? stage.expected_content
+    ?? '';
+  const actualText = actualOutputText(actual, stage);
+  if (stage.eval_type === 'structure_match') {
+    const terms = splitExpectedContent(expected);
+    const pass = stage.method === 'exact_match'
+      ? String(actualText).trim() === String(expected).trim()
+      : terms.every((term) => actualText.includes(term));
+    return {
+      key: stage.key,
+      label: stage.name,
+      evalType: 'structure_match',
+      pass,
+      score: pass ? 100 : 0,
+      expected,
+      actual: actualText,
+      summary: pass ? '字段检查通过' : `期望「${expected}」，实际「${actualText}」`
+    };
+  }
+  if (stage.eval_type === 'text_match') {
+    const reply = objectText(actual.final_reply || actual.reply || actual.llmReplyText || '');
+    const contains = splitExpectedContent(expectedMap[`${stage.key}_contains`] ?? expected);
+    const notContains = splitExpectedContent(expectedMap[`${stage.key}_not_contains`] ?? '');
+    const exact = String(expectedMap[`${stage.key}_exact`] || '').trim();
+    const regex = String(expectedMap[`${stage.key}_regex`] || '').trim();
+    let pass = true;
+    if (stage.method === 'exact_match') pass = reply.trim() === exact;
+    else if (stage.method === 'regex_match') {
+      try { pass = new RegExp(regex).test(reply); } catch { pass = false; }
+    } else {
+      pass = contains.every((term) => reply.includes(term)) && notContains.every((term) => !reply.includes(term));
+    }
+    return {
+      key: stage.key,
+      label: stage.name,
+      evalType: 'text_match',
+      pass,
+      score: pass ? 100 : 0,
+      expected: [contains.length ? `包含: ${contains.join(', ')}` : '', notContains.length ? `不能包含: ${notContains.join(', ')}` : '', exact ? `完全一致: ${exact}` : '', regex ? `正则: ${regex}` : ''].filter(Boolean).join('\n'),
+      actual: reply,
+      summary: pass ? '文本检查通过' : '最终回复未满足文本检查规则'
+    };
+  }
+  const score = 85;
+  return {
+    key: stage.key,
+    label: stage.name,
+    evalType: 'llm_judge',
+    pass: score >= Number(stage.judge_threshold || 80),
+    score,
+    expected: stage.prompt_content || '',
+    actual: objectText(actual.final_reply || actual.reply || actual.llmReplyText || ''),
+    summary: 'Demo LLM 评审：按 Prompt 生成模拟评分'
+  };
+}
+
+function evaluateTemplateCase(item, mockConfig, ctx = null) {
+  const templates = runtimeTemplatesForProject(ctx?.projectId || item.projectId || VEHICLE_AGENT_PROJECT);
+  const template = templates.find((tpl) => tpl.templateId === (item.template_id || item.templateId));
+  if (!template) return evaluateCase(item);
+  const outputs = mockConfig?.mockOutputs || {};
+  const actual = outputs[item.id] || outputs[item.caseId] || {};
+  return evaluateTemplateCaseWithRunner({
+    template,
+    caseDoc: item,
+    actualOutput: actual,
+    durationMs: 420 + Math.floor(Math.random() * 600)
+  });
+}
+
 function makeRun(payload, ctx = null) {
   const selectedIds = payload.testsetId
     ? (testsetById(payload.testsetId, ctx)?.caseIds || [])
     : (payload.caseIds || []);
   const selectedCases = selectedIds.map((caseId) => caseById(caseId, ctx)).filter(Boolean);
-  const results = selectedCases.map(evaluateCase);
+  const mockConfigId = payload.mockConfigId || '';
+  const mockConfig = configById(mockConfigId, ctx);
+  const results = selectedCases.map((item) => (item.template_id || item.templateId) ? evaluateTemplateCase(item, mockConfig, ctx) : evaluateCase(item));
   const passedCases = results.filter((item) => item.pass).length;
   const totalCases = results.length;
   const durationMs = results.reduce((sum, item) => sum + item.durationMs, 0);
@@ -2633,10 +3152,9 @@ function makeRun(payload, ctx = null) {
     caseIds: selectedCases.map((item) => item.id),
     testsetId: payload.testsetId || '',
     testsetName: payload.testsetId ? (testsetById(payload.testsetId, ctx)?.name || '') : '',
-    mockConfigId: payload.mockConfigId || '',
+    mockConfigId: mockConfigId || '',
     projectId: isAdminProject(ctx) ? (payload.projectId || selectedCases[0]?.projectId || VEHICLE_AGENT_PROJECT) : ctx.projectId,
     projectName: isAdminProject(ctx) ? (payload.projectName || '') : ctx.projectName,
-    promptOverrides: payload.promptOverrides || {},
     versionInfo: {
       datasetVersion: payload.datasetVersion || datasetVersion.version,
       agentVersion: payload.agentVersion || agentVersion.version,
@@ -3052,117 +3570,20 @@ function stringifyCsvField(value) {
   return JSON.stringify(value);
 }
 
-async function routeApi(req, res, url) {
-  const path = url.pathname.replace('/admin/eval/api', '');
-  const method = req.method || 'GET';
-
-  if (method === 'GET' && path === '/env') return json(res, ok({ env: 'local-demo' }));
-  if (method === 'GET' && path === '/auth/status') {
-    return json(res, ok(services().projects.status(req)));
-  }
-  const ctx = authContext(req);
-
-  if (method === 'GET' && path === '/cases') return json(res, ok(services().cases.list(ctx)));
-  if (method === 'GET' && path === '/cases/export') {
-    const rows = services().cases.exportRows(ctx, {
-      group: url.searchParams.get('group'),
-      source: url.searchParams.get('source'),
-      onlyRegression: url.searchParams.get('regression') === 'true'
-    });
-    res.writeHead(200, {
-      'content-type': 'text/csv; charset=utf-8',
-      'content-disposition': 'attachment; filename="eval_cases_export.csv"'
-    });
-    const scopedCsv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n');
-    return res.end(`\uFEFF${scopedCsv}`);
-  }
-  if (method === 'POST' && path === '/cases/bulk') {
-    return json(res, ok(await services().cases.bulk(req, ctx)));
-  }
-  if (method === 'POST' && path === '/cases/regression-by-caseids') {
-    return json(res, ok(await services().cases.regressionByCaseIds(req, ctx)));
-  }
-  if (method === 'POST' && path === '/cases/import') return json(res, ok(await services().cases.importCsv(req, ctx)));
-  if (method === 'POST' && path === '/cases') {
-    return json(res, ok(await services().cases.create(req, ctx)));
-  }
-  if (path.startsWith('/cases/')) {
-    const result = await services().cases.byPath(req, path, ctx);
-    if (result === null) return notFound(res);
-    if (result !== undefined) return json(res, ok(result));
-  }
-
-  if (method === 'GET' && path === '/groups') return json(res, ok(services().cases.groupNames(ctx)));
-  if (method === 'GET' && path === '/agent-versions') return json(res, ok(AGENT_VERSIONS));
-  if (method === 'GET' && path === '/dataset-versions') return json(res, ok(DATASET_VERSIONS));
-  if (method === 'GET' && path === '/testsets') return json(res, ok(demoTestsets(ctx)));
-  if (method === 'DELETE' && path.startsWith('/groups/')) {
-    const groupName = decodeURIComponent(path.split('/')[2] || '');
-    return json(res, ok(await services().cases.deleteGroup(groupName, ctx)));
-  }
-  if (method === 'GET' && path === '/generate-user-id') {
-    return json(res, ok(services().cases.generateUserId(url.searchParams.get('tier') || 'FULL')));
-  }
-
-  if (method === 'GET' && path === '/runs') return json(res, ok(services().runs.list(ctx)));
-  if (method === 'POST' && path === '/runs') return json(res, ok(await services().runs.create(req, ctx)));
-
-  if (method === 'GET' && path === '/case-service/schema') {
-    return json(res, ok(services().generation.schema(ctx)));
-  }
-
-  if (method === 'POST' && path === '/case-service/generate-preview') {
-    return json(res, ok(await services().generation.preview(req, ctx)));
-  }
-
-  if (method === 'POST' && path === '/case-service/generate-upload') {
-    return json(res, ok(await services().generation.uploadGenerated(req, ctx)));
-  }
-
-  if (method === 'POST' && path === '/case-service/upload-preview') {
-    return json(res, ok(await services().generation.uploadPreview(req, ctx)));
-  }
-  if (path.startsWith('/runs/')) {
-    const result = await services().runs.byPath(req, path, ctx);
-    if (result === null) return notFound(res);
-    if (result !== undefined) return json(res, ok(result));
-  }
-
-  if (method === 'GET' && path === '/mock-configs') return json(res, ok(services().mockConfigs.list(ctx)));
-  if (method === 'POST' && path === '/mock-configs') {
-    return json(res, ok(await services().mockConfigs.create(req, ctx)));
-  }
-  if (path.startsWith('/mock-configs/')) {
-    const result = await services().mockConfigs.configsPath(req, path, ctx);
-    if (result === null) return notFound(res);
-    if (result !== undefined) return json(res, ok(result));
-  }
-  if (method === 'GET' && path === '/mock-config') return json(res, ok(services().mockConfigs.byId(url.searchParams.get('configId'), ctx)));
-  if (method === 'POST' && path === '/mock-config/test') {
-    return json(res, ok(await services().mockConfigs.test(req, ctx)));
-  }
-  if (method === 'PUT' && path === '/mock-config/location') {
-    return json(res, ok(await services().mockConfigs.updateLocation(req, url.searchParams.get('configId'), ctx)));
-  }
-  if (path === '/mock-config/vehicles') {
-    const result = await services().mockConfigs.vehicles(req, url.searchParams.get('configId'), ctx);
-    if (result !== undefined) return json(res, ok(result));
-  }
-  if (method === 'POST' && path === '/mock-config/vehicles/import') return json(res, ok({ imported: 0 }));
-  if (path.startsWith('/mock-config/vehicles/')) {
-    const result = await services().mockConfigs.vehicleByVin(req, path, url.searchParams.get('configId'), ctx);
-    if (result === null) return notFound(res);
-    if (result !== undefined) return json(res, ok(result));
-  }
-
-  if (method === 'GET' && path === '/prompt-keys') return json(res, ok(promptKeysForProject(ctx)));
-  if (method === 'GET' && path === '/prompt-content') {
-    const key = url.searchParams.get('key') || '';
-    return json(res, ok({ key, content: promptContentForProject(key, ctx) }));
-  }
-
-  return notFound(res);
-}
+const routeApi = createApiRouter({
+  json,
+  ok,
+  notFound,
+  services,
+  authContext,
+  workbenchContract,
+  demoTestsets,
+  templatesForProject: runtimeTemplatesForProject,
+  functionBindingsForProject,
+  templateMappingForProject,
+  agentVersions: AGENT_VERSIONS,
+  datasetVersions: DATASET_VERSIONS
+});
 
 export async function handleRequest(req, res) {
   try {
@@ -3172,7 +3593,7 @@ export async function handleRequest(req, res) {
       if (await serveStaticAsset(res, url.pathname)) return;
       return notFound(res);
     }
-    if (url.pathname === '/' || url.pathname === '/admin/eval') {
+    if (url.pathname === '/' || url.pathname === '/admin/eval' || url.pathname.startsWith('/admin/eval/')) {
       try {
         return text(res, await sourceHtml(), 'text/html; charset=utf-8');
       } catch (error) {

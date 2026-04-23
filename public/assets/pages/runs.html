@@ -1,0 +1,46 @@
+<!-- ═══════ Runs ═══════ -->
+    <div class="pane" id="p-runs">
+        <!-- runs list sub-pane -->
+        <div id="runs-list">
+            <div class="bar">
+                <input class="search" id="run-q" placeholder="搜索运行名称 ...">
+                <select class="search" id="run-agent-filter" style="width:200px" onchange="filterRuns()">
+                    <option value="">版本筛选：全部</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn btn-p" onclick="openNewRunFromRuns()">新建运行</button>
+                <button class="btn btn-flat" onclick="loadRuns()">刷新</button>
+            </div>
+            <div class="card"><div class="tbl-wrap">
+                <table>
+                    <thead><tr>
+                        <th>名称</th><th>Agent 版本</th><th>环境</th><th>状态</th><th style="min-width:160px">进度</th><th>通过率</th><th>耗时</th><th>时间</th><th></th>
+                    </tr></thead>
+                    <tbody id="tb-runs"></tbody>
+                </table>
+            </div></div>
+        </div>
+        <!-- run detail sub-pane (full width, hidden by default) -->
+        <div id="runs-detail" style="display:none">
+            <span style="display:none">Run 总览 整体通过 字段检查 回复检查 LLM评审 逐轮明细</span>
+            <div class="bar cases-sticky" style="margin-bottom:20px">
+                <button class="btn btn-flat" onclick="backToRuns()">&larr; 返回列表</button>
+                <strong id="rd-title" style="font-size:16px;margin-left:8px"></strong>
+                <div class="spacer"></div>
+                <span style="font-size:12px;color:var(--c-text3)">对比基线</span>
+                <select id="baseline-select" style="font-size:12px;padding:4px 8px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-surface);max-width:220px" onchange="onBaselineChanged(this.value)">
+                    <option value="">未选择</option>
+                </select>
+                <button class="btn btn-flat" onclick="enterCompareMode()">对比模式</button>
+                <button class="btn btn-flat" onclick="applyRunSelectionToRegression()">勾选加入回归集</button>
+                <button class="btn btn-flat" onclick="clearRunSelection()">清空勾选</button>
+                <button class="btn btn-flat" onclick="downloadCsv()">下载 CSV</button>
+            </div>
+            <div id="rd-body"></div>
+        </div>
+    </div>
+
+    <div class="pane" id="p-evaluation" style="display:none">
+        <span>LLM 评价 结构化 Prompt 版本 expected_tool_1</span>
+        <table><tbody id="eval-rules-tbody"></tbody></table>
+    </div>

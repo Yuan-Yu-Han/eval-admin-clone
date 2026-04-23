@@ -1,0 +1,46 @@
+<!-- ═══════ Cases ═══════ -->
+    <div class="pane" id="p-cases">
+        <div class="cases-sticky">
+            <div class="kpi-strip">
+                <div class="kpi"><b id="k-total">0</b><span>用例</span></div>
+                <div class="kpi"><b id="k-enabled" style="color:var(--c-green)">0</b><span>已启用</span></div>
+                <div class="kpi"><b id="k-selected" style="color:var(--c-accent)">0</b><span>已选</span></div>
+            </div>
+            <div class="nav" id="regression-tabs" style="margin-bottom:8px"></div>
+            <div class="nav" id="group-tabs" style="margin-bottom:16px"></div>
+            <div class="group-dropdown" id="group-dropdown-wrap">
+                <div class="group-dropdown-btn" id="group-dropdown-btn" onclick="toggleGroupDropdown()">
+                    <span id="group-dropdown-label">全部</span>
+                    <span class="arrow" id="group-dropdown-arrow">&#9660;</span>
+                </div>
+                <div class="group-dropdown-list" id="group-dropdown-list"></div>
+            </div>
+            <div class="bar">
+                <input class="search" id="case-q" placeholder="搜索 ID / 对话 ...">
+                <select class="search" id="case-tool-filter" style="width:180px" onchange="filterCases()">
+                    <option value="">全部函数</option>
+                </select>
+                <select class="search" id="case-source-filter" style="width:160px" onchange="filterCases()">
+                    <option value="">全部来源</option>
+                    <option value="manual">人工编写</option>
+                    <option value="llm">LLM 生成</option>
+                </select>
+                <div class="spacer"></div>
+                <button class="btn btn-ghost" onclick="downloadCsvTemplate()">下载模板</button>
+                <label class="btn btn-flat">导入 CSV<input type="file" accept=".csv" onchange="importCsv(this)"></label>
+                <button class="btn btn-flat" onclick="exportCases()">导出 CSV</button>
+                <button class="btn btn-p" onclick="openCaseModal()">+ 新建</button>
+                <button class="btn btn-g" onclick="runSelected()">运行选中</button>
+                <button class="btn btn-o" id="btn-run-all" onclick="runAllEnabled()">运行全部</button>
+            </div>
+        </div>
+        <div class="card"><div class="tbl-wrap">
+            <table class="cases-tbl">
+                <thead><tr id="cases-head-row">
+                    <th class="ck"><input type="checkbox" id="ck-all" onchange="toggleAll(this)"></th>
+                    <th>Case ID</th><th>对话内容</th><th>User</th><th>来源</th><th>权限</th><th>状态</th><th>回归</th><th>标签</th><th>更新时间</th><th></th>
+                </tr></thead>
+                <tbody id="tb-cases"></tbody>
+            </table>
+        </div></div>
+    </div>

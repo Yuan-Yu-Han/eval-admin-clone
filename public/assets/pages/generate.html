@@ -1,0 +1,92 @@
+<!-- ═══════ Generate ═══════ -->
+    <div class="pane" id="p-generate">
+        <div class="gen-workbench">
+            <div class="gen-panel gen-config-panel">
+                <div class="gen-panel-body">
+                    <div class="gen-sec">
+                        <div class="gen-step-head">
+                            <div>
+                                <div class="gen-step-title">Case 基础信息</div>
+                                <div class="gen-step-hint">和「+ 新建」保持同一套字段：分组、输入、用户与生成数量。</div>
+                            </div>
+                            <span class="tag tag-wait">基础字段</span>
+                        </div>
+                        <div class="gen-grid-4">
+                            <div class="fg"><label class="fl">模式</label>
+                                <select class="fi" id="pg-mode" onchange="onGeneratePageModeChange()">
+                                    <option value="generate">自动生成</option>
+                                    <option value="expand">定向扩写</option>
+                                </select>
+                            </div>
+                            <div class="fg"><label class="fl">生成数量</label><input class="fi" id="pg-count" type="number" min="1" max="50" value="8"></div>
+                            <div class="fg" id="pg-turns-wrap"><label class="fl">轮次数</label><input class="fi" id="pg-turns" type="number" min="1" max="3" value="1"></div>
+                            <div class="fg"><label class="fl">Case ID 前缀</label><input class="fi" id="pg-prefix" value="llm_demo"></div>
+                        </div>
+                        <div class="gen-grid-2">
+                            <div class="fg"><label class="fl">目标分组</label><select class="fi" id="pg-group-select" onchange="onGenerateGroupChange()"></select></div>
+                            <div class="fg"><label class="fl">自定义分组</label><input class="fi" id="pg-custom-group" value="" oninput="updateGenerateGroupLock()"></div>
+                        </div>
+                        <div style="display:none" id="pg-locked-group">默认分组</div>
+                        <div class="gen-grid-2" id="pg-vehicle-controls">
+                            <div class="fg"><label class="fl">User ID 策略</label>
+                                <select class="fi" id="pg-user-strategy">
+                                    <option value="FULL">权限类型：FULL</option>
+                                    <option value="OPEN_DOOR_ONLY">权限类型：OPEN_DOOR_ONLY</option>
+                                    <option value="OPERATIONAL_ONLY">权限类型：OPERATIONAL_ONLY</option>
+                                    <option value="DENIED">权限类型：DENIED</option>
+                                </select>
+                            </div>
+                            <div class="fg"><label class="fl">期望函数字段</label>
+                                <select class="fi" id="pg-expected-tool" onchange="syncAllowedToolsFromExpected()">
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:none">
+                        <div id="pg-column-schema"></div>
+                        <div id="pg-required-fields"></div>
+                        <div id="pg-assertion-fields">
+                            <input type="checkbox" value="expectedArgs" checked>
+                            <input type="checkbox" value="replyContains" checked>
+                            <input type="checkbox" value="replyNotContains" checked>
+                            <input type="checkbox" value="judgePrompt" checked>
+                            <input type="checkbox" value="judgeThreshold" checked>
+                        </div>
+                        <textarea id="pg-schema-prompt" oninput="_schemaPromptTouched=true"></textarea>
+                    </div>
+                    <div class="gen-sec">
+                        <div class="gen-step-head">
+                            <div>
+                                <div class="gen-step-title">业务覆盖目标</div>
+                                <div class="gen-step-hint">描述要覆盖的真实业务场景，系统会按统一字段生成。</div>
+                            </div>
+                            <span class="tag tag-wait">生成说明</span>
+                        </div>
+                        <div class="fg"><label class="fl">业务覆盖目标（可编辑）</label><textarea class="fi" id="pg-generation-prompt" rows="7" oninput="_generationPromptTouched=true"></textarea></div>
+                        <div class="fg" id="pg-selected-base-wrap" style="display:none;margin-top:8px">
+                            <label class="fl">当前勾选用例 ID</label>
+                            <div class="gen-selected-base" id="pg-selected-base">未勾选用例；定向扩写会提示先勾选。</div>
+                        </div>
+                        <div class="gen-actions">
+                            <button class="btn btn-flat" onclick="previewGeneratePage()">生成预览</button>
+                            <button class="btn btn-p" onclick="submitGeneratePage()">加入用例库</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="gen-panel gen-preview-panel">
+                <div class="gen-preview-head">
+                    <div>
+                        <strong>生成预览与编辑</strong>
+                        <span id="pg-preview-meta">先点击生成预览，支持逐格编辑后再入库</span>
+                    </div>
+                    <div id="pg-preview-actions" style="display:none;gap:6px;align-items:center">
+                        <button class="btn btn-ghost btn-sm" onclick="downloadPreviewCsv()">下载 CSV</button>
+                    </div>
+                </div>
+                <div class="gen-preview-body">
+                    <div id="pg-result" style="display:none;padding:10px 12px;border:1px solid var(--c-border);border-radius:8px;background:#fafbfc;font-size:12px;color:var(--c-text2)"></div>
+                </div>
+            </div>
+        </div>
+    </div>

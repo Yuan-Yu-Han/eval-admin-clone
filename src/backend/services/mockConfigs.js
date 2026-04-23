@@ -1,9 +1,15 @@
 export function createMockConfigsService(deps) {
-  const { bodyJson, mockConfigs, configList, configById, isAdminProject, id } = deps;
+  const { bodyJson, mockConfigs, configList, configById, isAdminProject, id, persistMockConfigs } = deps;
 
   return {
     list(ctx) {
-      return configList(ctx);
+      return configList(ctx).map((item) => {
+        const cfg = configById(item.configId, ctx);
+        return {
+          ...item,
+          mockOutputCount: Object.keys(cfg?.mockOutputs || {}).length
+        };
+      });
     },
     async create(req, ctx) {
       const payload = await bodyJson(req);
@@ -15,9 +21,11 @@ export function createMockConfigsService(deps) {
         mockType: ctx.projectId === 'voice-ticket-eval' ? 'ticket_dialogue' : 'vehicle_api',
         userLatitude: clone?.userLatitude ?? 36.292,
         userLongitude: clone?.userLongitude ?? 120.369,
-        vehicles: clone ? JSON.parse(JSON.stringify(clone.vehicles)) : []
+        vehicles: clone ? JSON.parse(JSON.stringify(clone.vehicles)) : [],
+        mockOutputs: clone ? JSON.parse(JSON.stringify(clone.mockOutputs || {})) : {}
       };
       mockConfigs.push(created);
+      if (persistMockConfigs) await persistMockConfigs();
       return { configId: created.configId };
     },
     byId(configId, ctx) {
@@ -30,11 +38,28 @@ export function createMockConfigsService(deps) {
       if (!cfg) return null;
       if (method === 'PUT' && parts[2] === 'name') {
         cfg.name = (await bodyJson(req)).name || cfg.name;
+        if (persistMockConfigs) await persistMockConfigs();
         return cfg;
+      }
+      if (parts[2] === 'outputs') {
+        const caseId = decodeURIComponent(parts[3] || '');
+        cfg.mockOutputs = cfg.mockOutputs || {};
+        if (method === 'GET') return cfg.mockOutputs[caseId] || {};
+        if (method === 'PUT') {
+          cfg.mockOutputs[caseId] = await bodyJson(req);
+          if (persistMockConfigs) await persistMockConfigs();
+          return cfg.mockOutputs[caseId];
+        }
+        if (method === 'DELETE') {
+          delete cfg.mockOutputs[caseId];
+          if (persistMockConfigs) await persistMockConfigs();
+          return true;
+        }
       }
       if (method === 'DELETE') {
         const index = mockConfigs.findIndex((item) => item.configId === cfg.configId);
         if (index >= 0 && mockConfigs.length > 1) mockConfigs.splice(index, 1);
+        if (persistMockConfigs) await persistMockConfigs();
         return true;
       }
       return undefined;
@@ -55,6 +80,7 @@ export function createMockConfigsService(deps) {
       const payload = await bodyJson(req);
       cfg.userLatitude = Number(payload.latitude);
       cfg.userLongitude = Number(payload.longitude);
+      if (persistMockConfigs) await persistMockConfigs();
       return cfg;
     },
     async vehicles(req, configId, ctx) {
@@ -62,10 +88,12 @@ export function createMockConfigsService(deps) {
       const cfg = configById(configId, ctx);
       if (method === 'POST') {
         cfg.vehicles.push({ values: await bodyJson(req) });
+        if (persistMockConfigs) await persistMockConfigs();
         return cfg;
       }
       if (method === 'DELETE') {
         cfg.vehicles = [];
+        if (persistMockConfigs) await persistMockConfigs();
         return cfg;
       }
       return undefined;
@@ -78,10 +106,12 @@ export function createMockConfigsService(deps) {
       if (index < 0) return null;
       if (method === 'PUT') {
         cfg.vehicles[index] = { values: await bodyJson(req) };
+        if (persistMockConfigs) await persistMockConfigs();
         return cfg;
       }
       if (method === 'DELETE') {
         cfg.vehicles.splice(index, 1);
+        if (persistMockConfigs) await persistMockConfigs();
         return cfg;
       }
       return undefined;

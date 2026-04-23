@@ -126,6 +126,20 @@ export async function createSqliteStateStore(options = {}) {
     async loadProjectRuns(projectId) {
       return load(projectKey('runs', projectId), seedRunsByProject[projectId] || []);
     },
+    async loadTemplates() {
+      if (!projectIds.length) return load('templates', []);
+      const buckets = await Promise.all(projectIds.map((projectId) => load(projectKey('templates', projectId), [])));
+      return buckets.flat();
+    },
+    async loadMockConfigs() {
+      if (!projectIds.length) return load('mockConfigs', options.seedMockConfigs || []);
+      const seedByProject = groupByProject(options.seedMockConfigs || []);
+      const buckets = await Promise.all(projectIds.map((projectId) => load(projectKey('mockConfigs', projectId), seedByProject[projectId] || [])));
+      return buckets.flat();
+    },
+    async loadProjectTemplates(projectId) {
+      return load(projectKey('templates', projectId), []);
+    },
     async saveCases(cases) {
       if (!projectIds.length) return save('cases', cases || []);
       const byProject = groupByProject(cases || []);
@@ -145,6 +159,23 @@ export async function createSqliteStateStore(options = {}) {
     },
     async saveProjectRuns(projectId, runs) {
       await save(projectKey('runs', projectId), runs || []);
+    },
+    async saveTemplates(templates) {
+      if (!projectIds.length) return save('templates', templates || []);
+      const byProject = groupByProject(templates || []);
+      for (const projectId of projectIds) {
+        await save(projectKey('templates', projectId), byProject[projectId] || []);
+      }
+    },
+    async saveProjectTemplates(projectId, templates) {
+      await save(projectKey('templates', projectId), templates || []);
+    },
+    async saveMockConfigs(mockConfigs) {
+      if (!projectIds.length) return save('mockConfigs', mockConfigs || []);
+      const byProject = groupByProject(mockConfigs || []);
+      for (const projectId of projectIds) {
+        await save(projectKey('mockConfigs', projectId), byProject[projectId] || []);
+      }
     }
   };
 }

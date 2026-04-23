@@ -1,0 +1,210 @@
+<!-- ═══ Case Modal ═══ -->
+<div class="overlay" id="ol-case">
+    <div class="dialog dialog-lg">
+        <div class="dlg-head"><h2 id="case-dlg-title">新建用例</h2><button class="dlg-close" onclick="closeCM()">&times;</button></div>
+        <div class="dlg-body">
+            <input type="hidden" id="ce-id">
+            <div class="fr">
+                <div class="fg"><label class="fl">Case ID</label><input class="fi" id="ce-caseId" placeholder="t1_door_001"></div>
+                <div class="fg"><label class="fl">名称</label><input class="fi" id="ce-name" placeholder="用例描述"></div>
+            </div>
+            <div class="fr">
+                <div class="fg" id="ce-user-wrap"><label class="fl">User ID</label><input class="fi" id="ce-uid" placeholder="车辆 Agent 可填；其它项目可留空"></div>
+                <div class="fg"><label class="fl">标签</label><input class="fi" id="ce-tags" placeholder="开门|高风险"></div>
+            </div>
+            <div class="fg"><label class="fl">分组</label><div style="display:flex;gap:6px"><select class="fi" id="ce-group" style="flex:1"></select><button class="btn btn-flat btn-sm" type="button" onclick="createNewGroup()">+ 新建</button></div></div>
+            <div class="case-schema-box">
+                <h4>评测模板与期望</h4>
+                <div class="fg"><label class="fl">评测模板</label><select class="fi" id="ce-template" onchange="onCaseTemplateChanged()"></select></div>
+                <div id="ce-template-expected-fields" class="template-config-grid"></div>
+            </div>
+            <div id="ce-stage-chain" class="case-schema-box"></div>
+            <div class="case-schema-box">
+                <h4 id="ce-fields-title">Stage 字段</h4>
+                <div id="eval-ct"></div>
+            </div>
+        </div>
+        <div class="dlg-foot">
+            <button class="btn btn-ghost" onclick="closeCM()">取消</button>
+            <button class="btn btn-p" onclick="saveCase()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Run Confirm Modal ═══ -->
+<div class="overlay" id="ol-run-confirm">
+    <div class="dialog" style="max-width:560px">
+        <div class="dlg-head"><h2>运行配置</h2><button class="dlg-close" onclick="closeRunConfirm()">&times;</button></div>
+        <div class="dlg-body" style="text-align:center;padding:28px 24px">
+            <div style="font-size:48px;font-weight:800;color:var(--c-accent);line-height:1" id="rc-count">0</div>
+            <div style="font-size:14px;color:var(--c-text2);margin-top:8px">个已启用用例将被执行</div>
+            <div style="font-size:12px;color:var(--c-text3);margin-top:12px" id="rc-hint"></div>
+            <div style="margin-top:18px;display:flex;align-items:center;justify-content:center;gap:12px">
+                <span style="font-size:13px;color:var(--c-text2);white-space:nowrap">运行名称</span>
+                <input class="fi" id="rc-name" style="width:auto;min-width:220px;padding:6px 10px;font-size:13px" placeholder="输入运行名称" />
+            </div>
+            <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:12px">
+                <span style="font-size:13px;color:var(--c-text2)">执行方式</span>
+                <select class="fi" id="rc-concurrency" style="width:auto;min-width:140px;padding:6px 10px;font-size:13px">
+                    <option value="1">串行（逐条执行）</option>
+                    <option value="5">并发 5</option>
+                    <option value="10" selected>并发 10</option>
+                    <option value="15">并发 15</option>
+                    <option value="20">并发 20</option>
+                </select>
+            </div>
+            <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:12px">
+                <span style="font-size:13px;color:var(--c-text2)">Mock 数据集</span>
+                <select class="fi" id="rc-mock-config" style="width:auto;min-width:180px;padding:6px 10px;font-size:13px"></select>
+            </div>
+            <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:12px">
+                <span style="font-size:13px;color:var(--c-text2)">Agent 版本</span>
+                <select class="fi" id="rc-agent-version" style="width:auto;min-width:220px;padding:6px 10px;font-size:13px"></select>
+            </div>
+        </div>
+        <div class="dlg-foot" style="justify-content:center;gap:16px">
+            <button class="btn btn-flat" onclick="closeRunConfirm()">取消</button>
+            <button class="btn btn-p" id="rc-ok" style="min-width:100px">确认运行</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Export Confirm Modal ═══ -->
+<div class="overlay" id="ol-export-confirm">
+    <div class="dialog" style="max-width:400px">
+        <div class="dlg-head"><h2>确认导出</h2><button class="dlg-close" onclick="closeExportConfirm()">&times;</button></div>
+        <div class="dlg-body" style="text-align:center;padding:28px 24px">
+            <div style="font-size:48px;font-weight:800;color:var(--c-accent);line-height:1" id="ec-count">0</div>
+            <div style="font-size:14px;color:var(--c-text2);margin-top:8px">条用例将被导出为 CSV</div>
+            <div style="font-size:12px;color:var(--c-text3);margin-top:12px" id="ec-hint"></div>
+        </div>
+        <div class="dlg-foot" style="justify-content:center;gap:16px">
+            <button class="btn btn-flat" onclick="closeExportConfirm()">取消</button>
+            <button class="btn btn-p" id="ec-ok" style="min-width:100px">确认导出</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-box" id="toast-box"></div>
+
+<!-- 阅读模式：评论浮窗（单例，靠「评论」按钮定位） -->
+<div id="read-cmt-float-backdrop" class="read-cmt-float-backdrop" style="display:none" onclick="closeReadCmtFloat()"></div>
+<div id="read-cmt-float" class="read-cmt-float" style="display:none" role="dialog" aria-modal="true" onclick="event.stopPropagation()">
+    <div class="read-cmt-float-head">添加评论</div>
+    <textarea id="read-cmt-float-ta" class="fi read-cmt-float-ta" placeholder="写评论…（Ctrl+Enter 发送，Esc 关闭）" onkeydown="if(event.key==='Escape'){event.preventDefault();closeReadCmtFloat();}if(event.key==='Enter'&&(event.ctrlKey||event.metaKey)){event.preventDefault();submitReadCmtFloat();}"></textarea>
+    <div class="read-cmt-float-actions">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeReadCmtFloat()">取消</button>
+        <button type="button" class="btn btn-p btn-sm" onclick="submitReadCmtFloat()">发送</button>
+    </div>
+</div>
+
+<!-- 调试信息弹窗 -->
+<div class="debug-overlay" id="debug-overlay" onclick="closeDebugModal()">
+    <div class="debug-dialog" onclick="event.stopPropagation()">
+        <div class="debug-dialog-head">
+            <h2 id="debug-modal-title">调试信息</h2>
+            <button class="dlg-close" onclick="closeDebugModal()">&times;</button>
+        </div>
+        <div class="debug-dialog-body" id="debug-modal-body"></div>
+    </div>
+</div>
+
+<div class="debug-overlay" id="compare-overlay" onclick="closeCompareModal()">
+    <div class="debug-dialog" id="compare-dialog" onclick="event.stopPropagation()">
+        <div class="debug-dialog-head">
+            <h2 id="compare-modal-title">对比</h2>
+            <button class="dlg-close" onclick="closeCompareModal()">&times;</button>
+        </div>
+        <div class="debug-dialog-body" id="compare-modal-body"></div>
+    </div>
+</div>
+
+<div class="debug-overlay" id="guide-overlay" onclick="document.getElementById('guide-overlay').classList.remove('open')">
+    <div class="debug-dialog" style="max-width:720px;width:92%;max-height:85vh" onclick="event.stopPropagation()">
+        <div class="debug-dialog-head">
+            <h2>使用说明</h2>
+            <button class="dlg-close" onclick="document.getElementById('guide-overlay').classList.remove('open')">&times;</button>
+        </div>
+        <div class="debug-dialog-body" style="font-size:13px;line-height:1.8;padding:20px 24px">
+
+<h3 style="margin:0 0 12px;font-size:15px">基本流程</h3>
+<ol style="margin:0 0 20px;padding-left:20px">
+    <li><b>Cases</b> — 管理评测用例。每个用例包含多轮对话（用户输入 + 期望工具），支持新增、编辑、启用/禁用、分组筛选、CSV 导出。</li>
+    <li><b>Runs</b> — 启动评测运行。勾选用例后点击"启动运行"，系统会通过 WebSocket 真实调用 AI 管线，逐轮执行并比对工具调用结果。</li>
+    <li><b>Mock</b> — 配置 Mock 数据。评测运行时外部 API（车辆查询、权限等）会被 Mock 拦截，这里管理各接口的 Mock 返回值。</li>
+    <li><b>Prompt</b> — Prompt 草稿编辑。修改 Prompt 后可在下次运行中生效，用于 A/B 对比不同 Prompt 的效果。</li>
+</ol>
+
+<h3 style="margin:0 0 12px;font-size:15px">结果查看</h3>
+<ul style="margin:0 0 20px;padding-left:20px">
+    <li>点击 Run 进入详情，查看每个用例的 PASS/FAIL、LLM 回复、SkillResult、HintsInfo。</li>
+    <li>支持按 全部 / PASS / FAIL / 有问题 筛选，<b>阅读模式</b>提供卡片式大字体阅读。</li>
+    <li>点击轮次中的"查看调试信息"可弹窗查看 SkillResult 和 HintsInfo 的完整 JSON。</li>
+</ul>
+
+<h3 style="margin:0 0 12px;font-size:15px">对比功能</h3>
+<ul style="margin:0 0 20px;padding-left:20px">
+    <li><b>对比跑说明</b>：对比跑不是自动优化器，它检查同一个 case 在当前 Run 和基线 Run 之间发生了什么变化。</li>
+    <li><b>选择基线</b>：在 Run 详情顶栏的"对比基线"下拉框中选择一个历史 Run，基线数据会被加载缓存。</li>
+    <li><b>单用例对比</b>：选好基线后，点击任意用例的"对比"按钮，直接进入全屏对比导航视图。</li>
+    <li><b>对比模式</b>：点击顶栏"对比模式"按钮，进入逐用例浏览的对比导航。</li>
+    <li><b>导航操作</b>：
+        <ul style="padding-left:16px">
+            <li><code>←</code> / <code>→</code> 方向键或按钮切换上一个/下一个用例</li>
+            <li><code>F</code> 键快速标记/取消"有问题"</li>
+            <li><code>Esc</code> 退出对比模式</li>
+        </ul>
+    </li>
+    <li>对比视图展示：PASS/FAIL 是否变化、actualTool 是否变化、LLM 回复是否变化、SkillResult 是否变化、HintsInfo 是否变化。</li>
+    <li>适合优化 Prompt、路由规则、结果渲染和 Mock 配置；不判断数据库数字是否真实正确。</li>
+    <li>基线无对应用例时，左侧展示当前结果，右侧提示"基线无此用例"，可继续翻页。</li>
+    <li>支持随时"换基线"切换到其他 Run。</li>
+</ul>
+
+<h3 style="margin:0 0 12px;font-size:15px">其他功能</h3>
+<ul style="margin:0 0 20px;padding-left:20px">
+    <li><b>标记有问题</b>：对可疑用例标记"待查"，方便后续筛选复查。</li>
+    <li><b>评论</b>：可对每个用例添加评论备注。</li>
+    <li><b>下载 CSV</b>：导出当前 Run 的全部结果为 CSV 文件。</li>
+    <li><b>停止运行</b>：运行中的评测可随时停止。</li>
+    <li><b>重跑</b>：可重新运行已完成的评测。</li>
+</ul>
+
+<h3 style="margin:0 0 12px;font-size:15px">更新日志</h3>
+<div style="border-left:3px solid var(--c-primary);padding-left:14px;margin-bottom:8px">
+    <div style="font-weight:600;margin-bottom:4px">2026-04-16</div>
+    <ul style="margin:0;padding-left:16px;color:var(--c-text2)">
+        <li>顶栏增加基线下拉框，选定后点"对比"直达详情，无需每次弹窗选 Run</li>
+        <li>用例"对比"与"对比模式"统一为导航视图，支持方向键翻页</li>
+        <li>对比视图增加用户输入、HintsInfo 展示</li>
+        <li>导航模式增加"标为有问题"按钮和快捷键 F</li>
+    </ul>
+</div>
+<div style="border-left:3px solid var(--c-border);padding-left:14px;margin-bottom:8px">
+    <div style="font-weight:600;margin-bottom:4px">2026-04-15</div>
+    <ul style="margin:0;padding-left:16px;color:var(--c-text2)">
+        <li>用例级历史对比：点"对比"列出该用例所有历史 Run，选一个即展示 LLM 回复 + SkillResult Diff</li>
+        <li>SkillResult 支持 Diff 视图 / 左右对比切换，支持复制当前或基线 JSON</li>
+        <li>弹窗支持 Esc 关闭、点击外部关闭</li>
+    </ul>
+</div>
+<div style="border-left:3px solid var(--c-border);padding-left:14px;margin-bottom:8px">
+    <div style="font-weight:600;margin-bottom:4px">2026-04-14</div>
+    <ul style="margin:0;padding-left:16px;color:var(--c-text2)">
+        <li>跨 Run 对比功能上线（选择基线 Run 后逐用例对比 SkillResult）</li>
+        <li>结果页增加用户权限 Tag、调试信息弹窗展示</li>
+    </ul>
+</div>
+<div style="border-left:3px solid var(--c-border);padding-left:14px;margin-bottom:8px">
+    <div style="font-weight:600;margin-bottom:4px">更早</div>
+    <ul style="margin:0;padding-left:16px;color:var(--c-text2)">
+        <li>评测框架：WebSocket 真实调用 + Mock 拦截 + Prompt 覆盖</li>
+        <li>用例管理：CRUD、分组、CSV 导出</li>
+        <li>运行管理：启动、停止、重跑、进度轮询</li>
+        <li>结果页：阅读模式、筛选、标记有问题、评论、CSV 下载</li>
+    </ul>
+</div>
+
+        </div>
+    </div>
+</div>

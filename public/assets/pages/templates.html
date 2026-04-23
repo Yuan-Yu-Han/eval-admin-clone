@@ -1,0 +1,25 @@
+    <!-- ═══════ Templates ═══════ -->
+    <div class="pane" id="p-templates">
+        <div class="template-head">
+            <div>
+                <div class="workspace-title">评测模板</div>
+                <div class="workspace-sub">新建、编辑并保存评测流程；字段匹配和 LLM 评审都在模板内配置。</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-p" onclick="newTemplate()">新建模板</button>
+                <button class="btn btn-flat" onclick="saveTemplateDraft()">保存模板</button>
+                <button class="btn btn-flat" onclick="loadTemplates()">刷新</button>
+            </div>
+        </div>
+        <div class="template-layout">
+            <div class="template-list-panel">
+                <div class="bar" style="margin-bottom:12px">
+                    <input class="search" id="template-q" placeholder="搜索模板 / function ..." oninput="filterTemplates()">
+                </div>
+                <div id="template-list"></div>
+            </div>
+            <div class="template-detail-panel">
+                <div id="template-detail"></div>
+            </div>
+        </div>
+    </div>
