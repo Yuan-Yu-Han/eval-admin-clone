@@ -314,13 +314,26 @@ function matchTemplateStageCheck(stage, checks){
     })||null;
 }
 function normalizeStageRowFromCheck(stage, check){
-    var score=isFinite(Number(check.score))?Math.round(Number(check.score)):(check.pass?100:0);
+    var score = isFinite(Number(check.score))
+        ? Math.round(Number(check.score))
+        : (check.pass ? 100 : 0);
+
+    var pass;
+
+    if (check.pass !== undefined && check.pass !== null) {
+        pass = !!check.pass;
+    } else if (isFinite(score)) {
+        pass = score >= 70;   // ⭐统一阈值（核心修复）
+    } else {
+        pass = false;
+    }
+
     return {
         key:(stage&&stage.key)||check.stage_key||check.stageKey||check.key||'stage',
         label:(stage&&stage.name)||(stage&&stage.label)||check.stage_name||check.stageName||check.label||check.key||'检查点',
         stageLabel:(stage&&stage.name)||(stage&&stage.label)||check.stage_name||check.stageName||check.label||check.key||'检查点',
-        pass:!!check.pass,
-        score:score,
+        pass: pass,
+        score: score,
         expected:check.expected||'',
         actual:check.actual||check.actualText||'',
         reason:check.reason||check.summary||check.description||''
@@ -398,34 +411,77 @@ function resultTemplateStageRows(result){
     return [];
 }
 function buildTemplateRunSummary(results){
-    var map={};
-    (results||[]).forEach(function(result){
-        var id=resultTemplateId(result);
+    var map = {};
+
+    (results || []).forEach(function(result){
+        var id = resultTemplateId(result);
+
         if(!map[id]){
-            map[id]={templateId:id,templateName:resultTemplateName(result),total:0,passed:0,failed:0,stages:{},results:[]};
+            map[id] = {
+                templateId: id,
+                templateName: resultTemplateName(result),
+                total: 0,
+                passed: 0,
+                failed: 0,
+                stages: {},
+                results: []
+            };
         }
-        var g=map[id];
-        g.total+=1;
-        if(result.pass) g.passed+=1;
-        else g.failed+=1;
+
+        var g = map[id];
+
+        g.total += 1;
+        if(result.pass) g.passed += 1;
+        else g.failed += 1;
+
         g.results.push(result);
+
+        // ⭐核心：稳定 stage 统计
         resultTemplateStageRows(result).forEach(function(stage){
-            var key=stage.key||stage.label;
-            if(!g.stages[key]) g.stages[key]={key:key,label:stage.label||key,total:0,passed:0};
-            g.stages[key].total+=1;
-            if(stage.pass) g.stages[key].passed+=1;
+            var key = stage.key || stage.label;
+
+            if(!g.stages[key]){
+                g.stages[key] = {
+                    key: key,
+                    label: stage.label || key,
+                    total: 0,
+                    passed: 0
+                };
+            }
+
+            g.stages[key].total += 1;
+
+            // ⭐统一 pass 判断（修复 bug）
+            var pass = false;
+
+            if (stage.pass !== undefined && stage.pass !== null) {
+                pass = stage.pass;
+            } else if (isFinite(Number(stage.score))) {
+                pass = Number(stage.score) >= 70;
+            }
+
+            if (pass) {
+                g.stages[key].passed += 1;
+            }
         });
     });
+
     return Object.keys(map).map(function(key){
-        var g=map[key];
-        g.passRate=g.total?Math.round(g.passed*100/g.total):0;
-        g.stageSummaries=Object.keys(g.stages).map(function(stageKey){
-            var s=g.stages[stageKey];
-            s.passRate=s.total?Math.round(s.passed*100/s.total):0;
+        var g = map[key];
+
+        g.passRate = g.total ? Math.round(g.passed * 100 / g.total) : 0;
+
+        g.stageSummaries = Object.keys(g.stages).map(function(stageKey){
+            var s = g.stages[stageKey];
+            s.passRate = s.total ? Math.round(s.passed * 100 / s.total) : 0;
             return s;
         });
+
         return g;
-    }).sort(function(a,b){return b.total-a.total||a.templateName.localeCompare(b.templateName);});
+
+    }).sort(function(a,b){
+        return b.total - a.total || a.templateName.localeCompare(b.templateName);
+    });
 }
 function setRdTemplateFilter(templateId){
     _rdTemplateFilter=templateId||'';
