@@ -432,7 +432,8 @@ function setRdTemplateFilter(templateId){
     renderRD(_currentRun);
 }
 function toggleTemplateGroup(templateId){
-    _rdCollapsedTemplateGroups[templateId]=!_rdCollapsedTemplateGroups[templateId];
+    var collapsed=_rdCollapsedTemplateGroups[templateId]!==false;
+    _rdCollapsedTemplateGroups[templateId]=!collapsed;
     renderRD(_currentRun);
 }
 function renderRunGlobalSummary(results,templateSummaries,run){
@@ -451,7 +452,7 @@ function renderRunGlobalSummary(results,templateSummaries,run){
 }
 function renderTemplateSummaryCards(templateSummaries){
     if(!templateSummaries.length) return '<div class="card" style="padding:14px;margin-bottom:16px"><div class="empty">暂无模板统计</div></div>';
-    return '<div class="template-run-grid">'+templateSummaries.map(function(g){
+    return '<div class="template-run-list">'+templateSummaries.map(function(g){
         var stageHtml=g.stageSummaries.length?g.stageSummaries.map(function(s){
             var color=s.passRate>=80?'#16a34a':(s.passRate>=60?'#d97706':'#dc2626');
             return '<div class="template-run-stage">'+
@@ -459,14 +460,10 @@ function renderTemplateSummaryCards(templateSummaries){
                 '<b style="color:'+color+'">'+s.passRate+'%</b>'+
                 '</div>';
         }).join(''):'<div class="empty" style="padding:8px">暂无检查点结果</div>';
-        return '<div class="template-run-card">'+
-            '<div class="template-run-head">'+
-                '<div><h3>'+esc(g.templateName)+'</h3><p>'+g.total+' 个 Case</p></div>'+
+        return '<div class="template-run-row">'+
+            '<div class="template-run-head compact">'+
+                '<div><h3>'+esc(g.templateName)+'</h3><p>'+g.total+' 个 Case · '+g.passed+' 通过 · '+g.failed+' 失败</p></div>'+
                 '<strong style="color:'+scoreColor(g.passRate)+'">'+g.passRate+'%</strong>'+
-            '</div>'+
-            '<div class="template-run-counts">'+
-                '<span>通过 <b style="color:var(--c-green)">'+g.passed+'</b></span>'+
-                '<span>失败 <b style="color:var(--c-red)">'+g.failed+'</b></span>'+
             '</div>'+
             '<div class="template-run-stages">'+stageHtml+'</div>'+
         '</div>';
@@ -544,7 +541,7 @@ function renderStageScoreRows(rows){
             '<div style="font-size:12px;color:var(--c-text2);line-height:1.5">通过状态 <b style="color:'+statusColor+'">'+statusLabel+'</b>'+(isFinite(Number(row.score))?' · 得分 <b style="color:'+scoreColor(row.score)+'">'+row.score+'</b>':'')+'</div>'+
             (row.expected?'<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:3px">期望</div><div class="mono" style="font-size:11px;color:var(--c-text2);white-space:pre-wrap;word-break:break-word">'+esc(row.expected)+'</div></div>':'')+
             (actual?'<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:3px">实际</div><div class="mono" style="font-size:11px;color:var(--c-text2);white-space:pre-wrap;word-break:break-word">'+esc(actual)+'</div></div>':'')+
-            (reason?'<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:3px">原因</div><div style="font-size:12px;color:var(--c-text2);line-height:1.5;white-space:pre-wrap;word-break:break-word">'+esc(reason)+'</div></div>':'')+
+            ((!pass&&reason)?'<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:3px">原因</div><div style="font-size:12px;color:var(--c-text2);line-height:1.5;white-space:pre-wrap;word-break:break-word">'+esc(reason)+'</div></div>':'')+
             '</div></div>';
     }).join('');
 }
@@ -749,14 +746,14 @@ function renderRD(run){
         var templateName=resultTemplateName(r);
         if(templateId!==lastTemplateId){
             var group=templateSummaries.find(function(item){return item.templateId===templateId;})||{total:0,passed:0,failed:0,passRate:0};
-            var collapsed=!!_rdCollapsedTemplateGroups[templateId];
+            var collapsed=_rdCollapsedTemplateGroups[templateId]!==false;
             h+='<div class="run-template-group-head" onclick="toggleTemplateGroup(\''+ea(templateId)+'\')">'+
                 '<div><strong><span class="group-arr'+(collapsed?'':' open')+'">&#9654;</span>'+esc(templateName)+'</strong><span>'+group.total+' 个 Case · '+group.passed+' 通过 · '+group.failed+' 失败</span></div>'+
                 '<b style="color:'+scoreColor(group.passRate)+'">'+group.passRate+'%</b>'+
                 '</div>';
             lastTemplateId=templateId;
         }
-        if(_rdCollapsedTemplateGroups[templateId]) return;
+        if(_rdCollapsedTemplateGroups[templateId]!==false) return;
 
         // collapsed head
         var flagAct=r.reviewFlagged
