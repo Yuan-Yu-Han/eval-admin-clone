@@ -8,6 +8,7 @@ export function evaluateLlmStage(stage, actualOutput) {
     eval_type: 'llm_judge',
     pass: score >= Number(stage.judge_threshold || 80),
     score,
+    judge_threshold: Number(stage.judge_threshold || 80),
     expected: stage.prompt_content || '',
     actual: objectText(actualOutput.final_reply || actualOutput.reply || actualOutput.llmReplyText || ''),
     reason: 'Demo LLM 评审：按 Prompt 生成模拟评分'

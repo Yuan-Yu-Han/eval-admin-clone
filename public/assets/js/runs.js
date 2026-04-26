@@ -314,15 +314,15 @@ function matchTemplateStageCheck(stage, checks){
     })||null;
 }
 function normalizeStageRowFromCheck(stage, check){
-    var score = isFinite(Number(check.score))
-        ? Math.round(Number(check.score))
-        : (check.pass ? 100 : 0);
+    var rawScore=Number(check.score);
+    var score=isFinite(rawScore)?Math.round(rawScore):null;
+    var evalType=(stage&&stage.eval_type)||check.eval_type||check.evalType||'';
 
     var pass;
 
     if (check.pass !== undefined && check.pass !== null) {
         pass = !!check.pass;
-    } else if (isFinite(score)) {
+    } else if (score !== null) {
         pass = score >= 70;   // ⭐统一阈值（核心修复）
     } else {
         pass = false;
@@ -332,6 +332,7 @@ function normalizeStageRowFromCheck(stage, check){
         key:(stage&&stage.key)||check.stage_key||check.stageKey||check.key||'stage',
         label:(stage&&stage.name)||(stage&&stage.label)||check.stage_name||check.stageName||check.label||check.key||'检查点',
         stageLabel:(stage&&stage.name)||(stage&&stage.label)||check.stage_name||check.stageName||check.label||check.key||'检查点',
+        evalType:evalType,
         pass: pass,
         score: score,
         expected:check.expected||'',
@@ -341,13 +342,13 @@ function normalizeStageRowFromCheck(stage, check){
 }
 function stageRowFromContract(stage, contractCheck){
     if(!contractCheck) return null;
-    var score=isFinite(Number(contractCheck.score))?Math.round(Number(contractCheck.score)):(contractCheck.pass?100:0);
     return {
         key:stage.key||'stage',
         label:stage.name||stage.label||stage.key||'检查点',
         stageLabel:stage.name||stage.label||stage.key||'检查点',
+        evalType:stage.eval_type||'',
         pass:!!contractCheck.pass,
-        score:score,
+        score:null,
         expected:'',
         actual:'',
         reason:contractCheck.summary||contractCheck.evidence||''
@@ -360,6 +361,7 @@ function stageRowFromLlmJudge(stage,result){
         key:stage.key||'stage',
         label:stage.name||stage.label||stage.key||'检查点',
         stageLabel:stage.name||stage.label||stage.key||'检查点',
+        evalType:'llm_judge',
         pass:result.llmJudge.pass!==undefined?!!result.llmJudge.pass:(score>=(Number(stage.judge_threshold)||80)),
         score:score,
         expected:'',
@@ -395,8 +397,9 @@ function resultTemplateStageRows(result){
                 key:stage.key||'stage',
                 label:stage.name||stage.label||stage.key||'检查点',
                 stageLabel:stage.name||stage.label||stage.key||'检查点',
+                evalType:stage.eval_type||'',
                 pass:false,
-                score:0,
+                score:String(stage.eval_type||'')==='llm_judge'?0:null,
                 expected:'',
                 actual:'',
                 reason:'当前运行结果里还没有产出这个检查点的评测结果。'
@@ -508,22 +511,51 @@ function renderRunGlobalSummary(results,templateSummaries,run){
 }
 function renderTemplateSummaryCards(templateSummaries){
     if(!templateSummaries.length) return '<div class="card" style="padding:14px;margin-bottom:16px"><div class="empty">暂无模板统计</div></div>';
-    return '<div class="template-run-list">'+templateSummaries.map(function(g){
+    return '<div class="template-summary-grid">'+templateSummaries.map(function(g){
         var stageHtml=g.stageSummaries.length?g.stageSummaries.map(function(s){
             var color=s.passRate>=80?'#16a34a':(s.passRate>=60?'#d97706':'#dc2626');
-            return '<div class="template-run-stage">'+
-                '<div><strong>'+esc(s.label)+'</strong><span>'+s.passed+'/'+s.total+' 通过</span></div>'+
-                '<b style="color:'+color+'">'+s.passRate+'%</b>'+
+            return '<div class="template-summary-stage-row">'+
+                '<span>'+esc(s.label)+'</span>'+
+                '<b style="color:'+color+'">'+s.passed+'/'+s.total+' · '+s.passRate+'%</b>'+
                 '</div>';
-        }).join(''):'<div class="empty" style="padding:8px">暂无检查点结果</div>';
-        return '<div class="template-run-row">'+
-            '<div class="template-run-head compact">'+
-                '<div><h3>'+esc(g.templateName)+'</h3><p>'+g.total+' 个 Case · '+g.passed+' 通过 · '+g.failed+' 失败</p></div>'+
-                '<strong style="color:'+scoreColor(g.passRate)+'">'+g.passRate+'%</strong>'+
+        }).join(''):'<span style="font-size:12px;color:var(--c-text3)">暂无检查点结果</span>';
+        return '<div class="template-summary-card">'+
+            '<div class="template-summary-card-head">'+
+                '<div class="template-summary-card-title">'+esc(g.templateName)+'</div>'+
+                '<div class="template-summary-card-rate" style="color:'+scoreColor(g.passRate)+'">'+g.passRate+'%</div>'+
             '</div>'+
-            '<div class="template-run-stages">'+stageHtml+'</div>'+
+            '<div class="template-summary-card-meta">'+g.total+' 个 Case · '+g.passed+' 通过 · '+g.failed+' 失败</div>'+
+            '<div class="template-summary-card-bar"><span style="width:'+g.passRate+'%;background:'+scoreColor(g.passRate)+'"></span></div>'+
+            '<div class="template-summary-card-stages">'+stageHtml+'</div>'+
         '</div>';
     }).join('')+'</div>';
+}
+function stageUsesNumericScore(row){
+    return String(row&&row.evalType||'')==='llm_judge';
+}
+function caseStageScore(result,rows){
+    var scored=(rows||[]).filter(stageUsesNumericScore).map(function(row){return Number(row.score);}).filter(function(v){return isFinite(v);});
+    if(scored.length) return Math.round(scored.reduce(function(a,b){return a+b;},0)/scored.length);
+    if(result.llmJudge&&isFinite(Number(result.llmJudge.score))) return Math.round(Number(result.llmJudge.score));
+    return null;
+}
+function caseStateMeta(result,rows){
+    var pass=!!result.pass;
+    var llmScore=caseStageScore(result,rows);
+    var llmThreshold=isFinite(Number(result&&result.llmJudge&&result.llmJudge.threshold))
+        ?Math.round(Number(result.llmJudge.threshold))
+        :80;
+    return {
+        mode:'status',
+        score:llmScore,
+        threshold:llmThreshold,
+        chipText:pass?'通过':'未通过',
+        title:'最终结果',
+        titleHtml:'<div style="font-size:24px;font-weight:900;line-height:1.1;margin-top:8px;color:'+(pass?'var(--c-green)':'var(--c-red)')+'">'+(pass?'通过':'未通过')+'</div>',
+        tagHtml:'<span class="tag" style="background:'+(pass?'var(--c-green-bg)':'var(--c-red-bg)')+';color:'+(pass?'var(--c-green)':'var(--c-red)')+';font-size:12px">'+(pass?'已通过':'未通过')+'</span>',
+        bg:pass?'var(--c-green-bg)':'var(--c-red-bg)',
+        color:pass?'var(--c-green)':'var(--c-red)'
+    };
 }
 function renderTemplateFilterButtons(templateSummaries){
     return '<div class="template-filter-row">'+
@@ -547,24 +579,51 @@ function onBaselineChanged(runId){
 }
 function buildCaseDiagnosis(r){
     var rows=resultTemplateStageRows(r);
-    var totalScore=caseStageScore(r,rows);
+    var caseState=caseStateMeta(r,rows);
+    var turns=r.turns||[];
     var llmEval=(r.llmJudge&&String(r.llmJudge.reason||r.llmJudge.comment||'').trim())||'';
     if(!llmEval) llmEval='暂无 LLM 评审说明';
-    var border=totalScore>=85?'#bbf7d0':(totalScore>=70?'#fde68a':'#fecaca');
-    var bg=totalScore>=85?'#f0fdf4':(totalScore>=70?'#fffbeb':'#fff7f7');
+    var border=r.pass?'#bbf7d0':'#fecaca';
+    var bg=r.pass?'#f0fdf4':'#fff7f7';
+    function fullInputText(resultTurns){
+        return resultTurns.map(function(t,i){
+            return (resultTurns.length>1?('第 '+(t.turnIndex||i+1)+' 段：'):'')+(t.userInput||'');
+        }).join('\n');
+    }
+    function fullReplyText(resultTurns){
+        var replies=resultTurns.map(function(t,i){
+            if(!t.llmReplyText) return '';
+            return (resultTurns.length>1?('第 '+(t.turnIndex||i+1)+' 段：'):'')+t.llmReplyText;
+        }).filter(Boolean);
+        return replies.join('\n')||finalReplyText(r);
+    }
+    var dbIdx=_debugData.length;
+    _debugData.push({
+        skill:turns.map(function(t){return t.skillResultJson||'';}).filter(Boolean).join('\n\n'),
+        hints:turns.map(function(t){return t.hintsJson||'';}).filter(Boolean).join('\n\n'),
+        label:(r.caseName||r.caseId||'Case')+' 调试信息'
+    });
     var h='<div style="border:1px solid '+border+';border-radius:8px;padding:12px 14px;margin-bottom:10px;background:'+bg+'">'+
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">'+
         '<div style="min-width:260px;flex:1">'+
-        '<div style="font-size:13px;font-weight:800;color:var(--c-text)">评判得分</div>'+
-        '<div style="font-size:26px;font-weight:900;line-height:1.1;margin-top:6px;color:'+scoreColor(totalScore)+'">'+totalScore+'<span style="font-size:13px;color:var(--c-text3);font-weight:700"> / 100</span></div>'+
+        '<div style="font-size:13px;font-weight:800;color:var(--c-text)">'+caseState.title+'</div>'+
+        caseState.titleHtml+
+        (caseState.score!==null?'<div style="font-size:12px;color:var(--c-text3);margin-top:8px">LLM 评分 <b style="color:'+scoreColor(caseState.score)+'">'+caseState.score+'</b> / 100 · 阈值 '+caseState.threshold+'</div>':'')+
         '</div>'+
-        scoreTag(totalScore)+
+        caseState.tagHtml+
         '</div>'+
         '<div style="display:grid;gap:8px;margin-top:10px">'+renderStageScoreRows(rows)+'</div>'+
+        (turns.length
+            ?'<div class="case-io-grid" style="margin-top:10px">'+
+                '<div class="case-io-panel"><div class="case-io-label">用户输入</div><div class="td-text case-io-text">'+esc(fullInputText(turns))+'</div></div>'+
+                '<div class="case-io-panel"><div class="case-io-label">模型输出</div><div class="td-text case-io-text">'+esc(fullReplyText(turns))+'</div></div>'+
+            '</div>'
+            :'')+
         '<div style="margin-top:10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;padding:10px 12px">'+
         '<div style="font-size:11px;color:var(--c-text3);margin-bottom:6px">综合说明</div>'+
         '<div style="font-size:13px;line-height:1.6;color:var(--c-text);white-space:pre-wrap;word-break:break-word">'+esc(llmEval)+'</div>'+
         '</div>'+
+        (_debugData[dbIdx].skill?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-flat btn-sm" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">查看 SkillResult / Hints</button></div>':'')+
         '</div>';
     return h;
 }
@@ -576,12 +635,6 @@ function scoreTag(score){
     var bg=score>=85?'var(--c-green-bg)':(score>=70?'var(--c-amber-bg)':'var(--c-red-bg)');
     return '<span class="tag" style="background:'+bg+';color:'+scoreColor(score)+';font-size:12px">'+label+'</span>';
 }
-function caseStageScore(result,rows){
-    var scored=(rows||[]).map(function(row){return Number(row.score);}).filter(function(v){return isFinite(v);});
-    if(scored.length) return Math.round(scored.reduce(function(a,b){return a+b;},0)/scored.length);
-    if(result.llmJudge&&isFinite(Number(result.llmJudge.score))) return Math.round(Number(result.llmJudge.score));
-    return result.pass?90:55;
-}
 function renderStageScoreRows(rows){
     if(!rows.length) return '<div style="font-size:12px;color:var(--c-text3)">本 case 未配置 Stage 评测点。</div>';
     return rows.map(function(row){
@@ -590,11 +643,12 @@ function renderStageScoreRows(rows){
         var statusColor=pass?'var(--c-green)':'var(--c-red)';
         var actual=row.actual||'';
         var reason=row.reason||row.summary||'';
+        var showScore=stageUsesNumericScore(row)&&isFinite(Number(row.score));
         return '<div style="display:grid;grid-template-columns:110px 80px minmax(0,1fr);gap:10px;align-items:start;border:1px solid var(--c-border);border-radius:8px;background:#fff;padding:10px 12px">'+
             '<div><strong style="font-size:13px">'+esc((row.turnIndex?('T'+row.turnIndex+' · '):'')+(row.stageLabel||row.label||'检查点'))+'</strong></div>'+
             '<div><span class="tag" style="background:'+(pass?'var(--c-green-bg)':'var(--c-red-bg)')+';color:'+statusColor+'">'+statusLabel+'</span></div>'+
             '<div style="display:grid;gap:6px">'+
-            '<div style="font-size:12px;color:var(--c-text2);line-height:1.5">通过状态 <b style="color:'+statusColor+'">'+statusLabel+'</b>'+(isFinite(Number(row.score))?' · 得分 <b style="color:'+scoreColor(row.score)+'">'+row.score+'</b>':'')+'</div>'+
+            '<div style="font-size:12px;color:var(--c-text2);line-height:1.5">通过状态 <b style="color:'+statusColor+'">'+statusLabel+'</b>'+(showScore?' · 得分 <b style="color:'+scoreColor(row.score)+'">'+row.score+'</b>':'')+'</div>'+
             (row.expected?'<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:3px">期望</div><div class="mono" style="font-size:11px;color:var(--c-text2);white-space:pre-wrap;word-break:break-word">'+esc(row.expected)+'</div></div>':'')+
             (actual?'<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:3px">实际</div><div class="mono" style="font-size:11px;color:var(--c-text2);white-space:pre-wrap;word-break:break-word">'+esc(actual)+'</div></div>':'')+
             ((!pass&&reason)?'<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:3px">原因</div><div style="font-size:12px;color:var(--c-text2);line-height:1.5;white-space:pre-wrap;word-break:break-word">'+esc(reason)+'</div></div>':'')+
@@ -704,10 +758,6 @@ function renderRD(run){
     var avgScore=res.length?Math.round(res.reduce(function(sum,item){return sum+caseStageScore(item,resultTemplateStageRows(item));},0)/res.length):0;
     var rate=res.length>0?Math.round(pass/res.length*100):0;
     var templateSummaries=buildTemplateRunSummary(res);
-    var firstTokenAvg=(run.metrics&&run.metrics.firstTokenAvgMs)||0;
-    var totalTokens=((run.metrics&&run.metrics.tokenUsage&&run.metrics.tokenUsage.totalTokens)||0);
-    var totalCost=Number((run.metrics&&run.metrics.costUsd)||0).toFixed(4);
-
     var h=renderRunGlobalSummary(res,templateSummaries,run);
     h+='<div class="section"><div class="section-title">模板 Summary</div>'+renderTemplateSummaryCards(templateSummaries)+'</div>';
 
@@ -746,26 +796,13 @@ function renderRD(run){
         '<span class="mono" style="margin-left:6px;color:var(--c-text3)">已勾选 '+selectedCount+' 条</span>'+
         '</span></div>';
     h+=renderTemplateFilterButtons(templateSummaries);
-    h+='<div class="card" style="padding:10px 12px;margin-bottom:10px;background:#fafbfc">'+
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">'+
-        '<div style="font-size:12px;color:var(--c-text2)">性能筛选（显示 >= 阈值）</div>'+
-        '<button class="btn btn-flat btn-sm" onclick="clearRdPerfFilter()">清空阈值</button>'+
-        '</div>'+
-        '<div style="display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:8px;margin-top:8px">'+
-        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="首字 ms" value="'+esc(_rdPerfFilter.ttft)+'" onchange="setRdPerfFilter(\'ttft\',this.value)">'+
-        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="LLM ms" value="'+esc(_rdPerfFilter.llm)+'" onchange="setRdPerfFilter(\'llm\',this.value)">'+
-        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="Tool ms" value="'+esc(_rdPerfFilter.tool)+'" onchange="setRdPerfFilter(\'tool\',this.value)">'+
-        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="DB ms" value="'+esc(_rdPerfFilter.db)+'" onchange="setRdPerfFilter(\'db\',this.value)">'+
-        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="Token" value="'+esc(_rdPerfFilter.token)+'" onchange="setRdPerfFilter(\'token\',this.value)">'+
-        '<input class="fi" style="font-size:12px;padding:6px 8px" placeholder="Cost USD" value="'+esc(_rdPerfFilter.cost)+'" onchange="setRdPerfFilter(\'cost\',this.value)">'+
-        '</div></div>';
     var filtered=res.filter(function(r){
         if(_rdFilter==='pass'&&!r.pass) return false;
         if(_rdFilter==='fail'&&r.pass) return false;
         if(_rdFilter==='flagged'&&!r.reviewFlagged) return false;
         if(_rdFilter==='llm-low'&&!passRdLlmRange(getRdLlmScore(r))) return false;
         if(_rdTemplateFilter&&resultTemplateId(r)!==_rdTemplateFilter) return false;
-        return passRdPerfFilter(r);
+        return true;
     }).sort(function(a,b){
         var ta=resultTemplateName(a), tb=resultTemplateName(b);
         if(ta!==tb) return ta.localeCompare(tb);
@@ -774,10 +811,8 @@ function renderRD(run){
     var lastTemplateId=null;
     filtered.forEach(function(r,idx){
         var templateStageRowsForCase=resultTemplateStageRows(r);
-        var totalCaseScore=caseStageScore(r,templateStageRowsForCase);
+        var caseState=caseStateMeta(r,templateStageRowsForCase);
         var tn=(r.turns||[]).length;
-        var toolInfo=r.toolMatchSummary&&r.toolMatchSummary!=='n/a'?' | tool '+r.toolMatchSummary:'';
-        var seqScore=(r.toolCalls&&r.toolCalls.sequence)?r.toolCalls.sequence.score:0;
         var llmScore=(r.llmJudge&&isFinite(Number(r.llmJudge.score)))?Math.max(0,Math.min(100,Math.round(Number(r.llmJudge.score)))):null;
         if(llmScore===null&&Array.isArray(r.stageChecks)){
             var q=(r.stageChecks||[]).find(function(item){return item.key==='responseQuality';});
@@ -790,12 +825,9 @@ function renderRD(run){
             else if(llmScore<85){llmColor='var(--c-amber)';llmBg='var(--c-amber-bg)';}
             llmTag='<span class="tag" style="background:'+llmBg+';color:'+llmColor+';font-size:11px">LLM '+llmScore+'</span>';
         }
-        var risk=r.riskLevel||'medium';
-        var riskTag=risk==='high'?'<span class="tag" style="background:var(--c-red-bg);color:var(--c-red)">高风险</span>':(risk==='low'?'<span class="tag" style="background:var(--c-green-bg);color:var(--c-green)">低风险</span>':'<span class="tag" style="background:var(--c-amber-bg);color:var(--c-amber)">中风险</span>');
         var caseKey=ea(r.caseId);
         var selected=!!_runSelectedCaseIds[r.caseId];
         var cmts=r.comments||[];
-        var tier=uidTier(r.userId);
         var headArrCls=_rdReadMode?'arr open':'arr';
         var bodyOpenCls=_rdReadMode?'rc-body open':'rc-body';
         var templateId=resultTemplateId(r);
@@ -817,17 +849,13 @@ function renderRD(run){
             :'<button class="btn btn-flat btn-sm" onclick="toggleCaseReviewFlag(\''+run.id+'\',\''+caseKey+'\',true)">标为有问题</button>';
         h+='<div class="rc-row'+(r.reviewFlagged?' rc-row-flagged':'')+'"><div class="rc-head" onclick="toggleRC(this)">'+
             '<span class="'+headArrCls+'">&#9654;</span>'+
-            '<span class="tag" style="background:'+(totalCaseScore>=85?'var(--c-green-bg)':(totalCaseScore>=70?'var(--c-amber-bg)':'var(--c-red-bg)'))+';color:'+scoreColor(totalCaseScore)+';font-size:11px">得分 '+totalCaseScore+'</span>'+
-            '<span class="tag" style="background:var(--c-blue-bg);color:var(--c-blue);font-size:11px">'+esc(templateName)+'</span>'+
+            '<span class="tag" style="background:'+caseState.bg+';color:'+caseState.color+';font-size:11px">'+caseState.chipText+'</span>'+
             llmTag+
             '<label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--c-text2)" onclick="event.stopPropagation()"><input type="checkbox" '+(selected?'checked':'')+' onchange="toggleRunCaseSelect(\''+caseKey+'\',this.checked)">勾选</label>'+
             (r.reviewFlagged?'<span class="tag" style="background:var(--c-amber-bg);color:var(--c-amber);font-size:11px">待查</span>':'')+
-            '<span class="rc-id" onclick="event.stopPropagation()">'+esc(r.caseId)+'</span>'+
-            '<span class="tag" style="'+tier.style+';font-size:11px">'+tier.label+'</span>'+
             '<span class="rc-name">'+esc(r.caseName||'')+'</span>'+
-            '<span class="rc-meta">'+tn+' 轮'+toolInfo+' | 评测点 '+templateStageRowsForCase.length+' 项 | '+fd(r.durationMs)+'</span>'+
+            '<span class="rc-meta">'+tn+' 轮 | 评测点 '+templateStageRowsForCase.length+' 项 | '+fd(r.durationMs)+'</span>'+
             '<span class="rc-actions" onclick="event.stopPropagation()">'+
-            riskTag+
             flagAct+
             '<button class="btn btn-flat btn-sm" onclick="openCompareModal(\''+caseKey+'\')">对比</button>'+
             '<button class="btn btn-flat btn-sm" onclick="quickCaseCmt(\''+run.id+'\',\''+caseKey+'\')">评论</button>'+
@@ -993,51 +1021,10 @@ function renderRD(run){
                 flowCard(4,'生成最终回复',sRender,renderSummary,ccRender.checkedFields)+
                 '</div></div></details>';
         }
-        if(r.metrics){
-            h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">'+
-                '<span class="tag" style="background:var(--c-blue-bg);color:var(--c-blue)">首字 '+(r.metrics.firstTokenMs||0)+'ms</span>'+
-                '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">LLM '+((r.metrics.latencyBreakdown&&r.metrics.latencyBreakdown.llmMs)||0)+'ms</span>'+
-                '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">Tool '+((r.metrics.latencyBreakdown&&r.metrics.latencyBreakdown.toolMs)||0)+'ms</span>'+
-                '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">DB '+((r.metrics.latencyBreakdown&&r.metrics.latencyBreakdown.dbMs)||0)+'ms</span>'+
-                '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">Token '+((r.metrics.tokenUsage&&r.metrics.tokenUsage.totalTokens)||0)+'</span>'+
-                '<span class="tag" style="background:#f3f4f6;color:var(--c-text2)">$'+Number(r.metrics.costUsd||0).toFixed(4)+'</span>'+
-                '</div>';
-        }
         if(r.failReason) h+='<div style="color:var(--c-red);font-size:12px;margin-bottom:12px;padding:8px 12px;background:var(--c-red-bg);border-radius:6px">'+esc(r.failReason)+'</div>';
 
         var turns=r.turns||[];
-        if(turns.length){
-            function fullInputText(resultTurns){
-                return resultTurns.map(function(t,i){
-                    return (resultTurns.length>1?('第 '+(t.turnIndex||i+1)+' 段：'):'')+(t.userInput||'');
-                }).join('\n');
-            }
-            function fullReplyText(resultTurns){
-                var replies=resultTurns.map(function(t,i){
-                    if(!t.llmReplyText) return '';
-                    return (resultTurns.length>1?('第 '+(t.turnIndex||i+1)+' 段：'):'')+t.llmReplyText;
-                }).filter(Boolean);
-                return replies.join('\n')||finalReplyText(r);
-            }
-            var dbIdx=_debugData.length;
-            _debugData.push({
-                skill:turns.map(function(t){return t.skillResultJson||'';}).filter(Boolean).join('\n\n'),
-                hints:turns.map(function(t){return t.hintsJson||'';}).filter(Boolean).join('\n\n'),
-                label:(r.caseName||r.caseId||'Case')+' 调试信息'
-            });
-            h+='<details open style="border:1px solid var(--c-border);border-radius:8px;margin-bottom:10px;background:#fff;overflow:hidden">'+
-                '<summary style="cursor:pointer;padding:10px 12px;font-size:13px;font-weight:800;color:var(--c-text)">评测明细 <span class="tag" style="background:#f3f4f6;color:var(--c-text2);margin-left:6px">'+turns.length+' 段输入</span></summary>'+
-                '<div style="padding:12px;display:grid;gap:10px">'+
-                '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">'+
-                '<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:5px">用户输入</div><div class="td-text" style="white-space:pre-wrap;max-height:160px">'+esc(fullInputText(turns))+'</div></div>'+
-                '<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:5px">模型输出</div><div class="td-text" style="white-space:pre-wrap;max-height:160px">'+esc(fullReplyText(turns))+'</div></div>'+
-                '</div>'+
-                '<div><div style="font-size:11px;color:var(--c-text3);margin-bottom:6px">stage_results</div>'+renderStageScoreRows(templateStageRowsForCase)+'</div>'+
-                '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-                (_debugData[dbIdx].skill?'<button class="btn btn-flat btn-sm" onclick="openDebugModal(_debugData['+dbIdx+'].skill,_debugData['+dbIdx+'].hints,_debugData['+dbIdx+'].label)">查看 SkillResult / Hints</button>':'')+
-                '</div>'+
-                '</div></details>';
-        } else {
+        if(!turns.length){
             h+='<div class="empty">无轮次数据</div>';
         }
 

@@ -79,7 +79,7 @@ export function evaluateFieldStage(stage, expected, actualOutput) {
     stage_name: stage.name,
     eval_type: 'structure_match',
     pass,
-    score: pass ? 100 : 0,
+    score: null,
     expected,
     actual,
     reason: pass

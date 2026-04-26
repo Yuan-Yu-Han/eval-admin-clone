@@ -22,7 +22,7 @@ export function evaluateTextStage(stage, expectedMap, expected, actualOutput) {
     stage_name: stage.name,
     eval_type: 'text_match',
     pass,
-    score: pass ? 100 : 0,
+    score: null,
     expected: [
       contains.length ? `包含: ${contains.join(', ')}` : '',
       notContains.length ? `不能包含: ${notContains.join(', ')}` : '',

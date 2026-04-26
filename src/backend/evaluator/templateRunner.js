@@ -20,9 +20,17 @@ export function evaluateTemplateStage(stage, caseDoc, actualOutput) {
 
 export function evaluateCase({ template, caseDoc, actualOutput, durationMs = 500 }) {
   const stageResults = (template.stages || []).map((stage) => evaluateTemplateStage(stage, caseDoc, actualOutput || {}));
-  const pass = stageResults.every((stage) => stage.pass);
+  const hardStageResults = stageResults.filter((stage) => stage.eval_type !== 'llm_judge');
+  const llmStageResult = stageResults.find((stage) => stage.eval_type === 'llm_judge') || null;
+  const hardPass = hardStageResults.every((stage) => stage.pass);
+  const llmPass = llmStageResult ? !!llmStageResult.pass : true;
+  const pass = hardPass && llmPass;
   const input = caseDoc.input1 || ((caseDoc.turns || [])[0]?.userInput) || '';
-  const avgScore = Math.round(stageResults.reduce((sum, stage) => sum + stage.score, 0) / Math.max(1, stageResults.length));
+  const numericScores = stageResults.map((stage) => Number(stage.score)).filter((score) => isFinite(score));
+  const avgScore = numericScores.length
+    ? Math.round(numericScores.reduce((sum, score) => sum + score, 0) / numericScores.length)
+    : null;
+  const llmThreshold = llmStageResult ? Number(llmStageResult.judge_threshold || llmStageResult.threshold || 80) : null;
   return {
     caseId: caseDoc.caseId,
     caseName: caseDoc.name,
@@ -47,7 +55,9 @@ export function evaluateCase({ template, caseDoc, actualOutput, durationMs = 500
       actual: stage.actual,
       summary: stage.reason
     })),
-    llmJudge: { score: avgScore, reason: pass ? '模板检查全部通过' : '存在未通过检查点' },
+    llmJudge: avgScore === null
+      ? { pass: llmPass, score: null, threshold: llmThreshold, reason: pass ? '模板检查全部通过' : '存在未通过检查点' }
+      : { pass: llmPass, score: avgScore, threshold: llmThreshold, reason: pass ? '模板检查全部通过' : '存在未通过检查点' },
     turns: [{
       turnIndex: 1,
       userInput: input,

@@ -229,6 +229,7 @@ const seedMockConfigs = [
     mockType: 'vehicle_api',
     userLatitude: 36.292,
     userLongitude: 120.369,
+    mockOutputs: buildVehicleTemplateMockOutputs(),
     vehicles: [
       {
         values: {
@@ -315,10 +316,30 @@ const seedMockConfigs = [
     mockType: 'ticket_dialogue',
     userLatitude: 0,
     userLongitude: 0,
+    mockOutputs: buildVoiceTicketTemplateMockOutputs(),
     vehicles: []
   }
 ];
 let mockConfigs = [];
+
+function mergeSeedMockConfigs(existing = [], seeds = []) {
+  if (!existing.length) return JSON.parse(JSON.stringify(seeds || []));
+  const byId = new Map((existing || []).map((item) => [item.configId, item]));
+  (seeds || []).forEach((seed) => {
+    const current = byId.get(seed.configId);
+    if (!current) {
+      byId.set(seed.configId, JSON.parse(JSON.stringify(seed)));
+      return;
+    }
+    current.mockOutputs = { ...(seed.mockOutputs || {}), ...(current.mockOutputs || {}) };
+    if (!Array.isArray(current.vehicles) || !current.vehicles.length) current.vehicles = JSON.parse(JSON.stringify(seed.vehicles || []));
+    if (current.userLatitude === undefined || current.userLatitude === null) current.userLatitude = seed.userLatitude;
+    if (current.userLongitude === undefined || current.userLongitude === null) current.userLongitude = seed.userLongitude;
+    if (!current.mockType) current.mockType = seed.mockType;
+    if (!current.name) current.name = seed.name;
+  });
+  return Array.from(byId.values());
+}
 
 const promptKeys = promptSeed.keys;
 const promptContent = promptSeed.content;
@@ -393,9 +414,11 @@ runs = compactProjectRuns(await stateStore.loadRuns(), seedRuns)
   .filter((item) => PROJECT_STORAGE_IDS.includes(normalizeRunProject(item).projectId));
 customTemplates = (await stateStore.loadTemplates())
   .filter((item) => PROJECT_STORAGE_IDS.includes(item.projectId || (item.projectIds || [])[0]));
-mockConfigs = (await stateStore.loadMockConfigs())
-  .filter((item) => PROJECT_STORAGE_IDS.includes(item.projectId));
-if (!mockConfigs.length) mockConfigs = JSON.parse(JSON.stringify(seedMockConfigs));
+mockConfigs = mergeSeedMockConfigs(
+  (await stateStore.loadMockConfigs())
+    .filter((item) => PROJECT_STORAGE_IDS.includes(item.projectId)),
+  seedMockConfigs
+);
 await stateStore.saveCases(cases);
 await stateStore.saveRuns(runs);
 await stateStore.saveTemplates(customTemplates);
@@ -690,6 +713,79 @@ function operationReportResult({ city, queryDate, title, items, analysis = [] })
         }
       ],
       dataSource: 'mock.city_operation_daily'
+    }
+  };
+}
+
+function buildVehicleTemplateMockOutputs() {
+  return {
+    demo_open_left_front_door: {
+      function_name: 'open_door',
+      arguments: { door_position: 'left_front' },
+      final_reply: '已为你打开左前门。'
+    },
+    demo_qingdao_yesterday_report: {
+      function_name: 'vehicle_operation_data_query',
+      arguments: { city: '青岛', queryDate: '昨天' },
+      intermediate_calls: [
+        { tool: 'vehicle_operation_data_query', status: 'SUCCESS', dataset: 'mock.city_operation_daily' }
+      ],
+      final_reply: '青岛昨天整体运营正常，运营车辆数 1,222 辆，有效任务数 17,754 单。'
+    },
+    demo_rename_assistant_xiaozhi: {
+      function_name: 'update_user_agent_name',
+      arguments: { agentName: '小智', pendingConfirm: true },
+      final_reply: '好的，之后我可以叫小智，不过还需要你确认一下。'
+    },
+    demo_open_task_center: {
+      function_name: 'return_app_native_router',
+      arguments: { routeName: 'task_center' },
+      final_reply: '好的，马上带你去任务中心。'
+    },
+    demo_door_troubleshooting: {
+      final_reply: '可以先检查车辆状态、账号权限，以及车门当前是否处于可操作状态。'
+    }
+  };
+}
+
+function buildVoiceTicketTemplateMockOutputs() {
+  return {
+    voice_ticket_structuring_001: {
+      function_name: 'voice_ticket_structuring',
+      arguments: {
+        ticketType: 'vehicle_fault',
+        issueType: 'door_open_failure',
+        vehicleId: 'A001',
+        location: '青岛市南区',
+        contactPhone: '13800000000',
+        routeQueue: 'vehicle_ops_queue',
+        missingFields: []
+      },
+      final_reply: '已结构化为车辆故障工单，保留了 A001、青岛市南区、无法开门和联系电话。'
+    },
+    voice_ticket_field_extract_001: {
+      function_name: 'ticket_field_extract',
+      arguments: {
+        ticketType: 'vehicle_fault',
+        issueType: 'low_battery',
+        vehicleId: 'X6S5002',
+        location: '深圳宝安园区',
+        deadline: '今天下午前',
+        routeQueue: 'vehicle_ops_queue',
+        missingFields: ['contactPhone']
+      },
+      final_reply: '已抽取 X6S5002、低电量、深圳宝安园区和今天下午前，联系电话缺失。'
+    },
+    voice_ticket_route_001: {
+      function_name: 'ticket_category_route',
+      arguments: {
+        ticketType: 'customer_complaint',
+        issueType: 'delivery_delay',
+        priority: 'high',
+        routeQueue: 'after_sales_followup',
+        missingFields: ['vehicleId', 'contactPhone']
+      },
+      final_reply: '已识别为投诉升级场景，建议售后回访并升级处理。'
     }
   };
 }
